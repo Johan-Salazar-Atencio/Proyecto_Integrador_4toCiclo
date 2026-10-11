@@ -1,5 +1,12 @@
 package com.plantia.screens.scan
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.util.Log
+import android.widget.Toast as AndroidToast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,7 +35,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.res.Configuration
-import android.widget.Toast as AndroidToast
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.getValue
@@ -56,11 +62,43 @@ fun ScanScreen(
     var showToast by remember { mutableStateOf(false) }
     var toastMessage by remember { mutableStateOf("") }
     var captureTrigger by remember { mutableStateOf(0) }
+    var hasCameraPermission by remember { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            hasCameraPermission = isGranted
+            Log.d("ScanScreen", "Permiso de cámara: ${if (isGranted) "CONCEDIDO" else "DENEGADO"}")
+        }
+    )
+
+    // Verificar permiso al iniciar
+    LaunchedEffect(Unit) {
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        hasCameraPermission = granted
+        if (!granted) {
+            Log.d("ScanScreen", "Solicitando permiso de cámara desde ScanScreen")
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
 
     val onImageCaptured = { file: File ->
         lastCapturedFile = file
         toastMessage = "Foto guardada: ${file.name}"
         showToast = true
+        Log.d("ScanScreen", "Callback onImageCaptured: ${file.absolutePath}")
+        Unit
+    }
+
+    val onCaptureClick = onCaptureClick@ {
+        Log.d("ScanScreen", "Botón de captura presionado")
+        if (!hasCameraPermission) {
+            Log.w("ScanScreen", "Intento de captura sin permiso de cámara")
+            toastMessage = "Permiso de cámara requerido"
+            showToast = true
+            return@onCaptureClick
+        }
+        captureTrigger++
     }
 
     Box(
@@ -87,7 +125,7 @@ fun ScanScreen(
                     CameraPreview(
                         modifier = Modifier.fillMaxSize(),
                         onImageCaptured = onImageCaptured,
-                        onCaptureRequest = { captureTrigger++ }
+                        captureTrigger = captureTrigger
                     )
 
                     // Contenedor del marco verde con padding superior para evitar colisión con TopBar
@@ -150,7 +188,7 @@ fun ScanScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                     ScanControlsBar(
                         onGalleryClick = { },
-                        onCaptureClick = { captureTrigger++ },
+                        onCaptureClick = onCaptureClick,
                         onFlashClick = { },
                         onFlipCameraClick = { }
                     )
@@ -171,7 +209,7 @@ fun ScanScreen(
                     CameraPreview(
                         modifier = Modifier.fillMaxSize(),
                         onImageCaptured = onImageCaptured,
-                        onCaptureRequest = { captureTrigger++ }
+                        captureTrigger = captureTrigger
                     )
 
                     // Contenedor del marco verde con padding superior para evitar colisión con TopBar
@@ -233,7 +271,7 @@ fun ScanScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     ScanControlsBar(
                         onGalleryClick = { },
-                        onCaptureClick = { captureTrigger++ },
+                        onCaptureClick = onCaptureClick,
                         onFlashClick = { },
                         onFlipCameraClick = { }
                     )
@@ -241,7 +279,7 @@ fun ScanScreen(
             }
         }
 
-        // Toast para mostrar confirmación de captura
+        // Toast para mostrar confirmación de captura o errores
         if (showToast) {
             LaunchedEffect(showToast) {
                 AndroidToast.makeText(context, toastMessage, AndroidToast.LENGTH_SHORT).show()

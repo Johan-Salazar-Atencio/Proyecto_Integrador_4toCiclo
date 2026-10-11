@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import android.view.ViewGroup.LayoutParams
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -55,7 +56,7 @@ import java.util.concurrent.Executors
 fun CameraPreview(
     modifier: Modifier = Modifier,
     onImageCaptured: ((File) -> Unit)? = null,
-    onCaptureRequest: (() -> Unit)? = null
+    captureTrigger: Int = 0
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -80,9 +81,10 @@ fun CameraPreview(
     val executorService = remember { Executors.newSingleThreadExecutor() }
     val coroutineScope = remember { CoroutineScope(Dispatchers.IO) }
 
-    // Expose takePicture function to parent via callback
+    // Función para tomar foto - expuesta para ser llamada desde LaunchedEffect
     val takePicture = remember {
-        { onImageCaptured: ((File) -> Unit)? ->
+        { callback: ((File) -> Unit)? ->
+            Log.d("CameraPreview", "Iniciando toma de foto real")
             imageCapture.value?.let { capture ->
                 coroutineScope.launch {
                     val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -104,28 +106,32 @@ fun CameraPreview(
                         ContextCompat.getMainExecutor(context),
                         object : ImageCapture.OnImageSavedCallback {
                             override fun onError(exc: ImageCaptureException) {
-                                exc.printStackTrace()
+                                Log.e("CameraPreview", "Error al guardar foto: ${exc.message}", exc)
+                                // TODO: Mostrar Toast de error desde el contexto Compose
                             }
 
                             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                                onImageCaptured?.invoke(outputFile)
+                                Log.d("CameraPreview", "Foto guardada exitosamente: ${outputFile.absolutePath}")
+                                callback?.invoke(outputFile)
                             }
                         }
                     )
                 }
-            }
+            } ?: Log.e("CameraPreview", "ImageCapture es null, no se puede tomar foto")
         }
     }
 
-    // Allow parent to request capture
-    onCaptureRequest?.let { request ->
-        LaunchedEffect(request) {
+    // Observar captureTrigger y disparar captura cuando cambie
+    LaunchedEffect(captureTrigger) {
+        if (captureTrigger > 0) {
             takePicture(onImageCaptured)
         }
     }
 
+    // Solicitar permiso si no se tiene
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
+            Log.d("CameraPreview", "Solicitando permiso de cámara")
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
@@ -160,7 +166,9 @@ fun CameraPreview(
                                 preview,
                                 capture
                             )
+                            Log.d("CameraPreview", "Cámara vinculada exitosamente con ImageCapture")
                         } catch (e: Exception) {
+                            Log.e("CameraPreview", "Error al vincular cámara: ${e.message}", e)
                             e.printStackTrace()
                         }
                     }, ContextCompat.getMainExecutor(ctx))
