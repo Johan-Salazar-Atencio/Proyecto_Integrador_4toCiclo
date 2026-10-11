@@ -1,8 +1,12 @@
 package com.plantia.screens.scan.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,12 +24,19 @@ import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 
 @Composable
 fun ScanControlsBar(
@@ -35,6 +46,13 @@ fun ScanControlsBar(
     onFlipCameraClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    // Estado para animación de escala del botón de captura
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isPressed) 0.85f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
+    )
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -70,14 +88,23 @@ fun ScanControlsBar(
             )
         }
 
-        // 2. Disparador Central
+        // 2. Disparador Central con animación de escala
         Box(
             modifier = Modifier
                 .size(72.dp)
                 .clip(CircleShape)
                 .background(Color(0xFF10B981))
                 .border(4.dp, Color.White, CircleShape)
-                .clickable { onCaptureClick() },
+                .graphicsLayer { scaleX = scale; scaleY = scale }
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = { isPressed = true },
+                        onTap = { 
+                            isPressed = false
+                            onCaptureClick()
+                        }
+                    )
+                },
             contentAlignment = Alignment.Center
         ) {
             Icon(

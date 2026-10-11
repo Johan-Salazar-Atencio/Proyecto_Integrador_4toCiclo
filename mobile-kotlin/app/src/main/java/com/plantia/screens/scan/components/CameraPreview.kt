@@ -22,6 +22,9 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -92,6 +95,10 @@ fun CameraPreview(
     val executorService = remember { Executors.newSingleThreadExecutor() }
     val coroutineScope = remember { CoroutineScope(Dispatchers.IO) }
 
+    // Estado para animación de flash de obturador
+    var shutterFlashAlpha by remember { mutableStateOf(0f) }
+    val triggerFlash = { shutterFlashAlpha = 1f }
+
     // Obtener la rotación actual de la pantalla
     val displayRotation = remember { mutableStateOf(getDisplayRotation(context)) }
     
@@ -107,6 +114,19 @@ fun CameraPreview(
                 .build()
             imageCapture.value = newCapture
             Log.d("CameraPreview", "ImageCapture recreado con targetRotation: ${displayRotation.value}")
+        }
+    }
+
+    // Animación del flash: 0 -> 0.7 -> 0 en ~150ms
+    val animatedFlashAlpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = shutterFlashAlpha,
+        animationSpec = tween(75, delayMillis = 0, easing = FastOutSlowInEasing)
+    )
+
+    // Reset flash alpha después de la animación
+    LaunchedEffect(animatedFlashAlpha) {
+        if (animatedFlashAlpha > 0.6f) {
+            shutterFlashAlpha = 0f
         }
     }
 
@@ -153,6 +173,8 @@ fun CameraPreview(
     // Función para tomar foto - expuesta para ser llamada desde LaunchedEffect
     val takePicture = remember {
         { callback: ((File) -> Unit)? ->
+            // Disparar animación de flash inmediatamente
+            triggerFlash()
             Log.d("CameraPreview", "Iniciando toma de foto real")
             imageCapture.value?.let { capture ->
                 // Actualizar targetRotation dinámicamente antes de capturar
@@ -212,49 +234,60 @@ fun CameraPreview(
     }
 
     if (hasCameraPermission) {
-        AndroidView(
-            factory = { ctx ->
-                PreviewView(ctx).apply {
-                    layoutParams = LayoutParams(
-                        LayoutParams.MATCH_PARENT,
-                        LayoutParams.MATCH_PARENT
-                    )
-                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                    scaleType = PreviewView.ScaleType.FILL_CENTER
-                    // Guardar referencia al PreviewView para acceder a display.rotation
-                    previewViewRef.value = this
+        Box(modifier = modifier.fillMaxSize()) {
+            AndroidView(
+                factory = { ctx ->
+                    PreviewView(ctx).apply {
+                        layoutParams = LayoutParams(
+                            LayoutParams.MATCH_PARENT,
+                            LayoutParams.MATCH_PARENT
+                        )
+                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                        scaleType = PreviewView.ScaleType.FILL_CENTER
+                        // Guardar referencia al PreviewView para acceder a display.rotation
+                        previewViewRef.value = this
 
-                    val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                    cameraProviderFuture.addListener({
-                        try {
-                            val cameraProvider = cameraProviderFuture.get()
-                            val preview = Preview.Builder().build().also {
-                                it.setSurfaceProvider(surfaceProvider)
+                        val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+                        cameraProviderFuture.addListener({
+                            try {
+                                val cameraProvider = cameraProviderFuture.get()
+                                val preview = Preview.Builder().build().also {
+                                    it.setSurfaceProvider(surfaceProvider)
+                                }
+                                // Configurar ImageCapture con targetRotation inicial
+                                val capture = ImageCapture.Builder()
+                                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                                    .setTargetRotation(displayRotation.value)
+                                    .build()
+                                imageCapture.value = capture
+                                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                                cameraProvider.unbindAll()
+                                cameraProvider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    cameraSelector,
+                                    preview,
+                                    capture
+                                )
+                                Log.d("CameraPreview", "Cámara vinculada exitosamente con ImageCapture, targetRotation: ${displayRotation.value}")
+                            } catch (e: Exception) {
+                                Log.e("CameraPreview", "Error al vincular cámara: ${e.message}", e)
+                                e.printStackTrace()
                             }
-                            // Configurar ImageCapture con targetRotation inicial
-                            val capture = ImageCapture.Builder()
-                                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                                .setTargetRotation(displayRotation.value)
-                                .build()
-                            imageCapture.value = capture
-                            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                            cameraProvider.unbindAll()
-                            cameraProvider.bindToLifecycle(
-                                lifecycleOwner,
-                                cameraSelector,
-                                preview,
-                                capture
-                            )
-                            Log.d("CameraPreview", "Cámara vinculada exitosamente con ImageCapture, targetRotation: ${displayRotation.value}")
-                        } catch (e: Exception) {
-                            Log.e("CameraPreview", "Error al vincular cámara: ${e.message}", e)
-                            e.printStackTrace()
-                        }
-                    }, ContextCompat.getMainExecutor(ctx))
-                }
-            },
-            modifier = modifier.fillMaxSize()
-        )
+                        }, ContextCompat.getMainExecutor(ctx))
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // Overlay de flash de obturador
+            if (animatedFlashAlpha > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.White.copy(alpha = animatedFlashAlpha * 0.7f))
+                )
+            }
+        }
     } else {
         FallbackCameraPreview(modifier = modifier)
     }
