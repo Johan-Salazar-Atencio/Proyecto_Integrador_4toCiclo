@@ -3,6 +3,10 @@ package com.plantia.screens.scan.components
 import android.Manifest
 import android.content.ContentValues
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -49,6 +53,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -83,6 +88,7 @@ fun CameraPreview(
     )
 
     val imageCapture = remember { mutableStateOf<ImageCapture?>(null) }
+    val previewViewRef = remember { mutableStateOf<PreviewView?>(null) }
     val executorService = remember { Executors.newSingleThreadExecutor() }
     val coroutineScope = remember { CoroutineScope(Dispatchers.IO) }
 
@@ -104,11 +110,56 @@ fun CameraPreview(
         }
     }
 
+    // Función para corregir orientación EXIF del archivo guardado
+    fun fixExifOrientation(photoFile: File) {
+        try {
+            val exif = ExifInterface(photoFile.absolutePath)
+            val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+            
+            var degrees = 0
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> degrees = 90
+                ExifInterface.ORIENTATION_ROTATE_180 -> degrees = 180
+                ExifInterface.ORIENTATION_ROTATE_270 -> degrees = 270
+                else -> degrees = 0
+            }
+            
+            if (degrees != 0) {
+                Log.d("CameraPreview", "Corrigiendo orientación EXIF: $degrees grados")
+                val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
+                if (bitmap != null) {
+                    val matrix = Matrix().apply { postRotate(degrees.toFloat()) }
+                    val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                    
+                    // Sobrescribir el archivo con la imagen rotada
+                    FileOutputStream(photoFile).use { outputStream ->
+                        rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
+                    }
+                    
+                    // Actualizar EXIF a orientación normal
+                    exif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
+                    exif.saveAttributes()
+                    
+                    bitmap.recycle()
+                    rotatedBitmap.recycle()
+                    Log.d("CameraPreview", "Archivo corregido y sobrescrito: ${photoFile.absolutePath}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("CameraPreview", "Error corrigiendo EXIF: ${e.message}", e)
+        }
+    }
+
     // Función para tomar foto - expuesta para ser llamada desde LaunchedEffect
     val takePicture = remember {
         { callback: ((File) -> Unit)? ->
             Log.d("CameraPreview", "Iniciando toma de foto real")
             imageCapture.value?.let { capture ->
+                // Actualizar targetRotation dinámicamente antes de capturar
+                val currentRotation = previewViewRef.value?.display?.rotation ?: getDisplayRotation(context)
+                capture.targetRotation = currentRotation
+                Log.d("CameraPreview", "targetRotation actualizado dinámicamente a: $currentRotation")
+                
                 coroutineScope.launch {
                     val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                     val fileName = "plantia_scan_$timestamp.jpg"
@@ -134,6 +185,8 @@ fun CameraPreview(
 
                             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                                 Log.d("CameraPreview", "Foto guardada exitosamente: ${outputFile.absolutePath}")
+                                // Corregir orientación EXIF antes de notificar
+                                fixExifOrientation(outputFile)
                                 callback?.invoke(outputFile)
                             }
                         }
@@ -168,6 +221,8 @@ fun CameraPreview(
                     )
                     implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                     scaleType = PreviewView.ScaleType.FILL_CENTER
+                    // Guardar referencia al PreviewView para acceder a display.rotation
+                    previewViewRef.value = this
 
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                     cameraProviderFuture.addListener({
@@ -176,7 +231,7 @@ fun CameraPreview(
                             val preview = Preview.Builder().build().also {
                                 it.setSurfaceProvider(surfaceProvider)
                             }
-                            // Configurar ImageCapture con targetRotation basado en la orientación actual
+                            // Configurar ImageCapture con targetRotation inicial
                             val capture = ImageCapture.Builder()
                                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                                 .setTargetRotation(displayRotation.value)
