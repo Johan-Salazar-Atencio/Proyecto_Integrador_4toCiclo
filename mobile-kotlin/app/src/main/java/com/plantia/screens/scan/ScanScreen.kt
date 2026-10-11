@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.verticalScroll
 import com.plantia.screens.scan.components.CameraPreview
 import com.plantia.screens.scan.components.RecentScansRow
@@ -57,7 +56,7 @@ fun ScanScreen(
                     .navigationBarsPadding(),
                 horizontalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                // LADO IZQUIERDO: 60% (weight 1.2f) - Cámara + marco verde centrado
+                // LADO IZQUIERDO: 60% (weight 1.2f) - Cámara + marco verde con márgenes
                 Box(
                     modifier = Modifier
                         .weight(1.2f)
@@ -65,12 +64,21 @@ fun ScanScreen(
                         .background(Color.Black)
                 ) {
                     CameraPreview(modifier = Modifier.fillMaxSize())
-                    ScanOverlay(modifier = Modifier.align(Alignment.Center))
 
-                    // Barra superior con botón volver
+                    // Contenedor del marco verde con padding superior para evitar colisión con TopBar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 72.dp, start = 24.dp, end = 24.dp, bottom = 16.dp)
+                    ) {
+                        ScanOverlay(modifier = Modifier.align(Alignment.Center))
+                    }
+
+                    // Barra superior (TopBar) con statusBarsPadding
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .statusBarsPadding()
                             .padding(horizontal = 16.dp, vertical = 12.dp)
                             .align(Alignment.TopStart),
                         verticalAlignment = Alignment.CenterVertically
@@ -136,9 +144,17 @@ fun ScanScreen(
                         .background(Color.Black)
                 ) {
                     CameraPreview(modifier = Modifier.fillMaxSize())
-                    ScanOverlay(modifier = Modifier.align(Alignment.Center))
 
-                    // Barra superior con botón volver
+                    // Contenedor del marco verde con padding superior para evitar colisión con TopBar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 72.dp, start = 24.dp, end = 24.dp, bottom = 16.dp)
+                    ) {
+                        ScanOverlay(modifier = Modifier.align(Alignment.Center))
+                    }
+
+                    // Barra superior (TopBar) con statusBarsPadding
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
