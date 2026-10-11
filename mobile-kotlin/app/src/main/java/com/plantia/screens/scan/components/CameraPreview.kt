@@ -7,7 +7,9 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import android.view.Display
 import android.view.ViewGroup.LayoutParams
+import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -38,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -51,6 +54,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import android.content.Context
 
 @Composable
 fun CameraPreview(
@@ -60,6 +64,7 @@ fun CameraPreview(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val configuration = LocalConfiguration.current
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -80,6 +85,24 @@ fun CameraPreview(
     val imageCapture = remember { mutableStateOf<ImageCapture?>(null) }
     val executorService = remember { Executors.newSingleThreadExecutor() }
     val coroutineScope = remember { CoroutineScope(Dispatchers.IO) }
+
+    // Obtener la rotación actual de la pantalla
+    val displayRotation = remember { mutableStateOf(getDisplayRotation(context)) }
+    
+    // Actualizar rotación cuando cambia la configuración (orientación)
+    LaunchedEffect(configuration.orientation) {
+        displayRotation.value = getDisplayRotation(context)
+        Log.d("CameraPreview", "Rotación de pantalla actualizada: ${displayRotation.value}")
+        // Recrear ImageCapture con la nueva rotación si la cámara ya está vinculada
+        imageCapture.value?.let { currentCapture ->
+            val newCapture = ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .setTargetRotation(displayRotation.value)
+                .build()
+            imageCapture.value = newCapture
+            Log.d("CameraPreview", "ImageCapture recreado con targetRotation: ${displayRotation.value}")
+        }
+    }
 
     // Función para tomar foto - expuesta para ser llamada desde LaunchedEffect
     val takePicture = remember {
@@ -107,7 +130,6 @@ fun CameraPreview(
                         object : ImageCapture.OnImageSavedCallback {
                             override fun onError(exc: ImageCaptureException) {
                                 Log.e("CameraPreview", "Error al guardar foto: ${exc.message}", exc)
-                                // TODO: Mostrar Toast de error desde el contexto Compose
                             }
 
                             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
@@ -154,8 +176,10 @@ fun CameraPreview(
                             val preview = Preview.Builder().build().also {
                                 it.setSurfaceProvider(surfaceProvider)
                             }
+                            // Configurar ImageCapture con targetRotation basado en la orientación actual
                             val capture = ImageCapture.Builder()
                                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                                .setTargetRotation(displayRotation.value)
                                 .build()
                             imageCapture.value = capture
                             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -166,7 +190,7 @@ fun CameraPreview(
                                 preview,
                                 capture
                             )
-                            Log.d("CameraPreview", "Cámara vinculada exitosamente con ImageCapture")
+                            Log.d("CameraPreview", "Cámara vinculada exitosamente con ImageCapture, targetRotation: ${displayRotation.value}")
                         } catch (e: Exception) {
                             Log.e("CameraPreview", "Error al vincular cámara: ${e.message}", e)
                             e.printStackTrace()
@@ -179,6 +203,11 @@ fun CameraPreview(
     } else {
         FallbackCameraPreview(modifier = modifier)
     }
+}
+
+private fun getDisplayRotation(context: Context): Int {
+    val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+    return windowManager.defaultDisplay.rotation
 }
 
 @Composable
