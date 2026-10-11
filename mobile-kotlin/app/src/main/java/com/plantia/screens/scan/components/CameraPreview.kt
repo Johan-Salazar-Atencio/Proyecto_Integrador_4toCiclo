@@ -1,11 +1,17 @@
 package com.plantia.screens.scan.components
 
 import android.Manifest
+import android.content.ContentValues
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import android.view.ViewGroup.LayoutParams
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -35,10 +41,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 @Composable
 fun CameraPreview(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onImageCaptured: ((File) -> Unit)? = null,
+    onCaptureRequest: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -58,6 +75,54 @@ fun CameraPreview(
             hasCameraPermission = isGranted
         }
     )
+
+    val imageCapture = remember { mutableStateOf<ImageCapture?>(null) }
+    val executorService = remember { Executors.newSingleThreadExecutor() }
+    val coroutineScope = remember { CoroutineScope(Dispatchers.IO) }
+
+    // Expose takePicture function to parent via callback
+    val takePicture = remember {
+        { onImageCaptured: ((File) -> Unit)? ->
+            imageCapture.value?.let { capture ->
+                coroutineScope.launch {
+                    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                    val fileName = "plantia_scan_$timestamp.jpg"
+                    val outputFile = File(context.cacheDir, fileName)
+
+                    val contentValues = ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                        put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/Plantia")
+                        }
+                    }
+
+                    val outputOptions = ImageCapture.OutputFileOptions.Builder(outputFile).build()
+
+                    capture.takePicture(
+                        outputOptions,
+                        ContextCompat.getMainExecutor(context),
+                        object : ImageCapture.OnImageSavedCallback {
+                            override fun onError(exc: ImageCaptureException) {
+                                exc.printStackTrace()
+                            }
+
+                            override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                                onImageCaptured?.invoke(outputFile)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    // Allow parent to request capture
+    onCaptureRequest?.let { request ->
+        LaunchedEffect(request) {
+            takePicture(onImageCaptured)
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
@@ -83,12 +148,17 @@ fun CameraPreview(
                             val preview = Preview.Builder().build().also {
                                 it.setSurfaceProvider(surfaceProvider)
                             }
+                            val capture = ImageCapture.Builder()
+                                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                                .build()
+                            imageCapture.value = capture
                             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
                             cameraProvider.unbindAll()
                             cameraProvider.bindToLifecycle(
                                 lifecycleOwner,
                                 cameraSelector,
-                                preview
+                                preview,
+                                capture
                             )
                         } catch (e: Exception) {
                             e.printStackTrace()

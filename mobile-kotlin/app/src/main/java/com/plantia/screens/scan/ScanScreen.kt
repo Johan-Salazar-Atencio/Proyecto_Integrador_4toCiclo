@@ -24,15 +24,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.res.Configuration
+import android.widget.Toast as AndroidToast
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.plantia.screens.scan.components.CameraPreview
 import com.plantia.screens.scan.components.RecentScansRow
 import com.plantia.screens.scan.components.ScanControlsBar
 import com.plantia.screens.scan.components.ScanOverlay
+import java.io.File
+import kotlinx.coroutines.delay
 
 @Composable
 fun ScanScreen(
@@ -41,6 +50,18 @@ fun ScanScreen(
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val context = LocalContext.current
+
+    var lastCapturedFile by remember { mutableStateOf<File?>(null) }
+    var showToast by remember { mutableStateOf(false) }
+    var toastMessage by remember { mutableStateOf("") }
+    var captureTrigger by remember { mutableStateOf(0) }
+
+    val onImageCaptured = { file: File ->
+        lastCapturedFile = file
+        toastMessage = "Foto guardada: ${file.name}"
+        showToast = true
+    }
 
     Box(
         modifier = modifier
@@ -63,7 +84,11 @@ fun ScanScreen(
                         .fillMaxSize()
                         .background(Color.Black)
                 ) {
-                    CameraPreview(modifier = Modifier.fillMaxSize())
+                    CameraPreview(
+                        modifier = Modifier.fillMaxSize(),
+                        onImageCaptured = onImageCaptured,
+                        onCaptureRequest = { captureTrigger++ }
+                    )
 
                     // Contenedor del marco verde con padding superior para evitar colisión con TopBar
                     Box(
@@ -125,7 +150,7 @@ fun ScanScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                     ScanControlsBar(
                         onGalleryClick = { },
-                        onCaptureClick = { },
+                        onCaptureClick = { captureTrigger++ },
                         onFlashClick = { },
                         onFlipCameraClick = { }
                     )
@@ -143,7 +168,11 @@ fun ScanScreen(
                         .fillMaxWidth()
                         .background(Color.Black)
                 ) {
-                    CameraPreview(modifier = Modifier.fillMaxSize())
+                    CameraPreview(
+                        modifier = Modifier.fillMaxSize(),
+                        onImageCaptured = onImageCaptured,
+                        onCaptureRequest = { captureTrigger++ }
+                    )
 
                     // Contenedor del marco verde con padding superior para evitar colisión con TopBar
                     Box(
@@ -204,11 +233,20 @@ fun ScanScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     ScanControlsBar(
                         onGalleryClick = { },
-                        onCaptureClick = { },
+                        onCaptureClick = { captureTrigger++ },
                         onFlashClick = { },
                         onFlipCameraClick = { }
                     )
                 }
+            }
+        }
+
+        // Toast para mostrar confirmación de captura
+        if (showToast) {
+            LaunchedEffect(showToast) {
+                AndroidToast.makeText(context, toastMessage, AndroidToast.LENGTH_SHORT).show()
+                delay(2000)
+                showToast = false
             }
         }
     }
