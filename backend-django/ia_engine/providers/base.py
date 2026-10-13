@@ -33,8 +33,8 @@ PROMPT_IDENTIFICAR = (
 )
 
 PROMPT_CUIDADOS = (
-    "Eres un botanico experto. Para la planta '{nombre}' (nombre cientifico "
-    "'{cientifico}') responde SOLO con un objeto JSON valido, sin texto "
+    "Eres un botanico experto. Para la planta '__NOMBRE__' (nombre cientifico "
+    "'__CIENTIFICO__') responde SOLO con un objeto JSON valido, sin texto "
     "adicional, con la forma: "
     '{"nombre_comun": "string", "nombre_cientifico": "string", '
     '"es_toxica_mascotas": true|false, "frecuencia_riego_dias": int, '
@@ -45,8 +45,17 @@ PROMPT_CUIDADOS = (
 )
 
 
-def _seguro_json(texto):
-    """Extrae el primer objeto JSON de un texto del modelo."""
+def prompt_cuidados(nombre_comun: str, nombre_cientifico: str = "") -> str:
+    """Rellena el prompt de cuidados sin romper las llaves literales del JSON."""
+    return (
+        PROMPT_CUIDADOS
+        .replace("__NOMBRE__", nombre_comun or "planta")
+        .replace("__CIENTIFICO__", nombre_cientifico or "")
+    )
+
+
+def parse_json(texto):
+    """Extrae el primer objeto JSON de un texto del modelo (tolera ```json)."""
     if isinstance(texto, dict):
         return texto
     texto = (texto or "").strip()

@@ -1,4 +1,5 @@
 """Servicios del motor de IA: inferencia + persistencia en el catalogo."""
+import json
 import logging
 
 from django.db import transaction
@@ -7,7 +8,19 @@ from catalog.models import CuidadoSeccion, PlantaCatalogo
 
 logger = logging.getLogger(__name__)
 
-_SPRITE_DEFECTO = "/assets/plantas/default.png"
+_SPRITE_DEFECTO = "/sprites/default.png"
+_RIEGO_DEFECTO = 7
+_SOL_DEFECTO = 4
+
+
+def _json_obj(valor):
+    """Convierte `datosRaw` (texto JSON) en objeto para el JSONField de Postgres."""
+    if valor is None or isinstance(valor, (dict, list)):
+        return valor
+    try:
+        return json.loads(valor)
+    except (TypeError, ValueError):
+        return {"raw": str(valor)}
 
 
 @transaction.atomic
@@ -25,7 +38,10 @@ def persistir_catalogo(resultado: dict) -> int:
         nombre_cientifico=cientifico or comun,
         defaults={
             "nombre_comun": comun,
-            "datos_ia_raw": resultado.get("datosRaw"),
+            "frecuencia_riego_dias": int(resultado.get("frecuenciaRiegoDias") or _RIEGO_DEFECTO),
+            "frecuencia_sol_horas": int(resultado.get("frecuenciaSolHoras") or _SOL_DEFECTO),
+            "es_toxica_mascotas": bool(resultado.get("esToxicaMascotas", False)),
+            "datos_ia_raw": _json_obj(resultado.get("datosRaw")),
             "sprite_base_url": _SPRITE_DEFECTO,
         },
     )
@@ -58,7 +74,7 @@ def persistir_catalogo(resultado: dict) -> int:
 def reemplazar_cuidados(id_catalogo: int, resultado: dict) -> int:
     """Regenera las secciones de cuidado de una planta existente."""
     planta = PlantaCatalogo.objects.get(pk=id_catalogo)
-    planta.datos_ia_raw = resultado.get("datosRaw")
+    planta.datos_ia_raw = _json_obj(resultado.get("datosRaw"))
     if resultado.get("esToxicaMascotas") is not None:
         planta.es_toxica_mascotas = resultado["esToxicaMascotas"]
     if resultado.get("frecuenciaRiegoDias"):

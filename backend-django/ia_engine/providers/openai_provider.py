@@ -1,15 +1,15 @@
 """Proveedor en la nube basado en OpenAI (modelo con vision, ej. gpt-4o)."""
 import base64
-import json
 
 from django.conf import settings
 
 from .base import (
-    PROMPT_CUIDADOS,
     PROMPT_IDENTIFICAR,
     IaProvider,
     normalizar_cuidados,
     normalizar_identificacion,
+    parse_json,
+    prompt_cuidados,
 )
 
 
@@ -49,13 +49,13 @@ class OpenAIProvider(IaProvider):
             },
         ]
         contenido = self._chat(mensajes)
-        return normalizar_identificacion(json.loads(contenido), contenido)
+        return normalizar_identificacion(parse_json(contenido), contenido)
 
     def cuidados_de(self, nombre_comun: str, nombre_cientifico: str = "") -> dict:
-        prompt = PROMPT_CUIDADOS.format(nombre=nombre_comun, cientifico=nombre_cientifico)
+        prompt = prompt_cuidados(nombre_comun, nombre_cientifico)
         mensajes = [
             {"role": "system", "content": prompt},
             {"role": "user", "content": f"Genera la ficha de {nombre_comun}."},
         ]
         contenido = self._chat(mensajes)
-        return normalizar_cuidados(json.loads(contenido), contenido)
+        return normalizar_cuidados(parse_json(contenido), contenido)

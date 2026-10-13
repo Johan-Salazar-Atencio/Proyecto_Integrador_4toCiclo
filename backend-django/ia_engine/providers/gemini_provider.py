@@ -1,14 +1,13 @@
 """Proveedor en la nube basado en Google Gemini (modelo con vision)."""
-import json
-
 from django.conf import settings
 
 from .base import (
-    PROMPT_CUIDADOS,
     PROMPT_IDENTIFICAR,
     IaProvider,
     normalizar_cuidados,
     normalizar_identificacion,
+    parse_json,
+    prompt_cuidados,
 )
 
 
@@ -37,9 +36,9 @@ class GeminiProvider(IaProvider):
         mime = "image/png" if filename.lower().endswith(".png") else "image/jpeg"
         partes = [PROMPT_IDENTIFICAR, {"mime_type": mime, "data": image_bytes}]
         contenido = self._generar(partes)
-        return normalizar_identificacion(json.loads(contenido), contenido)
+        return normalizar_identificacion(parse_json(contenido), contenido)
 
     def cuidados_de(self, nombre_comun: str, nombre_cientifico: str = "") -> dict:
-        prompt = PROMPT_CUIDADOS.format(nombre=nombre_comun, cientifico=nombre_cientifico)
+        prompt = prompt_cuidados(nombre_comun, nombre_cientifico)
         contenido = self._generar([prompt])
-        return normalizar_cuidados(json.loads(contenido), contenido)
+        return normalizar_cuidados(parse_json(contenido), contenido)

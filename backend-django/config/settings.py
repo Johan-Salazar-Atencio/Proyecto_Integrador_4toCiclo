@@ -42,6 +42,14 @@ INSTALLED_APPS = [
     "admin_panel",
 ]
 
+# Django NO es dueno del DDL: Spring Boot lo aplica con Flyway.
+# Desactivamos las migraciones de estas apps; sus modelos usan managed=False.
+MIGRATION_MODULES = {
+    "catalog": None,
+    "ia_engine": None,
+    "admin_panel": None,
+}
+
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
