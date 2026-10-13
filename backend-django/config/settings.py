@@ -81,17 +81,28 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME", "plantia"),
-        "USER": os.getenv("DB_USER", "plantia"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "plantia"),
-        "HOST": os.getenv("DB_HOST", "localhost"),
-        "PORT": os.getenv("DB_PORT", "5432"),
-        "OPTIONS": {"connect_timeout": 5},
+DB_ENGINE = os.getenv("DB_ENGINE", "django.db.backends.postgresql")
+
+if DB_ENGINE.endswith("sqlite3"):
+    # Util para correr tests sin PostgreSQL: DB_ENGINE=sqlite3 manage.py test
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.getenv("DB_NAME", ":memory:"),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME", "plantia"),
+            "USER": os.getenv("DB_USER", "plantia"),
+            "PASSWORD": os.getenv("DB_PASSWORD", "plantia"),
+            "HOST": os.getenv("DB_HOST", "localhost"),
+            "PORT": os.getenv("DB_PORT", "5432"),
+            "OPTIONS": {"connect_timeout": 5},
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
