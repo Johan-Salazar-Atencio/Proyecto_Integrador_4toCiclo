@@ -42,10 +42,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.screens.scan.components.CameraPreview
+import com.plantia.screens.scan.components.PlantResultCard
 import com.plantia.screens.scan.components.RecentScansRow
 import com.plantia.screens.scan.components.ScanControlsBar
 import com.plantia.screens.scan.components.ScanOverlay
+import com.plantia.screens.scan.viewmodel.ScanUiState
+import com.plantia.screens.scan.viewmodel.ScanViewModel
 import java.io.File
 import kotlinx.coroutines.delay
 
@@ -57,6 +61,7 @@ fun ScanScreen(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val context = LocalContext.current
+    val scanViewModel: ScanViewModel = viewModel()
 
     var lastCapturedFile by remember { mutableStateOf<File?>(null) }
     var showToast by remember { mutableStateOf(false) }
@@ -84,9 +89,9 @@ fun ScanScreen(
 
     val onImageCaptured = { file: File ->
         lastCapturedFile = file
-        toastMessage = "Foto guardada: ${file.name}"
-        showToast = true
         Log.d("ScanScreen", "Callback onImageCaptured: ${file.absolutePath}")
+        // Enviar la foto al backend para identificar la planta
+        scanViewModel.escanear(file)
         Unit
     }
 
@@ -276,6 +281,24 @@ fun ScanScreen(
                         onFlipCameraClick = { }
                     )
                 }
+            }
+        }
+
+        // Resultado del escaneo (identificación + cuidados) sobre la cámara
+        val scanState = scanViewModel.uiState
+        if (scanState != ScanUiState.Idle) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(16.dp)
+            ) {
+                PlantResultCard(
+                    state = scanState,
+                    foto = lastCapturedFile,
+                    onCerrar = { scanViewModel.reiniciar() }
+                )
             }
         }
 
