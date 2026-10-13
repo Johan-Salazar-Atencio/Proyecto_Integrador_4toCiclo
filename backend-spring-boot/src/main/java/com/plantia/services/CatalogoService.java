@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,8 +34,21 @@ public class CatalogoService {
 
     @Transactional(readOnly = true)
     public List<CatalogoItemDto> buscar(String q, Boolean toxica) {
-        String query = (q == null || q.isBlank()) ? null : q.trim();
-        return catalogoRepo.buscar(query, toxica).stream().map(CatalogoService::toDto).toList();
+        String query = (q == null || q.isBlank()) ? null : q.trim().toLowerCase();
+
+        Specification<PlantaCatalogo> spec = (root, cq, cb) -> cb.conjunction();
+        if (query != null) {
+            String like = "%" + query + "%";
+            spec = spec.and((root, cq, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("nombreComun")), like),
+                    cb.like(cb.lower(root.get("nombreCientifico")), like)));
+        }
+        if (toxica != null) {
+            spec = spec.and((root, cq, cb) -> cb.equal(root.get("esToxicaMascotas"), toxica));
+        }
+
+        return catalogoRepo.findAll(spec, Sort.by(Sort.Direction.ASC, "nombreComun"))
+                .stream().map(CatalogoService::toDto).toList();
     }
 
     @Transactional(readOnly = true)

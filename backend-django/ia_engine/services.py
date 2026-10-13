@@ -32,19 +32,32 @@ def persistir_catalogo(resultado: dict) -> int:
     """
     cientifico = (resultado.get("nombreCientifico") or "").strip()
     comun = (resultado.get("nombreComun") or "Planta").strip()
+    clave = cientifico or comun
     cuidados = resultado.get("cuidados") or []
 
-    planta, _creada = PlantaCatalogo.objects.update_or_create(
-        nombre_cientifico=cientifico or comun,
+    planta, _ = PlantaCatalogo.objects.get_or_create(
+        nombre_cientifico=clave,
         defaults={
             "nombre_comun": comun,
             "frecuencia_riego_dias": int(resultado.get("frecuenciaRiegoDias") or _RIEGO_DEFECTO),
             "frecuencia_sol_horas": int(resultado.get("frecuenciaSolHoras") or _SOL_DEFECTO),
-            "es_toxica_mascotas": bool(resultado.get("esToxicaMascotas", False)),
-            "datos_ia_raw": _json_obj(resultado.get("datosRaw")),
             "sprite_base_url": _SPRITE_DEFECTO,
         },
     )
+
+    # Solo se sobrescriben los campos que la IA realmente aporta; el resto se
+    # conserva (evita pisar datos curados al re-persistir una especie).
+    if resultado.get("nombreComun"):
+        planta.nombre_comun = comun
+    if resultado.get("frecuenciaRiegoDias"):
+        planta.frecuencia_riego_dias = int(resultado["frecuenciaRiegoDias"])
+    if resultado.get("frecuenciaSolHoras"):
+        planta.frecuencia_sol_horas = int(resultado["frecuenciaSolHoras"])
+    if resultado.get("esToxicaMascotas") is not None:
+        planta.es_toxica_mascotas = bool(resultado["esToxicaMascotas"])
+    if resultado.get("datosRaw") is not None:
+        planta.datos_ia_raw = _json_obj(resultado.get("datosRaw"))
+    planta.save()
 
     CuidadoSeccion.objects.filter(id_catalogo=planta).delete()
     filas = [

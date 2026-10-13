@@ -1,9 +1,11 @@
 package com.plantia.services;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -40,7 +42,11 @@ public class StorageService {
             String name = "scan_" + timestamp + "_" + UUID.randomUUID().toString().substring(0, 8) + ext;
 
             Path target = dir.resolve(name);
-            file.transferTo(target.toFile());
+            // Copia (no transferTo, que mueve el temporal y deja ilegible el
+            // MultipartFile para la llamada posterior a la IA).
+            try (InputStream in = file.getInputStream()) {
+                Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+            }
             return publicBaseUrl + "/" + name;
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
