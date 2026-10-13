@@ -19,7 +19,11 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-    locations: ${FLYWAY_LOCATIONS:filesystem:../db/migration}
+    # Acepta ambos CWD: backend-spring-boot (mvn spring-boot:run) y la raiz (java -jar).
+    fail-on-missing-locations: false
+    locations:
+      - "${FLYWAY_LOCATIONS:filesystem:../db/migration}"
+      - "filesystem:db/migration"
   servlet:
     multipart:
       max-file-size: 15MB
