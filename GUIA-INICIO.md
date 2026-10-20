@@ -1,0 +1,149 @@
+# Guía de inicio manual (Plantia)
+
+Pasos para levantar el proyecto completo a mano y probarlo igual que en el
+entorno de desarrollo. La app móvil habla con **Spring Boot**, que a su vez
+consulta el motor de IA de **Django**, y ambos comparten la misma base
+**PostgreSQL**.
+
+## Arquitectura de puertos
+
+| Servicio     | Puerto | Rol                                              |
+|--------------|--------|--------------------------------------------------|
+| PostgreSQL   | 5432   | Base de datos compartida (Docker)                |
+| Django       | 8000   | Motor de IA (Gemini/local/mock) + admin          |
+| Spring Boot  | 8080   | API que consume el móvil                         |
+| App Android  | -      | Se conecta a Spring vía `adb reverse`            |
+
+## Requisitos
+
+- Docker Desktop (corriendo)
+- JDK 17 + Maven (o IntelliJ IDEA)
+- Python 3.11 o superior
+- Android Studio / SDK + `adb` (con el teléfono por USB)
+- Una clave de Gemini (gratuita): https://aistudio.google.com/apikey
+
+## 1) Base de datos (PostgreSQL)
+
+Desde la raíz del repo:
+
+```powershell
+docker compose up -d postgres flyway
+```
+
+Levanta Postgres en `5432` y aplica el esquema (migraciones Flyway de
+`db/migration`).
+
+> **Si el puerto 5432 ya está ocupado** por otro Postgres en la máquina, usa
+> este contenedor en `5433`:
+>
+> ```powershell
+> docker run -d --name plantia-postgres -e POSTGRES_DB=plantia -e POSTGRES_USER=plantia -e POSTGRES_PASSWORD=plantia -p 5433:5432 -v plantia_pgdata:/var/lib/postgresql/data postgres:16-alpine
+> ```
+>
+> y ajusta el puerto a **5433** en los pasos 2 y 3.
+
+## 2) Django (IA + admin) — puerto 8000
+
+```powershell
+cd backend-django
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+Crea `backend-django\.env` (cópialo de `.env.example`) con:
+
+```
+DB_NAME=plantia
+DB_USER=plantia
+DB_PASSWORD=plantia
+DB_HOST=localhost
+DB_PORT=5432
+IA_PROVIDER=auto
+GEMINI_API_KEY=<tu clave de Gemini>
+GEMINI_MODEL=gemini-flash-latest
+CORS_ALLOW_ALL=true
+```
+
+Arranca:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py migrate --run-syncdb
+.\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
+```
+
+> Si no pones clave de Gemini, deja `IA_PROVIDER=mock`: el flujo funciona pero
+> la identificación es simulada (siempre Monstera).
+
+## 3) Spring Boot (API del móvil) — puerto 8080
+
+Desde `backend-spring-boot`, define las variables y arranca:
+
+```powershell
+$env:DB_URL="jdbc:postgresql://localhost:5432/plantia?stringtype=unspecified"
+$env:DB_USER="plantia"
+$env:DB_PASSWORD="plantia"
+$env:IA_BASE_URL="http://127.0.0.1:8000"
+mvn spring-boot:run
+```
+
+> Usa **127.0.0.1** (no `localhost`) en `IA_BASE_URL`: en algunas máquinas
+> `localhost` resuelve a IPv6 (`::1`) y la conexión falla.
+>
+> Alternativa con IntelliJ: abre `backend-spring-boot` y ejecuta
+> `com.plantia.PlantiaApplication` con esas mismas variables de entorno.
+
+## 4) Probar el backend (sin teléfono)
+
+Con una foto de planta a mano (`foto.jpg`):
+
+```powershell
+curl http://127.0.0.1:8000/api/health
+
+curl -X POST http://127.0.0.1:8080/api/v1/escaneos `
+  -H "X-User-Id: 1" `
+  -F "foto=@foto.jpg"
+```
+
+Debe devolver `nombreComun`, `nombreCientifico`, `confianza` y `cuidados`
+reales.
+
+## 5) App Android (móvil)
+
+Crea `mobile-kotlin\local.properties`:
+
+```
+sdk.dir=C\:\\Users\\<usuario>\\AppData\\Local\\Android\\Sdk
+```
+
+Con el teléfono conectado por USB y la depuración USB activada:
+
+```powershell
+adb devices
+adb reverse tcp:8080 tcp:8080
+
+cd mobile-kotlin
+.\gradlew.bat :app:installDebug -PapiBaseUrl=http://127.0.0.1:8080/
+```
+
+Abre la app → cámara → **Capturar** una planta y verás la especie real.
+
+> Con **emulador** no hace falta `adb reverse`; omite `-PapiBaseUrl` para usar
+> el valor por defecto `http://10.0.2.2:8080/`.
+
+## Orden de arranque
+
+1. `docker compose up -d postgres flyway`
+2. Django en **8000**
+3. Spring Boot en **8080**
+4. App móvil (`adb reverse` + install)
+
+## Problemas comunes
+
+- **Al guardar una foto la identificación es siempre "Monstera"**: estás en
+  `mock`. Revisa `IA_PROVIDER` y `GEMINI_API_KEY` en `.env`.
+- **Django responde 503/429 con Gemini**: es saturación temporal del tier
+  gratuito; el proveedor reintenta solo. Si persiste, prueba de nuevo.
+- **Spring no alcanza a Django**: confirma `IA_BASE_URL=http://127.0.0.1:8000`
+  y que Django escuche en `127.0.0.1:8000`.
+- **El puerto 5432 está ocupado**: usa el contenedor en `5433` (paso 1) y ajusta
+  los puertos en Django (`.env`) y Spring (`DB_URL`).

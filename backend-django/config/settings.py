@@ -141,7 +141,7 @@ IA_PROVIDER = os.getenv("IA_PROVIDER", "auto")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
 LOCAL_IA_URL = os.getenv("LOCAL_IA_URL", "http://localhost:11434")
 LOCAL_IA_MODEL = os.getenv("LOCAL_IA_MODEL", "llava")
 
