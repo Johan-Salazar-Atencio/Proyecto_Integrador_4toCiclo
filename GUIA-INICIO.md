@@ -137,13 +137,62 @@ Abre la app → cámara → **Capturar** una planta y verás la especie real.
 3. Spring Boot en **8080**
 4. App móvil (`adb reverse` + install)
 
+## IA institucional (Open WebUI + vLLM)
+
+El motor por defecto del proyecto es el servidor institucional: **Open WebUI**
+(proxy de vLLM) con API compatible con OpenAI.
+
+| Dato | Valor |
+|---|---|
+| Base URL | `http://192.168.17.11:3000/api/v1` |
+| Modelo | `Qwen/Qwen3.6-35B-A3B-FP8` (multimodal, con visión) |
+| Auth | `Authorization: Bearer <API key de Open WebUI>` |
+
+En `backend-django/.env`:
+
+```
+IA_PROVIDER=webui
+WEBUI_BASE_URL=http://192.168.17.11:3000/api/v1
+WEBUI_API_KEY=<tu API key de Open WebUI>
+WEBUI_MODEL=Qwen/Qwen3.6-35B-A3B-FP8
+```
+
+Proveedores disponibles en Django (`ia_engine/providers/`):
+
+| `IA_PROVIDER` | Uso |
+|---|---|
+| `webui` | **Institucional** (Open WebUI / vLLM). Requiere `WEBUI_API_KEY` |
+| `gemini` | Nube de Google. Requiere `GEMINI_API_KEY` |
+| `openai` | Nube de OpenAI. Requiere `OPENAI_API_KEY` |
+| `local` | Ollama directo (`LOCAL_IA_URL` / `LOCAL_IA_MODEL`) |
+| `mock` | Simulado, sin claves (siempre devuelve Monstera) |
+| `auto` | Elige el primero disponible: openai → webui → gemini → local → mock |
+
+### Usarlo como modelo en opencode
+
+El repo incluye `opencode.json` con el proveedor `plantia-institucional`.
+Define la clave por variable de entorno para no subirla al repositorio:
+
+```powershell
+setx PLANTIA_WEBUI_API_KEY "sk-..."   # una vez, luego reinicia opencode
+```
+
+Después aparece en `/models` como
+`plantia-institucional/Qwen/Qwen3.6-35B-A3B-FP8`.
+
 ## Problemas comunes
 
 - **Al guardar una foto la identificación es siempre "Monstera"**: estás en
-  `mock`. Revisa `IA_PROVIDER` y `GEMINI_API_KEY` en `.env`.
+  `mock`. Revisa `IA_PROVIDER` en `.env`.
 - **Django responde 503/429 con Gemini**: es saturación temporal del tier
   gratuito; el proveedor reintenta solo. Si persiste, prueba de nuevo.
+- **`webui` da 401**: el API key de Open WebUI expiró o no es el correcto.
+  Revísalo en Open WebUI → *Settings → API Keys*.
+- **El modelo no identifica bien una planta**: debe ser multimodal. Con un
+  modelo solo-texto la respuesta sale sin especie.
 - **Spring no alcanza a Django**: confirma `IA_BASE_URL=http://127.0.0.1:8000`
   y que Django escuche en `127.0.0.1:8000`.
 - **El puerto 5432 está ocupado**: usa el contenedor en `5433` (paso 1) y ajusta
   los puertos en Django (`.env`) y Spring (`DB_URL`).
+- **El puerto 8000 está ocupado** (WSL/Docker lo toma en `::`): levanta Django
+  en `8001` y ajusta `IA_BASE_URL=http://127.0.0.1:8001`.
