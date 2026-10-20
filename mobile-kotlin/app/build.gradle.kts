@@ -19,8 +19,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // URL base del backend (Spring Boot). En emulador 10.0.2.2 apunta al host.
-        // Para un dispositivo fisico usar la IP LAN de la PC, p.ej. http://192.168.1.10:8080/
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
+        // Dispositivo fisico por USB: -PapiBaseUrl=http://127.0.0.1:8080/ + adb reverse tcp:8080 tcp:8080
+        // Dispositivo fisico por WiFi: -PapiBaseUrl=http://<IP-LAN-PC>:8080/
+        val apiBaseUrl = (project.findProperty("apiBaseUrl") as String?) ?: "http://10.0.2.2:8080/"
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
     buildTypes {
