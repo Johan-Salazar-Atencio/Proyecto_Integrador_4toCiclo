@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -18,11 +20,22 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // URL base del backend (Spring Boot). En emulador 10.0.2.2 apunta al host.
-        // Dispositivo fisico por USB: -PapiBaseUrl=http://127.0.0.1:8080/ + adb reverse tcp:8080 tcp:8080
-        // Dispositivo fisico por WiFi: -PapiBaseUrl=http://<IP-LAN-PC>:8080/
-        val apiBaseUrl = (project.findProperty("apiBaseUrl") as String?) ?: "http://10.0.2.2:8080/"
+        // URL base del backend (Spring Boot).
+        // Orden de resolucion: -PapiBaseUrl= > local.properties > emulador (10.0.2.2).
+        // La app prueba la principal y, si no responde, cae a los respaldos
+        // (por ejemplo WiFi de la PC y luego adb reverse por USB).
+        val localProps = Properties().apply {
+            val f = rootProject.file("local.properties")
+            if (f.exists()) f.inputStream().use { load(it) }
+        }
+        val apiBaseUrl = (project.findProperty("apiBaseUrl") as String?)
+            ?: localProps.getProperty("plantia.api.baseUrl")
+            ?: "http://10.0.2.2:8080/"
+        val apiFallbackUrls = (project.findProperty("apiFallbackUrls") as String?)
+            ?: localProps.getProperty("plantia.api.fallbackUrls")
+            ?: ""
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "API_FALLBACK_URLS", "\"$apiFallbackUrls\"")
     }
 
     buildTypes {

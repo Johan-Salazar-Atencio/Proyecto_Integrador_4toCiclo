@@ -115,20 +115,53 @@ Crea `mobile-kotlin\local.properties`:
 sdk.dir=C\:\\Users\\<usuario>\\AppData\\Local\\Android\\Sdk
 ```
 
-Con el teléfono conectado por USB y la depuración USB activada:
+La app necesita saber a qué host conectarse. Se configura **por máquina** en
+`local.properties` (está en `.gitignore`, no se sube al repo):
+
+```
+plantia.api.baseUrl=http://<IP-WIFI-DE-TU-PC>:8080/
+plantia.api.fallbackUrls=http://127.0.0.1:8080/,http://10.0.2.2:8080/
+```
+
+| Clave | Significado |
+|---|---|
+| `plantia.api.baseUrl` | Principal. La **IP de tu PC en la WiFi** → el móvil va directo, sin cable |
+| `plantia.api.fallbackUrls` | Respaldos: `127.0.0.1` (USB con `adb reverse`) y `10.0.2.2` (emulador) |
+
+Al arrancar, la app **prueba** la principal y, si no responde, cae al primer
+respaldo que conteste. Así funciona por WiFi y por USB sin recompilar.
+
+También puedes fijarlo en la invocación de Gradle (tiene prioridad sobre
+`local.properties`):
 
 ```powershell
-adb devices
-adb reverse tcp:8080 tcp:8080
+.\gradlew.bat :app:installDebug -PapiBaseUrl=http://<IP-LAN-PC>:8080/
+```
 
-cd mobile-kotlin
-.\gradlew.bat :app:installDebug -PapiBaseUrl=http://127.0.0.1:8080/
+### Puente USB automático
+
+`adb reverse` vive en la sesión ADB del cable: **al desconectar y reconectar se
+pierde** y el móvil deja de alcanzar `127.0.0.1:8080`. Para que se reponga solo,
+deja el script corriendo:
+
+```powershell
+scripts\conectar-dispositivo.bat
+```
+
+Vigila la conexión ADB y reaplica `adb reverse tcp:8080 tcp:8080` cada 2 s.
+Puedes dejarloMinimizado; cierra con `Ctrl+C`.
+
+### Verificar desde el teléfono
+
+```powershell
+adb shell curl -s http://127.0.0.1:8080/api/v1/usuarios/me   # por USB
+adb shell curl -s http://<IP-LAN-PC>:8080/api/v1/usuarios/me # por WiFi
 ```
 
 Abre la app → cámara → **Capturar** una planta y verás la especie real.
 
-> Con **emulador** no hace falta `adb reverse`; omite `-PapiBaseUrl` para usar
-> el valor por defecto `http://10.0.2.2:8080/`.
+> Con **emulador** no hace falta `adb reverse`; `10.0.2.2` ya está en los
+> respaldos.
 
 ## Orden de arranque
 
@@ -190,6 +223,10 @@ Después aparece en `/models` como
   Revísalo en Open WebUI → *Settings → API Keys*.
 - **El modelo no identifica bien una planta**: debe ser multimodal. Con un
   modelo solo-texto la respuesta sale sin especie.
+- **La app no conecta ("failed to connect")**: la URL base se fija al compilar.
+  Revisa `plantia.api.baseUrl` en `local.properties` y que la IP sea la actual
+  (`ipconfig`). Si usas USB, ejecuta `scripts\conectar-dispositivo.bat`: el
+  puente `adb reverse` se pierde en cada reconexión del cable.
 - **Spring no alcanza a Django**: confirma `IA_BASE_URL=http://127.0.0.1:8000`
   y que Django escuche en `127.0.0.1:8000`.
 - **El puerto 5432 está ocupado**: usa el contenedor en `5433` (paso 1) y ajusta
