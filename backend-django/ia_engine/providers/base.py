@@ -70,6 +70,28 @@ def parse_json(texto):
     return json.loads(texto[inicio : fin + 1])
 
 
+def _datos_raw(raw) -> str:
+    """Garantiza que `datosRaw` sea un JSON valido.
+
+    La columna `respuesta_ia_raw` / `datos_ia_raw` es JSONB: si el modelo
+    responde con texto antes del JSON ("Aqui tienes: {...}"), insertar la
+    respuesta cruda revienta la columna. En ese caso se envuelve el texto
+    crudo en un objeto JSON, de modo que nunca se pierde la respuesta.
+    """
+    if raw is None:
+        return "{}"
+    if isinstance(raw, (dict, list)):
+        return json.dumps(raw, ensure_ascii=False)
+    texto = str(raw).strip()
+    if not texto:
+        return "{}"
+    try:
+        json.loads(texto)
+        return texto
+    except (TypeError, ValueError):
+        return json.dumps({"respuesta_cruda": texto}, ensure_ascii=False)
+
+
 def _normalizar_cuidados(items):
     salida = []
     for item in items or []:
@@ -94,7 +116,7 @@ def normalizar_identificacion(data, raw):
         or "Especie no identificada",
         "confianza": float(data.get("confianza") or 0),
         "cuidados": _normalizar_cuidados(data.get("cuidados")),
-        "datosRaw": raw,
+        "datosRaw": _datos_raw(raw),
     }
 
 

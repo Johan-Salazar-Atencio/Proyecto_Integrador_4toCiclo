@@ -20,6 +20,7 @@ import com.plantia.models.PlantaCatalogo;
 import com.plantia.repositories.ColeccionUsuarioRepository;
 import com.plantia.repositories.EscaneoHistorialRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
+import com.plantia.util.JsonRawUtil;
 
 @Service
 public class EscaneoService {
@@ -71,7 +72,7 @@ public class EscaneoService {
         escaneo.setIdCatalogo(catalogo != null ? catalogo.getIdCatalogo() : null);
         escaneo.setImagenFotoUrl(imagenUrl);
         escaneo.setConfianzaIa(ia.confianza() != null ? BigDecimal.valueOf(ia.confianza()) : null);
-        escaneo.setRespuestaIaRaw(ia.datosRaw() != null ? ia.datosRaw() : "{}");
+        escaneo.setRespuestaIaRaw(JsonRawUtil.seguro(ia.datosRaw() != null ? ia.datosRaw() : "{}"));
         escaneo.setFechaEscaneo(LocalDateTime.now());
         escaneo = escaneoRepo.save(escaneo);
 

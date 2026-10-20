@@ -16,6 +16,7 @@ import com.plantia.models.CuidadoSeccion;
 import com.plantia.models.PlantaCatalogo;
 import com.plantia.repositories.CuidadoSeccionRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
+import com.plantia.util.JsonRawUtil;
 
 @Service
 public class CatalogoService {
@@ -90,7 +91,7 @@ public class CatalogoService {
         if (ia.nombreComun() != null && !ia.nombreComun().isBlank()) {
             catalogo.setNombreComun(ia.nombreComun());
         }
-        catalogo.setDatosIaRaw(ia.datosRaw());
+        catalogo.setDatosIaRaw(JsonRawUtil.seguro(ia.datosRaw()));
         catalogo.setUpdatedAt(LocalDateTime.now());
         catalogo = catalogoRepo.save(catalogo);
 
