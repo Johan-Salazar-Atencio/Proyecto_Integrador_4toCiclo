@@ -74,6 +74,12 @@ interface PlantiaApi {
     suspend fun coleccion(
         @Header("X-User-Id") userId: Int
     ): Response<List<ColeccionItemDto>>
+
+    /** Detalle de un item de la coleccion, con sus cuidados. */
+    @GET("api/v1/coleccion/{id}")
+    suspend fun coleccionDetalle(
+        @Path("id") idColeccion: Int
+    ): Response<ColeccionDetalleDto>
 }
 
 /** GET /api/v1/escaneos/recientes */
@@ -108,4 +114,10 @@ data class ColeccionItemDto(
     val primeraVez: String? = null,
     val ultimaVez: String? = null,
     val esToxicaMascotas: Boolean = false
+)
+
+/** GET /api/v1/coleccion/{id} */
+data class ColeccionDetalleDto(
+    val item: ColeccionItemDto = ColeccionItemDto(),
+    val cuidados: List<CuidadoSeccionDto> = emptyList()
 )

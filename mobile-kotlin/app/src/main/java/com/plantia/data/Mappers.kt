@@ -1,6 +1,9 @@
 package com.plantia.data
 
 import androidx.compose.ui.graphics.Color
+import com.plantia.data.remote.CatalogoItemDto
+import com.plantia.data.remote.ColeccionItemDto
+import com.plantia.data.remote.CuidadoSeccionDto
 import com.plantia.data.remote.DailyMissionDto
 import com.plantia.data.remote.PlantSummaryDto
 import com.plantia.data.remote.QuickAccessDto
@@ -8,6 +11,9 @@ import com.plantia.data.remote.RecentScanDto
 import com.plantia.data.remote.UserSummaryDto
 import com.plantia.data.remote.WeatherAlertDto
 import com.plantia.model.AlertSeverity
+import com.plantia.model.CatalogoItem
+import com.plantia.model.ColeccionItem
+import com.plantia.model.Cuidado
 import com.plantia.model.DailyMission
 import com.plantia.model.PlantSummary
 import com.plantia.model.QuickAccessItem
@@ -93,4 +99,37 @@ fun RecentScanDto.toDomain(): RecentScan = RecentScan(
     plantName = plantName,
     confidence = confidence,
     statusColor = colorDesdeHex(statusColor)
+)
+
+fun ColeccionItemDto.toDomain(): ColeccionItem = ColeccionItem(
+    id = id,
+    idCatalogo = idCatalogo,
+    nombreComun = nombreComun,
+    nombreCientifico = nombreCientifico,
+    fotoUrl = fotoUrl,
+    vecesVista = vecesVista,
+    primeraVez = primeraVez,
+    ultimaVez = ultimaVez,
+    esToxicaMascotas = esToxicaMascotas
+)
+
+fun CatalogoItemDto.toDomain(): CatalogoItem = CatalogoItem(
+    id = id,
+    nombreComun = nombreComun,
+    nombreCientifico = nombreCientifico,
+    frecuenciaRiegoDias = frecuenciaRiegoDias,
+    frecuenciaSolHoras = frecuenciaSolHoras,
+    temperaturaMinC = temperaturaMinC,
+    temperaturaMaxC = temperaturaMaxC,
+    esToxicaMascotas = esToxicaMascotas,
+    spriteBaseUrl = spriteBaseUrl
+)
+
+fun CuidadoSeccionDto.toDomain(): Cuidado = Cuidado(
+    id = id,
+    tipo = tipo.orEmpty(),
+    titulo = titulo.orEmpty(),
+    contenido = contenido.orEmpty(),
+    orden = orden,
+    generadoPorIa = generadoPorIa
 )

@@ -67,7 +67,9 @@ data class BottomNavItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToScan: () -> Unit = {}
+    onNavigateToScan: () -> Unit = {},
+    onNavigateToColeccion: () -> Unit = {},
+    onNavigateToCatalogo: () -> Unit = {}
 ) {
     val bottomNavItems = listOf(
         BottomNavItem("Inicio", Icons.Default.Home),
@@ -251,8 +253,11 @@ fun HomeScreen(
                     QuickAccessGrid(
                         items = state.accesos,
                         onItemClick = { item ->
-                            if (item.id == "scan") {
-                                onNavigateToScan()
+                            when (item.id) {
+                                "scan" -> onNavigateToScan()
+                                "collection" -> onNavigateToColeccion()
+                                "encyclopedia" -> onNavigateToCatalogo()
+                                // "store" todavia no tiene endpoint en el backend.
                             }
                         }
                     )
