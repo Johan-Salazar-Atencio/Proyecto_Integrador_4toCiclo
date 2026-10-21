@@ -81,3 +81,49 @@ class FactoryTests(SimpleTestCase):
     def test_proveedor_desconocido(self):
         with self.assertRaises(ValueError):
             get_provider("inexistente")
+
+
+class CadenaRespaldoTests(SimpleTestCase):
+    """La cadena permite que la IA local caida se atienda con Gemini."""
+
+    def setUp(self):
+        from ia_engine.providers import factory
+
+        self.factory = factory
+        self._caidos = dict(factory._caidos)
+        factory._caidos.clear()
+
+    def tearDown(self):
+        self.factory._caidos.clear()
+        self.factory._caidos.update(self._caidos)
+
+    def test_cadena_auto_prioriza_webui_sobre_gemini(self):
+        with self.settings(WEBUI_API_KEY="k", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+            cadena = [p.name for p in self.factory.get_provider_chain("auto")]
+        self.assertEqual(cadena[:2], ["webui", "gemini"])
+
+    def test_cadena_explicita_agrega_respaldo(self):
+        with self.settings(WEBUI_API_KEY="k", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+            cadena = [p.name for p in self.factory.get_provider_chain("webui")]
+        self.assertEqual(cadena[0], "webui")
+        self.assertIn("gemini", cadena)
+
+    def test_cadena_sin_motores_usa_mock(self):
+        with self.settings(WEBUI_API_KEY="", GEMINI_API_KEY="", OPENAI_API_KEY=""):
+            cadena = [p.name for p in self.factory.get_provider_chain("auto")]
+        self.assertEqual(cadena, ["mock"])
+
+    def test_motor_caido_se_salta_durante_el_cooldown(self):
+        with self.settings(WEBUI_API_KEY="k", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+            self.factory.marcar_caido("webui")
+            cadena = [p.name for p in self.factory.get_provider_chain("auto")]
+        self.assertNotIn("webui", cadena)
+        self.assertEqual(cadena[0], "gemini")
+
+    def test_indisponibilidad_detecta_error_de_conexion(self):
+        import requests
+
+        self.assertTrue(
+            self.factory.es_indisponibilidad(requests.ConnectionError("sin red"))
+        )
+        self.assertFalse(self.factory.es_indisponibilidad(ValueError("json malo")))

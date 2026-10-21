@@ -201,6 +201,27 @@ Proveedores disponibles en Django (`ia_engine/providers/`):
 | `mock` | Simulado, sin claves (siempre devuelve Monstera) |
 | `auto` | Elige el primero disponible: openai → webui → gemini → local → mock |
 
+### Respaldo automático entre motores
+
+Los motores se prueban **en cadena**. Si el configurado no está disponible
+(servidor caído, sin red, saturado), el siguiente responde:
+
+```
+webui (institucional)  ->  cae  ->  gemini  ->  cae  ->  openai  ->  ...  ->  502
+```
+
+- El motor caído se marca durante **60 s** (circuit breaker) para no pagar su
+  timeout en cada escaneo.
+- La respuesta trae `provider` con el motor que realmente respondió.
+- Solo se devuelve error (502) si **todos** los motores reales fallan; nunca se
+  inventan datos con `mock`.
+
+| Evento | Resultado |
+|---|---|
+| IA local disponible | Responde `webui` |
+| IA local caída | Responde `gemini`, sin intervention |
+| Todo caído | HTTP 502 con el detalle de cada motor |
+
 ### Usarlo como modelo en opencode
 
 El repo incluye `opencode.json` con el proveedor `plantia-institucional`.
