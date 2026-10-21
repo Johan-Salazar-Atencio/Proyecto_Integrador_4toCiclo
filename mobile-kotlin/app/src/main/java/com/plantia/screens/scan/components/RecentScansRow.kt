@@ -31,24 +31,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-data class RecentScan(
-    val id: String,
-    val plantName: String,
-    val confidence: String,
-    val statusColor: Color = Color(0xFF10B981)
-)
-
-fun getMockScans(): List<RecentScan> {
-    return listOf(
-        RecentScan("1", "Monstera", "Salud 80%", Color(0xFF10B981)),
-        RecentScan("2", "Brote Nv.1", "Nuevo", Color(0xFFF59E0B)),
-        RecentScan("3", "Ficus", "Hace 2d", Color(0xFF3B82F6))
-    )
-}
+import com.plantia.model.RecentScan
 
 @Composable
 fun RecentScansRow(
-    scans: List<RecentScan> = getMockScans(),
+    scans: List<RecentScan> = emptyList(),
     onScanClick: (RecentScan) -> Unit = {},
     onViewHistoryClick: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -83,15 +70,24 @@ fun RecentScansRow(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            scans.forEach { scan ->
-                RecentScanCard(scan = scan, onClick = { onScanClick(scan) })
+        if (scans.isEmpty()) {
+            Text(
+                text = "Aun no hay escaneos",
+                fontSize = 13.sp,
+                color = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                scans.forEach { scan ->
+                    RecentScanCard(scan = scan, onClick = { onScanClick(scan) })
+                }
             }
         }
     }

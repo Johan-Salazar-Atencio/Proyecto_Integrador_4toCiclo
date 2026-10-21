@@ -4,12 +4,14 @@ import androidx.compose.ui.graphics.Color
 import com.plantia.data.remote.DailyMissionDto
 import com.plantia.data.remote.PlantSummaryDto
 import com.plantia.data.remote.QuickAccessDto
+import com.plantia.data.remote.RecentScanDto
 import com.plantia.data.remote.UserSummaryDto
 import com.plantia.data.remote.WeatherAlertDto
 import com.plantia.model.AlertSeverity
 import com.plantia.model.DailyMission
 import com.plantia.model.PlantSummary
 import com.plantia.model.QuickAccessItem
+import com.plantia.model.RecentScan
 import com.plantia.model.UserSummary
 import com.plantia.model.WeatherAlert
 
@@ -22,7 +24,7 @@ import com.plantia.model.WeatherAlert
 
 private const val COLOR_POR_DEFECTO = 0xFFE8F8F0.toInt()
 
-/** "#E8F8F0" -> Color. Tolera que venga sin "#" o con formato inválido. */
+/** "#E8F8F0" -> Color. Tolera que venga sin "#" o con formato invalido. */
 fun colorDesdeHex(hex: String?): Color {
     val limpio = hex?.trim()?.removePrefix("#").orEmpty()
     if (limpio.length != 6 && limpio.length != 8) return Color(COLOR_POR_DEFECTO)
@@ -84,4 +86,11 @@ fun DailyMissionDto.toDomain(): DailyMission = DailyMission(
     currentCount = currentCount,
     targetCount = targetCount,
     isCompleted = isCompleted
+)
+
+fun RecentScanDto.toDomain(): RecentScan = RecentScan(
+    id = id,
+    plantName = plantName,
+    confidence = confidence,
+    statusColor = colorDesdeHex(statusColor)
 )

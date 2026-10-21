@@ -56,6 +56,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun ScanScreen(
     onNavigateToHome: () -> Unit = {},
+    onNavigateToHistory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val configuration = LocalConfiguration.current
@@ -199,7 +200,10 @@ fun ScanScreen(
                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    RecentScansRow()
+                    RecentScansRow(
+                        scans = scanViewModel.recientes,
+                        onViewHistoryClick = onNavigateToHistory
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
                     ScanControlsBar(
                         onGalleryClick = { },
@@ -283,7 +287,10 @@ fun ScanScreen(
                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    RecentScansRow()
+                    RecentScansRow(
+                        scans = scanViewModel.recientes,
+                        onViewHistoryClick = onNavigateToHistory
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                     ScanControlsBar(
                         onGalleryClick = { },
