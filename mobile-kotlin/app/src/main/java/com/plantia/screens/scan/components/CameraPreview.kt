@@ -1,21 +1,20 @@
 package com.plantia.screens.scan.components
 
 import android.Manifest
-import android.content.ContentValues
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
-import android.net.Uri
 import android.os.Build
-import android.provider.MediaStore
 import android.util.Log
 import android.view.Display
 import android.view.ViewGroup.LayoutParams
 import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -53,24 +52,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun CameraPreview(
     modifier: Modifier = Modifier,
     onImageCaptured: ((File) -> Unit)? = null,
     onError: ((String) -> Unit)? = null,
-    captureTrigger: Int = 0
+    captureTrigger: Int = 0,
+    lensFacing: Int = CameraSelector.LENS_FACING_BACK,
+    torchEnabled: Boolean = false
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -98,7 +96,8 @@ fun CameraPreview(
 
     val imageCapture = remember { mutableStateOf<ImageCapture?>(null) }
     val previewViewRef = remember { mutableStateOf<PreviewView?>(null) }
-    val executorService = remember { Executors.newSingleThreadExecutor() }
+    val cameraProviderRef = remember { mutableStateOf<ProcessCameraProvider?>(null) }
+    val cameraRef = remember { mutableStateOf<Camera?>(null) }
     val coroutineScope = remember { CoroutineScope(Dispatchers.IO) }
 
     // Estado para animación de flash de obturador
@@ -107,20 +106,11 @@ fun CameraPreview(
 
     // Obtener la rotación actual de la pantalla
     val displayRotation = remember { mutableStateOf(getDisplayRotation(context)) }
-    
+
     // Actualizar rotación cuando cambia la configuración (orientación)
     LaunchedEffect(configuration.orientation) {
         displayRotation.value = getDisplayRotation(context)
         Log.d("CameraPreview", "Rotación de pantalla actualizada: ${displayRotation.value}")
-        // Recrear ImageCapture con la nueva rotación si la cámara ya está vinculada
-        imageCapture.value?.let { currentCapture ->
-            val newCapture = ImageCapture.Builder()
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                .setTargetRotation(displayRotation.value)
-                .build()
-            imageCapture.value = newCapture
-            Log.d("CameraPreview", "ImageCapture recreado con targetRotation: ${displayRotation.value}")
-        }
     }
 
     // Animación del flash: 0 -> 0.7 -> 0 en ~150ms
@@ -141,7 +131,7 @@ fun CameraPreview(
         try {
             val exif = ExifInterface(photoFile.absolutePath)
             val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-            
+
             var degrees = 0
             when (orientation) {
                 ExifInterface.ORIENTATION_ROTATE_90 -> degrees = 90
@@ -149,23 +139,23 @@ fun CameraPreview(
                 ExifInterface.ORIENTATION_ROTATE_270 -> degrees = 270
                 else -> degrees = 0
             }
-            
+
             if (degrees != 0) {
                 Log.d("CameraPreview", "Corrigiendo orientación EXIF: $degrees grados")
                 val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
                 if (bitmap != null) {
                     val matrix = Matrix().apply { postRotate(degrees.toFloat()) }
                     val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-                    
+
                     // Sobrescribir el archivo con la imagen rotada
                     FileOutputStream(photoFile).use { outputStream ->
                         rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
                     }
-                    
+
                     // Actualizar EXIF a orientación normal
                     exif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
                     exif.saveAttributes()
-                    
+
                     bitmap.recycle()
                     rotatedBitmap.recycle()
                     Log.d("CameraPreview", "Archivo corregido y sobrescrito: ${photoFile.absolutePath}")
@@ -187,19 +177,11 @@ fun CameraPreview(
                 val currentRotation = previewViewRef.value?.display?.rotation ?: getDisplayRotation(context)
                 capture.targetRotation = currentRotation
                 Log.d("CameraPreview", "targetRotation actualizado dinámicamente a: $currentRotation")
-                
+
                 coroutineScope.launch {
                     val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                     val fileName = "plantia_scan_$timestamp.jpg"
                     val outputFile = File(context.cacheDir, fileName)
-
-                    val contentValues = ContentValues().apply {
-                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                        put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/Plantia")
-                        }
-                    }
 
                     val outputOptions = ImageCapture.OutputFileOptions.Builder(outputFile).build()
 
@@ -257,36 +239,17 @@ fun CameraPreview(
                         )
                         implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                         scaleType = PreviewView.ScaleType.FILL_CENTER
-                        // Guardar referencia al PreviewView para acceder a display.rotation
                         previewViewRef.value = this
 
                         val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                         cameraProviderFuture.addListener({
                             try {
-                                val cameraProvider = cameraProviderFuture.get()
-                                val preview = Preview.Builder().build().also {
-                                    it.setSurfaceProvider(surfaceProvider)
-                                }
-                                // Configurar ImageCapture con targetRotation inicial
-                                val capture = ImageCapture.Builder()
-                                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                                    .setTargetRotation(displayRotation.value)
-                                    .build()
-                                imageCapture.value = capture
-                                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                                cameraProvider.unbindAll()
-                                cameraProvider.bindToLifecycle(
-                                    lifecycleOwner,
-                                    cameraSelector,
-                                    preview,
-                                    capture
-                                )
-                                Log.d("CameraPreview", "Cámara vinculada exitosamente con ImageCapture, targetRotation: ${displayRotation.value}")
+                                cameraProviderRef.value = cameraProviderFuture.get()
+                                Log.d("CameraPreview", "ProcessCameraProvider listo")
                             } catch (e: Exception) {
-                                Log.e("CameraPreview", "Error al vincular cámara: ${e.message}", e)
-                                e.printStackTrace()
+                                Log.e("CameraPreview", "Error al obtener el proveedor de camara: ${e.message}", e)
                                 onErrorState.value?.invoke(
-                                    "No se pudo abrir la camara: ${e.message ?: "error desconocido"}"
+                                    "No se pudo iniciar la camara: ${e.message ?: "error desconocido"}"
                                 )
                             }
                         }, ContextCompat.getMainExecutor(ctx))
@@ -294,6 +257,43 @@ fun CameraPreview(
                 },
                 modifier = Modifier.fillMaxSize()
             )
+
+            // Vincular la camara. Se reejecuta al cambiar de lente (frontal/trasera)
+            // o cuando el proveedor aun no estaba listo.
+            LaunchedEffect(lensFacing, cameraProviderRef.value) {
+                val provider = cameraProviderRef.value ?: return@LaunchedEffect
+                val previewView = previewViewRef.value ?: return@LaunchedEffect
+                try {
+                    val preview = Preview.Builder().build().also {
+                        it.setSurfaceProvider(previewView.surfaceProvider)
+                    }
+                    val capture = ImageCapture.Builder()
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                        .setTargetRotation(displayRotation.value)
+                        .build()
+                    imageCapture.value = capture
+
+                    val selector = CameraSelector.Builder()
+                        .requireLensFacing(lensFacing)
+                        .build()
+
+                    provider.unbindAll()
+                    val camera = provider.bindToLifecycle(lifecycleOwner, selector, preview, capture)
+                    cameraRef.value = camera
+                    camera.cameraControl.enableTorch(torchEnabled)
+                    Log.d("CameraPreview", "Cámara vinculada (lensFacing=$lensFacing)")
+                } catch (e: Exception) {
+                    Log.e("CameraPreview", "Error al vincular cámara: ${e.message}", e)
+                    onErrorState.value?.invoke(
+                        "No se pudo abrir la camara: ${e.message ?: "error desconocido"}"
+                    )
+                }
+            }
+
+            // Flash (linterna)
+            LaunchedEffect(torchEnabled) {
+                cameraRef.value?.cameraControl?.enableTorch(torchEnabled)
+            }
 
             // Overlay de flash de obturador
             if (animatedFlashAlpha > 0f) {

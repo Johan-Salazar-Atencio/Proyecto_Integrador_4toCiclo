@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.camera.core.CameraSelector
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,12 +41,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.data.ImagenLocal
 import com.plantia.screens.scan.components.CameraPreview
+import com.plantia.screens.scan.components.FlashToggleButton
 import com.plantia.screens.scan.components.PlantResultCard
 import com.plantia.screens.scan.components.RecentScansRow
 import com.plantia.screens.scan.components.ScanControlsBar
@@ -71,6 +74,9 @@ fun ScanScreen(
     var toastMessage by remember { mutableStateOf("") }
     var captureTrigger by remember { mutableStateOf(0) }
     var hasCameraPermission by remember { mutableStateOf(false) }
+    // Lente de la camara y flash (linterna)
+    var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
+    var torchEnabled by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -135,6 +141,19 @@ fun ScanScreen(
         captureTrigger++
     }
 
+    // Cambia entre camara trasera y frontal.
+    val onFlipCamera = {
+        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+            CameraSelector.LENS_FACING_FRONT
+        } else {
+            CameraSelector.LENS_FACING_BACK
+        }
+        // La camara frontal no tiene linterna.
+        torchEnabled = false
+        Log.d("ScanScreen", "Lente cambiada a $lensFacing")
+        Unit
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -160,6 +179,8 @@ fun ScanScreen(
                         modifier = Modifier.fillMaxSize(),
                         onImageCaptured = onImageCaptured,
                         onError = onCameraError,
+                        lensFacing = lensFacing,
+                        torchEnabled = torchEnabled,
                         captureTrigger = captureTrigger
                     )
 
@@ -170,6 +191,17 @@ fun ScanScreen(
                             .padding(top = 72.dp, start = 24.dp, end = 24.dp, bottom = 16.dp)
                     ) {
                         ScanOverlay(modifier = Modifier.align(Alignment.Center))
+                    }
+
+                    // Flash (linterna): solo en la camara trasera.
+                    if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+                        FlashToggleButton(
+                            torchEnabled = torchEnabled,
+                            onToggle = { torchEnabled = !torchEnabled },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 84.dp, end = 20.dp)
+                        )
                     }
 
                     // Barra superior (TopBar) con statusBarsPadding
@@ -231,8 +263,7 @@ fun ScanScreen(
                             )
                         },
                         onCaptureClick = onCaptureClick,
-                        onFlashClick = { },
-                        onFlipCameraClick = { }
+                        onFlipCameraClick = onFlipCamera
                     )
                 }
             }
@@ -252,6 +283,8 @@ fun ScanScreen(
                         modifier = Modifier.fillMaxSize(),
                         onImageCaptured = onImageCaptured,
                         onError = onCameraError,
+                        lensFacing = lensFacing,
+                        torchEnabled = torchEnabled,
                         captureTrigger = captureTrigger
                     )
 
@@ -262,6 +295,17 @@ fun ScanScreen(
                             .padding(top = 72.dp, start = 24.dp, end = 24.dp, bottom = 16.dp)
                     ) {
                         ScanOverlay(modifier = Modifier.align(Alignment.Center))
+                    }
+
+                    // Flash (linterna): solo en la camara trasera.
+                    if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+                        FlashToggleButton(
+                            torchEnabled = torchEnabled,
+                            onToggle = { torchEnabled = !torchEnabled },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 84.dp, end = 20.dp)
+                        )
                     }
 
                     // Barra superior (TopBar) con statusBarsPadding
@@ -322,8 +366,7 @@ fun ScanScreen(
                             )
                         },
                         onCaptureClick = onCaptureClick,
-                        onFlashClick = { },
-                        onFlipCameraClick = { }
+                        onFlipCameraClick = onFlipCamera
                     )
                 }
             }
