@@ -70,7 +70,9 @@ data class BottomNavItem(
 fun HomeScreen(
     onNavigateToScan: () -> Unit = {},
     onNavigateToColeccion: () -> Unit = {},
-    onNavigateToCatalogo: () -> Unit = {}
+    onNavigateToCatalogo: () -> Unit = {},
+    onNavigateToJardin: () -> Unit = {},
+    onNavigateToPerfil: () -> Unit = {}
 ) {
     val bottomNavItems = listOf(
         BottomNavItem("Inicio", Icons.Default.Home),
@@ -162,10 +164,11 @@ fun HomeScreen(
                         },
                         selected = selectedTab == index,
                         onClick = {
-                            if (index == 1) {
-                                onNavigateToScan()
-                            } else {
-                                selectedTab = index
+                            selectedTab = index
+                            when (index) {
+                                1 -> onNavigateToScan()
+                                2 -> onNavigateToJardin()
+                                3 -> onNavigateToPerfil()
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(

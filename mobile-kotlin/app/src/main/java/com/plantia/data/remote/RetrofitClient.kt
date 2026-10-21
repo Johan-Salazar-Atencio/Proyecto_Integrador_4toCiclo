@@ -1,6 +1,7 @@
 package com.plantia.data.remote
 
 import com.plantia.BuildConfig
+import com.plantia.data.Sesion
 import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -28,6 +29,14 @@ object RetrofitClient {
         // La IA (nube o local) puede tardar en responder a la primera inferencia.
         .readTimeout(180, TimeUnit.SECONDS)
         .writeTimeout(60, TimeUnit.SECONDS)
+        // El id de usuario viaja en todas las peticiones, tomado de la sesion.
+        .addInterceptor { chain ->
+            val original = chain.request()
+            val request = original.newBuilder()
+                .header("X-User-Id", Sesion.userId.value.toString())
+                .build()
+            chain.proceed(request)
+        }
         .addInterceptor(
             HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
         )

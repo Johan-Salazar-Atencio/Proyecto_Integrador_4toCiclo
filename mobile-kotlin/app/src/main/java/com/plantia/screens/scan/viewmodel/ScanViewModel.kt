@@ -49,7 +49,7 @@ class ScanViewModel : ViewModel() {
                     foto.name,
                     foto.asRequestBody(mimeType.toMediaType())
                 )
-                val result = RetrofitClient.api.escanear(USER_ID, part)
+                val result = RetrofitClient.api.escanear(part)
                 uiState = ScanUiState.Success(result)
                 // El historial ya incluye este escaneo: se refresca.
                 cargarRecientes()
@@ -69,7 +69,7 @@ class ScanViewModel : ViewModel() {
     fun cargarRecientes() {
         viewModelScope.launch {
             runCatching {
-                RetrofitClient.api.escaneosRecientes(USER_ID).body().orEmpty()
+                RetrofitClient.api.escaneosRecientes().body().orEmpty()
             }.onSuccess { lista ->
                 recientes = lista.map { it.toDomain() }
             }.onFailure {
@@ -82,8 +82,4 @@ class ScanViewModel : ViewModel() {
         uiState = ScanUiState.Idle
     }
 
-    companion object {
-        /** Usuario temporal (sin auth) hasta integrar login. */
-        const val USER_ID = 1
-    }
 }

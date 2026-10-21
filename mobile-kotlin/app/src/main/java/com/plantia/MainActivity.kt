@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.plantia.data.Sesion
 import com.plantia.navigation.AppNavigation
 import com.plantia.ui.theme.MobilekotlinTheme
 
@@ -14,6 +15,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // La sesion (id de usuario) debe estar lista antes de la primera peticion.
+        Sesion.init(applicationContext)
         setContent {
             MobilekotlinTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {

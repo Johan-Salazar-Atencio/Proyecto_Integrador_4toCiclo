@@ -31,7 +31,7 @@ class HistorialViewModel : ViewModel() {
             cargando = true
             error = null
             runCatching {
-                RetrofitClient.api.escaneosRecientes(USER_ID).body().orEmpty()
+                RetrofitClient.api.escaneosRecientes().body().orEmpty()
             }.onSuccess { lista ->
                 escaneos = lista.map { it.toDomain() }
             }.onFailure {
@@ -41,8 +41,4 @@ class HistorialViewModel : ViewModel() {
         }
     }
 
-    companion object {
-        /** Usuario temporal (sin auth) hasta integrar login. */
-        const val USER_ID = 1
-    }
 }

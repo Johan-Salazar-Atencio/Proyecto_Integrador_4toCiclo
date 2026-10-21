@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.plantia.data.remote.RetrofitClient
+import com.plantia.data.Sesion
 import com.plantia.data.toDomain
 import com.plantia.model.DailyMission
 import com.plantia.model.PlantSummary
@@ -32,7 +33,10 @@ class HomeViewModel : ViewModel() {
         private set
 
     init {
-        cargar()
+        // Si cambia el usuario de la sesion, se recarga todo el Home.
+        viewModelScope.launch {
+            Sesion.userId.collect { cargar() }
+        }
     }
 
     fun recargar() = cargar()
@@ -43,11 +47,11 @@ class HomeViewModel : ViewModel() {
 
             val api = RetrofitClient.api
             // Cada peticion es independiente: una que falle no debe tumbar el resto.
-            val usuario = lanzar { api.usuarioMe(USER_ID) }
+            val usuario = lanzar { api.usuarioMe() }
             val accesos = lanzar { api.accesos() }
-            val alerta = lanzar { api.eventoActivo(USER_ID) }
-            val planta = lanzar { api.plantaActiva(USER_ID) }
-            val mision = lanzar { api.misionDiaria(USER_ID) }
+            val alerta = lanzar { api.eventoActivo() }
+            val planta = lanzar { api.plantaActiva() }
+            val mision = lanzar { api.misionDiaria() }
 
             val estado = HomeUiState(
                 cargando = false,
@@ -86,8 +90,4 @@ class HomeViewModel : ViewModel() {
     private fun <T> Response<T>?.bodyOrNull(): T? =
         if (this != null && isSuccessful) body() else null
 
-    companion object {
-        /** Usuario temporal (sin auth) hasta integrar login. */
-        const val USER_ID = 1
-    }
 }

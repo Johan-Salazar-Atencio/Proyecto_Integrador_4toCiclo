@@ -32,7 +32,7 @@ class ColeccionViewModel : ViewModel() {
             cargando = true
             error = null
             runCatching {
-                RetrofitClient.api.coleccion(USER_ID).body().orEmpty()
+                RetrofitClient.api.coleccion().body().orEmpty()
             }.onSuccess { lista ->
                 items = lista.map { it.toDomain() }
             }.onFailure {
@@ -40,10 +40,6 @@ class ColeccionViewModel : ViewModel() {
             }
             cargando = false
         }
-    }
-
-    companion object {
-        const val USER_ID = 1
     }
 }
 

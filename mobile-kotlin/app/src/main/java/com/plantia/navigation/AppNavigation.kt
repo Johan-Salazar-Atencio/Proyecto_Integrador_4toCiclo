@@ -1,12 +1,15 @@
 package com.plantia.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.plantia.data.Sesion
 import com.plantia.screens.catalog.CatalogoScreen
 import com.plantia.screens.catalog.viewmodel.CatalogoViewModel
 import com.plantia.screens.catalog.viewmodel.CuidadosCatalogoViewModel
@@ -15,6 +18,10 @@ import com.plantia.screens.collection.viewmodel.ColeccionDetalleViewModel
 import com.plantia.screens.collection.viewmodel.ColeccionViewModel
 import com.plantia.screens.common.DetallePlantaScreen
 import com.plantia.screens.home.HomeScreen
+import com.plantia.screens.jardin.JardinScreen
+import com.plantia.screens.jardin.viewmodel.JardinViewModel
+import com.plantia.screens.profile.PerfilScreen
+import com.plantia.screens.profile.viewmodel.PerfilViewModel
 import com.plantia.screens.scan.HistorialScreen
 import com.plantia.screens.scan.ScanScreen
 import com.plantia.screens.scan.viewmodel.HistorialViewModel
@@ -32,7 +39,35 @@ fun AppNavigation() {
             HomeScreen(
                 onNavigateToScan = { navController.navigate("scan") },
                 onNavigateToColeccion = { navController.navigate("coleccion") },
-                onNavigateToCatalogo = { navController.navigate("catalogo") }
+                onNavigateToCatalogo = { navController.navigate("catalogo") },
+                onNavigateToJardin = { navController.navigate("jardin") },
+                onNavigateToPerfil = { navController.navigate("perfil") }
+            )
+        }
+
+        composable("perfil") {
+            val perfilViewModel: PerfilViewModel = viewModel()
+            val userId by Sesion.userId.collectAsState()
+            PerfilScreen(
+                usuario = perfilViewModel.usuario,
+                userIdActual = userId,
+                cargando = perfilViewModel.cargando,
+                error = perfilViewModel.error,
+                onCambiarUsuario = { id ->
+                    Sesion.setUserId(id)
+                    perfilViewModel.recargar()
+                },
+                onVolver = { navController.popBackStack() }
+            )
+        }
+
+        composable("jardin") {
+            val jardinViewModel: JardinViewModel = viewModel()
+            JardinScreen(
+                planta = jardinViewModel.planta,
+                cargando = jardinViewModel.cargando,
+                error = jardinViewModel.error,
+                onVolver = { navController.popBackStack() }
             )
         }
 
