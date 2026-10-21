@@ -27,6 +27,10 @@ class ScanViewModel : ViewModel() {
 
     /** Captura tomada -> se sube al backend y se espera la informacion de la planta. */
     fun escanear(foto: File) {
+        if (!foto.exists() || foto.length() == 0L) {
+            uiState = ScanUiState.Error("La foto no se guardo correctamente")
+            return
+        }
         uiState = ScanUiState.Loading
         viewModelScope.launch {
             try {
@@ -40,6 +44,13 @@ class ScanViewModel : ViewModel() {
             } catch (e: Exception) {
                 uiState = ScanUiState.Error(e.message ?: "No se pudo conectar con el servidor")
             }
+        }
+    }
+
+    /** Error de captura: cierra la pantalla de "Analizando..." con un mensaje. */
+    fun fallar(mensaje: String) {
+        if (uiState is ScanUiState.Loading) {
+            uiState = ScanUiState.Error(mensaje)
         }
     }
 

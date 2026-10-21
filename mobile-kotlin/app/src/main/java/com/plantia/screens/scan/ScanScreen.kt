@@ -95,6 +95,15 @@ fun ScanScreen(
         Unit
     }
 
+    // Si la camara falla, se corta la espera: sin esto la UI queda en
+    // "Analizando..." indefinidamente.
+    val onCameraError = { mensaje: String ->
+        Log.w("ScanScreen", "Error de camara: $mensaje")
+        scanViewModel.fallar(mensaje)
+        toastMessage = mensaje
+        showToast = true
+    }
+
     val onCaptureClick = onCaptureClick@ {
         Log.d("ScanScreen", "Botón de captura presionado")
         if (!hasCameraPermission) {
@@ -130,6 +139,7 @@ fun ScanScreen(
                     CameraPreview(
                         modifier = Modifier.fillMaxSize(),
                         onImageCaptured = onImageCaptured,
+                        onError = onCameraError,
                         captureTrigger = captureTrigger
                     )
 
@@ -214,6 +224,7 @@ fun ScanScreen(
                     CameraPreview(
                         modifier = Modifier.fillMaxSize(),
                         onImageCaptured = onImageCaptured,
+                        onError = onCameraError,
                         captureTrigger = captureTrigger
                     )
 

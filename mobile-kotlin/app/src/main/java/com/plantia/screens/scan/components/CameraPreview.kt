@@ -41,6 +41,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,11 +69,16 @@ import android.content.Context
 fun CameraPreview(
     modifier: Modifier = Modifier,
     onImageCaptured: ((File) -> Unit)? = null,
+    onError: ((String) -> Unit)? = null,
     captureTrigger: Int = 0
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val configuration = LocalConfiguration.current
+
+    // Se usa rememberUpdatedState para que los callbacks capturados dentro de
+    // `takePicture` (creado con remember) siempre sean los mas recientes.
+    val onErrorState = rememberUpdatedState(onError)
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -203,6 +209,10 @@ fun CameraPreview(
                         object : ImageCapture.OnImageSavedCallback {
                             override fun onError(exc: ImageCaptureException) {
                                 Log.e("CameraPreview", "Error al guardar foto: ${exc.message}", exc)
+                                // Sin esto la UI queda en "Analizando..." para siempre.
+                                onErrorState.value?.invoke(
+                                    "No se pudo tomar la foto: ${exc.message ?: "error de camara"}"
+                                )
                             }
 
                             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
@@ -214,7 +224,10 @@ fun CameraPreview(
                         }
                     )
                 }
-            } ?: Log.e("CameraPreview", "ImageCapture es null, no se puede tomar foto")
+            } ?: run {
+                Log.e("CameraPreview", "ImageCapture es null, no se puede tomar foto")
+                onErrorState.value?.invoke("La camara aun no esta lista")
+            }
         }
     }
 
@@ -272,6 +285,9 @@ fun CameraPreview(
                             } catch (e: Exception) {
                                 Log.e("CameraPreview", "Error al vincular cámara: ${e.message}", e)
                                 e.printStackTrace()
+                                onErrorState.value?.invoke(
+                                    "No se pudo abrir la camara: ${e.message ?: "error desconocido"}"
+                                )
                             }
                         }, ContextCompat.getMainExecutor(ctx))
                     }
