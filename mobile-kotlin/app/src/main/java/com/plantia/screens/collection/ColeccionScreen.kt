@@ -31,14 +31,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.plantia.data.remote.RetrofitClient
 import com.plantia.model.ColeccionItem
 import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.GreenPrimary
@@ -144,12 +148,22 @@ private fun ColeccionCard(item: ColeccionItem, onClick: () -> Unit) {
                     .background(GreenPrimary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.LocalFlorist,
-                    contentDescription = null,
-                    tint = GreenPrimary,
-                    modifier = Modifier.size(24.dp)
-                )
+                val foto = remember(item.fotoUrl) { RetrofitClient.urlAbsoluta(item.fotoUrl) }
+                if (foto != null) {
+                    AsyncImage(
+                        model = foto,
+                        contentDescription = item.nombreComun,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.LocalFlorist,
+                        contentDescription = null,
+                        tint = GreenPrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {

@@ -74,4 +74,18 @@ object RetrofitClient {
     /** Retrofit exige que la base URL termine en "/". */
     private fun normalizar(url: String): String =
         if (url.endsWith("/")) url else "$url/"
+
+    /**
+     * Convierte una URL del backend en una que funcione desde el dispositivo.
+     *
+     * El backend devuelve URLs como `http://localhost:8080/files/foto.jpg`, pero
+     * en el telefono `localhost` es el propio telefono. Se reemplaza el host por
+     * el del backend que se esta usando.
+     */
+    fun urlAbsoluta(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        if (!url.startsWith("http")) return null
+        val base = baseUrlEfectiva.trimEnd('/')
+        return url.replaceFirst(Regex("^https?://[^/]+"), base)
+    }
 }

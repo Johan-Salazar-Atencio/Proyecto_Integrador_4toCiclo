@@ -81,6 +81,7 @@ fun AppNavigation() {
                 cuidados = detalleViewModel.cuidados,
                 cargando = detalleViewModel.cargando,
                 error = detalleViewModel.error,
+                imagenUrl = item?.fotoUrl,
                 onVolver = { navController.popBackStack() }
             )
         }
