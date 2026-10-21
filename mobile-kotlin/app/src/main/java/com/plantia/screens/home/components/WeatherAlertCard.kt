@@ -1,5 +1,7 @@
 package com.plantia.screens.home.components
 
+import androidx.compose.material3.MaterialTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -68,18 +70,18 @@ fun WeatherAlertCard(
             ) {
                 Text(
                     text = "ALERTA CLIMATICA ACTIVA",
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = acento,
                     letterSpacing = 0.5.sp
                 )
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
                 ) {
                     Text(
                         text = alert.timeRemaining,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = acento,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -91,7 +93,7 @@ fun WeatherAlertCard(
 
             Text(
                 text = alert.title,
-                fontSize = 16.sp,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
             )
@@ -100,7 +102,7 @@ fun WeatherAlertCard(
 
             Text(
                 text = alert.description,
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 lineHeight = 18.sp
             )
@@ -112,13 +114,13 @@ fun WeatherAlertCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = TextPrimary
                 )
             ) {
                 Text(
                     text = alert.actionText,
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )

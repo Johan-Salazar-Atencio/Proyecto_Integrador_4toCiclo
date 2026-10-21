@@ -1,5 +1,7 @@
 package com.plantia.screens.home.components
 
+import androidx.compose.material3.MaterialTheme
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,7 +38,7 @@ fun StatProgressBar(
         ) {
             Text(
                 text = label,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFF424242),
                 modifier = Modifier.weight(1f)
@@ -44,7 +46,7 @@ fun StatProgressBar(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "$valor%",
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = color
             )
