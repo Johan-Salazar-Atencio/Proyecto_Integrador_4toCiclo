@@ -114,11 +114,22 @@ fun PlantSummaryCard(
                     .background(GreenLight.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center
             ) {
+                // Sin libreria de imagenes todavia: se muestra el nombre real
+                // de la planta en vez de un texto fijo.
                 Text(
-                    text = "Monstera",
+                    text = plant.name,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = GreenPrimary
+                )
+            }
+
+            if (plant.lastWatered.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Ultimo riego: ${plant.lastWatered}",
+                    fontSize = 12.sp,
+                    color = TextSecondary
                 )
             }
 

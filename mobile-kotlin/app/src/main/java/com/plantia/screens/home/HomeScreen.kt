@@ -1,6 +1,8 @@
 package com.plantia.screens.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +21,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Yard
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -42,12 +45,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.plantia.data.MockDashboardData
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.screens.home.components.DailyMissionCard
 import com.plantia.screens.home.components.PlantSummaryCard
 import com.plantia.screens.home.components.QuickAccessGrid
 import com.plantia.screens.home.components.UserHeaderCard
 import com.plantia.screens.home.components.WeatherAlertCard
+import com.plantia.screens.home.viewmodel.HomeViewModel
 import com.plantia.ui.theme.AmberAlert
 import com.plantia.ui.theme.AmberLight
 import com.plantia.ui.theme.BackgroundLight
@@ -72,6 +76,11 @@ fun HomeScreen(
         BottomNavItem("Perfil", Icons.Default.Person)
     )
     var selectedTab by remember { mutableIntStateOf(0) }
+    val homeViewModel: HomeViewModel = viewModel()
+    // Se lee el valor (no con `by`): `uiState` ya es un HomeUiState y su
+    // delegate queda oculto. La lectura sigue observando el estado y
+    // recompone cuando cambia.
+    val state = homeViewModel.uiState
 
     Scaffold(
         topBar = {
@@ -95,7 +104,7 @@ fun HomeScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "480",
+                                text = "${state.usuario?.leaves ?: 0}",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = AmberAlert
@@ -177,28 +186,82 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            UserHeaderCard(user = MockDashboardData.userSummary)
-
-            WeatherAlertCard(
-                alert = MockDashboardData.weatherAlert,
-                onActionClick = {}
-            )
-
-            PlantSummaryCard(
-                plant = MockDashboardData.plantSummary,
-                onEnterGarden = {}
-            )
-
-            QuickAccessGrid(
-                items = MockDashboardData.quickAccessItems,
-                onItemClick = { item ->
-                    if (item.id == "scan") {
-                        onNavigateToScan()
-                    }
+            if (state.cargando) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = GreenPrimary)
                 }
-            )
+            } else {
+                state.error?.let { mensaje ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFEE2E2)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = mensaje,
+                                fontSize = 13.sp,
+                                color = Color(0xFF991B1B),
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "Reintentar",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF991B1B),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { homeViewModel.recargar() }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
-            DailyMissionCard(mission = MockDashboardData.dailyMission)
+                state.usuario?.let { usuario ->
+                    UserHeaderCard(user = usuario)
+                }
+
+                state.alerta?.let { alerta ->
+                    WeatherAlertCard(
+                        alert = alerta,
+                        onActionClick = {}
+                    )
+                }
+
+                state.planta?.let { planta ->
+                    PlantSummaryCard(
+                        plant = planta,
+                        onEnterGarden = {}
+                    )
+                }
+
+                if (state.accesos.isNotEmpty()) {
+                    QuickAccessGrid(
+                        items = state.accesos,
+                        onItemClick = { item ->
+                            if (item.id == "scan") {
+                                onNavigateToScan()
+                            }
+                        }
+                    )
+                }
+
+                state.mision?.let { mision ->
+                    DailyMissionCard(mission = mision)
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }

@@ -27,6 +27,9 @@ fun StatProgressBar(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        // Se acota el valor: el backend podria devolver algo fuera de 0..100
+        // y la barra se romperia.
+        val valor = percent.coerceIn(0, 100)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -40,7 +43,7 @@ fun StatProgressBar(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "$percent%",
+                text = "$valor%",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = color
@@ -48,7 +51,7 @@ fun StatProgressBar(
         }
         Spacer(modifier = Modifier.height(6.dp))
         LinearProgressIndicator(
-            progress = { percent / 100f },
+            progress = { valor / 100f },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)

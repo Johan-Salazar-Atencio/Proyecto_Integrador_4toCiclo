@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.plantia.model.AlertSeverity
 import com.plantia.model.WeatherAlert
 import com.plantia.ui.theme.AmberAlert
 import com.plantia.ui.theme.AmberLight
@@ -40,11 +41,22 @@ fun WeatherAlertCard(
         shadowElevation = 2.dp,
         color = Color.Transparent
     ) {
+        // La severidad define el color de la tarjeta: HIGH es rojo, LOW verde.
+        val acento = when (alert.severity) {
+            AlertSeverity.HIGH -> Color(0xFFDC2626)
+            AlertSeverity.LOW -> Color(0xFF16A34A)
+            else -> AmberAlert
+        }
+        val fondo = when (alert.severity) {
+            AlertSeverity.HIGH -> Color(0xFFFEE2E2)
+            AlertSeverity.LOW -> Color(0xFFDCFCE7)
+            else -> AmberLight
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    color = AmberLight,
+                    color = fondo,
                     shape = RoundedCornerShape(16.dp)
                 )
                 .padding(16.dp)
@@ -58,7 +70,7 @@ fun WeatherAlertCard(
                     text = "ALERTA CLIMATICA ACTIVA",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = AmberAlert,
+                    color = acento,
                     letterSpacing = 0.5.sp
                 )
                 Surface(
@@ -69,7 +81,7 @@ fun WeatherAlertCard(
                         text = alert.timeRemaining,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = AmberAlert,
+                        color = acento,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
