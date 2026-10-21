@@ -234,6 +234,27 @@ setx PLANTIA_WEBUI_API_KEY "sk-..."   # una vez, luego reinicia opencode
 Después aparece en `/models` como
 `plantia-institucional/Qwen/Qwen3.6-35B-A3B-FP8`.
 
+## Pantallas de la app
+
+| Pantalla | Endpoint que consume |
+|---|---|
+| **Inicio** | `/usuarios/me`, `/eventos/activo`, `/plantas/activa`, `/misiones/diaria`, `/accesos` |
+| **Escanear** | `POST /escaneos` (cámara o galería) + `/escaneos/recientes` |
+| **Historial** | `/escaneos/recientes` |
+| **Mi colección** | `/coleccion` y `/coleccion/{id}` (ficha con cuidados) |
+| **Enciclopedia** | `/catalogo?q=&toxica=` y `/catalogo/{id}/cuidados` |
+| **Mi jardín** | `/plantas/activa` |
+| **Perfil** | `/usuarios/me` + cambio de usuario |
+
+### Sesión de usuario
+
+El backend todavía **no tiene login**: la identidad viaja en el header
+`X-User-Id`. La app lo guarda en `SharedPreferences` (`Sesion`) y lo añade a
+**todas** las peticiones con un interceptor de OkHttp, así que ya no está
+hardcodeado en cada pantalla. Desde **Perfil → Cambiar usuario** se puede
+cambiar de identidad (hay dos usuarios de prueba en la BD: `1` Johan y `2`
+Lucia, creados por la migración `V4`).
+
 ## Problemas comunes
 
 - **Al guardar una foto la identificación es siempre "Monstera"**: estás en
