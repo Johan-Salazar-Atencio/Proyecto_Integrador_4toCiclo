@@ -36,7 +36,7 @@ class ScanViewModel : ViewModel() {
     }
 
     /** Captura tomada -> se sube al backend y se espera la informacion de la planta. */
-    fun escanear(foto: File) {
+    fun escanear(foto: File, mimeType: String = "image/jpeg") {
         if (!foto.exists() || foto.length() == 0L) {
             uiState = ScanUiState.Error("La foto no se guardo correctamente")
             return
@@ -47,7 +47,7 @@ class ScanViewModel : ViewModel() {
                 val part = MultipartBody.Part.createFormData(
                     "foto",
                     foto.name,
-                    foto.asRequestBody("image/jpeg".toMediaType())
+                    foto.asRequestBody(mimeType.toMediaType())
                 )
                 val result = RetrofitClient.api.escanear(USER_ID, part)
                 uiState = ScanUiState.Success(result)

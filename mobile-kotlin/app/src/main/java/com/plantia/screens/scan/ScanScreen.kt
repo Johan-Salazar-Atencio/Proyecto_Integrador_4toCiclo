@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.util.Log
 import android.widget.Toast as AndroidToast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
@@ -43,6 +44,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.plantia.data.ImagenLocal
 import com.plantia.screens.scan.components.CameraPreview
 import com.plantia.screens.scan.components.PlantResultCard
 import com.plantia.screens.scan.components.RecentScansRow
@@ -77,6 +79,23 @@ fun ScanScreen(
             Log.d("ScanScreen", "Permiso de cámara: ${if (isGranted) "CONCEDIDO" else "DENEGADO"}")
         }
     )
+
+    // Galería: elegir una foto existente y escanearla.
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val preparada = ImagenLocal.desdeUri(context, uri)
+        if (preparada == null) {
+            Log.w("ScanScreen", "No se pudo leer la imagen de la galeria")
+            toastMessage = "No se pudo abrir la imagen"
+            showToast = true
+            return@rememberLauncherForActivityResult
+        }
+        Log.d("ScanScreen", "Imagen de galeria: ${preparada.archivo.absolutePath}")
+        lastCapturedFile = preparada.archivo
+        scanViewModel.escanear(preparada.archivo, preparada.mimeType)
+    }
 
     // Verificar permiso al iniciar
     LaunchedEffect(Unit) {
@@ -206,7 +225,11 @@ fun ScanScreen(
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     ScanControlsBar(
-                        onGalleryClick = { },
+                        onGalleryClick = {
+                            galleryLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
                         onCaptureClick = onCaptureClick,
                         onFlashClick = { },
                         onFlipCameraClick = { }
@@ -293,7 +316,11 @@ fun ScanScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     ScanControlsBar(
-                        onGalleryClick = { },
+                        onGalleryClick = {
+                            galleryLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
                         onCaptureClick = onCaptureClick,
                         onFlashClick = { },
                         onFlipCameraClick = { }
