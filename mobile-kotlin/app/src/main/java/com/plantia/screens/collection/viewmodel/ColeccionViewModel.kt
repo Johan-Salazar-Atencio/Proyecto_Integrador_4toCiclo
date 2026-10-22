@@ -9,6 +9,7 @@ import com.plantia.data.remote.RetrofitClient
 import com.plantia.data.toDomain
 import com.plantia.model.ColeccionItem
 import com.plantia.model.Cuidado
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /** "Mi coleccion": plantas que el usuario ha visto. */
@@ -28,7 +29,7 @@ class ColeccionViewModel : ViewModel() {
     }
 
     fun cargar() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             cargando = true
             error = null
             runCatching {
@@ -59,7 +60,7 @@ class ColeccionDetalleViewModel : ViewModel() {
         private set
 
     fun cargar(idColeccion: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             cargando = true
             error = null
             runCatching {

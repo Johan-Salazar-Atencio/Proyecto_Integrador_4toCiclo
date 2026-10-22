@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.plantia.data.remote.RetrofitClient
 import com.plantia.data.toDomain
 import com.plantia.model.RecentScan
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /** Historial de escaneos del usuario (pantalla de historial). */
@@ -27,7 +28,7 @@ class HistorialViewModel : ViewModel() {
     }
 
     fun cargar() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             cargando = true
             error = null
             runCatching {

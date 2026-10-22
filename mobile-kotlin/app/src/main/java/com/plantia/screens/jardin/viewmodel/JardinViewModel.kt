@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.plantia.data.remote.RetrofitClient
 import com.plantia.data.toDomain
 import com.plantia.model.PlantSummary
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /** Planta en crianza del usuario (GET /api/v1/plantas/activa). */
@@ -27,7 +28,7 @@ class JardinViewModel : ViewModel() {
     }
 
     fun cargar() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             cargando = true
             error = null
             runCatching {

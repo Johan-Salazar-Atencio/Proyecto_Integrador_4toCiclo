@@ -13,6 +13,7 @@ import com.plantia.model.PlantSummary
 import com.plantia.model.QuickAccessItem
 import com.plantia.model.UserSummary
 import com.plantia.model.WeatherAlert
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import retrofit2.Response
 
@@ -34,7 +35,7 @@ class HomeViewModel : ViewModel() {
 
     init {
         // Si cambia el usuario de la sesion, se recarga todo el Home.
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             Sesion.userId.collect { cargar() }
         }
     }
@@ -42,7 +43,7 @@ class HomeViewModel : ViewModel() {
     fun recargar() = cargar()
 
     private fun cargar() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             uiState = uiState.copy(cargando = true, error = null)
 
             val api = RetrofitClient.api

@@ -10,6 +10,7 @@ import com.plantia.data.remote.ScanResultDto
 import com.plantia.data.toDomain
 import com.plantia.model.RecentScan
 import java.io.File
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -42,7 +43,7 @@ class ScanViewModel : ViewModel() {
             return
         }
         uiState = ScanUiState.Loading
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val part = MultipartBody.Part.createFormData(
                     "foto",
@@ -67,12 +68,14 @@ class ScanViewModel : ViewModel() {
     }
 
     fun cargarRecientes() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             runCatching {
                 RetrofitClient.api.escaneosRecientes().body().orEmpty()
             }.onSuccess { lista ->
+                println("[ScanViewModel] recientes cargados: ${lista.size}")
                 recientes = lista.map { it.toDomain() }
             }.onFailure {
+                println("[ScanViewModel] no se pudieron cargar los recientes: ${it.message}")
                 recientes = emptyList()
             }
         }

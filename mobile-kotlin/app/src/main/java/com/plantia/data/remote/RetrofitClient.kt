@@ -1,12 +1,15 @@
 package com.plantia.data.remote
 
 import androidx.compose.runtime.mutableStateOf
+import android.os.Looper
 import com.plantia.BuildConfig
 import com.plantia.data.ConexionConfig
 import com.plantia.data.Sesion
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
@@ -109,7 +112,23 @@ object RetrofitClient {
         return normalizar(principal)
     }
 
-    private fun responde(baseUrl: String): Boolean = try {
+    /**
+     * Comprueba si el backend responde en esa URL.
+     *
+     * La comprobacion es sincrona, pero Android prohibe las llamadas de red en
+     * el hilo principal (NetworkOnMainThreadException), asi que si se llama
+     * desde alla se hace el sondeo en un hilo de E/S.
+     */
+    private fun responde(baseUrl: String): Boolean {
+        val enHiloPrincipal = Looper.myLooper() == Looper.getMainLooper()
+        return if (enHiloPrincipal) {
+            runBlocking(Dispatchers.IO) { sona(baseUrl) }
+        } else {
+            sona(baseUrl)
+        }
+    }
+
+    private fun sona(baseUrl: String): Boolean = try {
         val sonda = OkHttpClient.Builder()
             .connectTimeout(2, TimeUnit.SECONDS)
             .readTimeout(4, TimeUnit.SECONDS)
@@ -118,8 +137,13 @@ object RetrofitClient {
             .url(normalizar(baseUrl).trimEnd('/') + RUTA_SALUD)
             .get()
             .build()
-        sonda.newCall(request).execute().use { it.isSuccessful }
+        val codigo = sonda.newCall(request).execute().use { it.code }
+        if (codigo !in 200..299) {
+            println("[RetrofitClient] $baseUrl respondio HTTP $codigo")
+        }
+        codigo in 200..299
     } catch (e: Exception) {
+        println("[RetrofitClient] $baseUrl fallo: ${e.javaClass.simpleName}: ${e.message}")
         false
     }
 

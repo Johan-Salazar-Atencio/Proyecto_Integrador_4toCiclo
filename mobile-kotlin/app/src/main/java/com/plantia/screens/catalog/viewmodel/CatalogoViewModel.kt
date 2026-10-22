@@ -11,6 +11,7 @@ import com.plantia.model.CatalogoItem
 import com.plantia.model.Cuidado
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /** Catalogo general de plantas, con busqueda y filtro de toxicidad. */
@@ -41,7 +42,7 @@ class CatalogoViewModel : ViewModel() {
         consulta = valor
         // Se espera a que el usuario termine de escribir.
         busquedaJob?.cancel()
-        busquedaJob = viewModelScope.launch {
+        busquedaJob = viewModelScope.launch(Dispatchers.IO) {
             delay(350)
             cargar()
         }
@@ -53,7 +54,7 @@ class CatalogoViewModel : ViewModel() {
     }
 
     fun cargar() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             cargando = true
             error = null
             runCatching {
@@ -87,7 +88,7 @@ class CuidadosCatalogoViewModel : ViewModel() {
         private set
 
     fun cargar(idCatalogo: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             cargando = true
             error = null
             runCatching {

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.plantia.data.remote.RetrofitClient
 import com.plantia.data.toDomain
 import com.plantia.model.UserSummary
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /** Perfil del usuario (GET /api/v1/usuarios/me). */
@@ -29,7 +30,7 @@ class PerfilViewModel : ViewModel() {
     fun recargar() = cargar()
 
     private fun cargar() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             cargando = true
             error = null
             runCatching {
