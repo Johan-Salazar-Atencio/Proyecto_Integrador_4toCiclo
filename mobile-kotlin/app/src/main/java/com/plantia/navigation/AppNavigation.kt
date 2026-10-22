@@ -9,7 +9,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.plantia.data.ConexionConfig
 import com.plantia.data.Sesion
+import com.plantia.data.remote.RetrofitClient
 import com.plantia.screens.catalog.CatalogoScreen
 import com.plantia.screens.catalog.viewmodel.CatalogoViewModel
 import com.plantia.screens.catalog.viewmodel.CuidadosCatalogoViewModel
@@ -48,11 +50,20 @@ fun AppNavigation() {
         composable("perfil") {
             val perfilViewModel: PerfilViewModel = viewModel()
             val userId by Sesion.userId.collectAsState()
+            val baseUrl by RetrofitClient.baseUrl.collectAsState()
+            val hostManual by ConexionConfig.host.collectAsState()
             PerfilScreen(
                 usuario = perfilViewModel.usuario,
                 userIdActual = userId,
                 cargando = perfilViewModel.cargando,
                 error = perfilViewModel.error,
+                baseUrlActual = baseUrl,
+                hostManualActual = hostManual.orEmpty(),
+                onGuardarHost = { host ->
+                    ConexionConfig.setHost(host)
+                    RetrofitClient.reconectar()
+                    perfilViewModel.recargar()
+                },
                 onCambiarUsuario = { id ->
                     Sesion.setUserId(id)
                     perfilViewModel.recargar()

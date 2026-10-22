@@ -1,8 +1,12 @@
 package com.plantia.data.remote
 
+import androidx.compose.runtime.mutableStateOf
 import com.plantia.BuildConfig
+import com.plantia.data.ConexionConfig
 import com.plantia.data.Sesion
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
@@ -13,12 +17,20 @@ object RetrofitClient {
 
     private const val RUTA_SALUD = "/api/v1/usuarios/me"
 
+    /** URL base que se esta usando ahora mismo. */
+    private val _baseUrl = MutableStateFlow<String?>(null)
+    val baseUrl: StateFlow<String?> = _baseUrl
+
+    /** Host descubierto por mDNS en la red local. */
+    private val _hostMdns = MutableStateFlow<String?>(null)
+
+    private var instancia: PlantiaApi? = null
+
     /**
-     * Candidatos en orden de preferencia: la URL principal y los respaldos.
-     * Permite trabajar por WiFi (IP de la PC) y, si esa red falla, seguir por
-     * USB con `adb reverse` (127.0.0.1) o con el emulador (10.0.2.2).
+     * Candidatos configurados en la compilacion
+     * (`local.properties` o `-PapiBaseUrl=`).
      */
-    private val candidatos: List<String> =
+    private val candidatosCompilados: List<String> =
         (listOf(BuildConfig.API_BASE_URL) + BuildConfig.API_FALLBACK_URLS.split(","))
             .map { it.trim() }
             .filter { it.isNotEmpty() }
@@ -42,26 +54,57 @@ object RetrofitClient {
         )
         .build()
 
-    /** URL base efectiva: la primera que responde; si ninguna, la principal. */
-    val baseUrlEfectiva: String by lazy { resolverBaseUrl() }
+    /**
+     * Candidatos en orden de preferencia:
+     * 1. Host escrito a mano en la app (Ajustes).
+     * 2. Host descubierto por mDNS: el PC de la red local, sin conocer su IP.
+     * 3. Los configurados al compilar (WiFi con IP fija, USB, emulador).
+     */
+    private fun candidatos(): List<String> = buildList {
+        ConexionConfig.host.value?.let { add(it) }
+        _hostMdns.value?.let { add(it) }
+        addAll(candidatosCompilados)
+    }.distinct()
 
-    val api: PlantiaApi by lazy {
-        Retrofit.Builder()
-            .baseUrl(baseUrlEfectiva)
-            .client(cliente)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(PlantiaApi::class.java)
+    val api: PlantiaApi
+        get() {
+            val actual = instancia
+            if (actual != null) return actual
+            val url = resolverBaseUrl()
+            return crear(url).also {
+                instancia = it
+                _baseUrl.value = url
+            }
+        }
+
+    /** Se llama cuando mDNS encuentra el backend en la red local. */
+    fun actualizaHostMdns(url: String?) {
+        if (_hostMdns.value == url) return
+        _hostMdns.value = url
+        if (url != null) reconectar()
     }
 
+    /** Fuerza a volver a elegir el mejor host disponible. */
+    fun reconectar() {
+        instancia = null
+        _baseUrl.value = null
+    }
+
+    private fun crear(url: String): PlantiaApi = Retrofit.Builder()
+        .baseUrl(url)
+        .client(cliente)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+        .create(PlantiaApi::class.java)
+
     private fun resolverBaseUrl(): String {
-        for (url in candidatos) {
+        for (url in candidatos()) {
             if (responde(url)) {
                 println("[RetrofitClient] Backend disponible en $url")
                 return normalizar(url)
             }
         }
-        val principal = candidatos.firstOrNull() ?: BuildConfig.API_BASE_URL
+        val principal = candidatos().firstOrNull() ?: BuildConfig.API_BASE_URL
         println("[RetrofitClient] Ningun backend respondio; se usara $principal")
         return normalizar(principal)
     }
@@ -94,7 +137,7 @@ object RetrofitClient {
     fun urlAbsoluta(url: String?): String? {
         if (url.isNullOrBlank()) return null
         if (!url.startsWith("http")) return null
-        val base = baseUrlEfectiva.trimEnd('/')
+        val base = (_baseUrl.value ?: BuildConfig.API_BASE_URL).trimEnd('/')
         return url.replaceFirst(Regex("^https?://[^/]+"), base)
     }
 }

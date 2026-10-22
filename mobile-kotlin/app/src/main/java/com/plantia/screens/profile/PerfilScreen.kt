@@ -27,6 +27,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -64,11 +65,15 @@ fun PerfilScreen(
     userIdActual: Int,
     cargando: Boolean,
     error: String?,
+    baseUrlActual: String?,
+    hostManualActual: String,
+    onGuardarHost: (String?) -> Unit,
     onCambiarUsuario: (Int) -> Unit,
     onVolver: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var entrada by remember { mutableStateOf(userIdActual.toString()) }
+    var hostManual by remember(hostManualActual) { mutableStateOf(hostManualActual) }
 
     Scaffold(
         topBar = {
@@ -209,6 +214,65 @@ fun PerfilScreen(
                     ) {
                         Text("Cambiar usuario", style = MaterialTheme.typography.labelLarge)
                     }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // --- Conexion al backend ---
+                    Text(
+                        text = "Conexion al servidor",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "En uso: ${baseUrlActual ?: "sin conexion"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = hostManual,
+                        onValueChange = { hostManual = it },
+                        label = { Text("Direccion del servidor") },
+                        placeholder = { Text("http://192.168.1.70:8080/") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                onGuardarHost(hostManual)
+                                hostManual = ""
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Guardar", style = MaterialTheme.typography.labelLarge)
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                onGuardarHost(null)
+                                hostManual = ""
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Automatico", style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Automatico usa el cable USB y el descubrimiento en la red " +
+                            "local; escribe la direccion solo si hace falta.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
                 }
             }
         }

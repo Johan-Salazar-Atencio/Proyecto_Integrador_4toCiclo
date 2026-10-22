@@ -255,6 +255,39 @@ hardcodeado en cada pantalla. Desde **Perfil → Cambiar usuario** se puede
 cambiar de identidad (hay dos usuarios de prueba en la BD: `1` Johan y `2`
 Lucia, creados por la migración `V4`).
 
+## Conectar el móvil sin depender de la red
+
+La IP del PC cambia al cambiar de WiFi, así que la app prueba varias rutas y
+se queda con la primera que responde:
+
+| Prioridad | Ruta | Cuándo funciona |
+|---|---|---|
+| 1 | **Host escrito a mano** (Perfil → Conexión) | Siempre, si escribes la IP actual |
+| 2 | **mDNS** (`plantia.local`) | Móvil y PC en la misma red, sin conocer la IP |
+| 3 | `plantia.api.baseUrl` de `local.properties` | La IP con la que se compiló |
+| 4 | `127.0.0.1` (USB con `adb reverse`) | Con el cable conectado |
+| 5 | `10.0.2.2` | Emulador de Android |
+
+### Publicar el PC en la red (mDNS)
+
+En el PC, con el backend arrancado:
+
+```powershell
+scripts\anunciar-plantia.bat
+```
+
+Publica el servicio `_plantia._tcp.local.` con la IP **actual**. La app lo
+encuentra sola al arrancar, así que da igual a qué WiFi te conectes.
+
+> Requiere `python -m pip install -r scripts\requirements-mdns.txt` (el script
+> lo instala solo si falta).
+
+### Si el mDNS no funciona
+
+ Algunos routers filtran el tráfico mDNS. En ese caso, **Perfil → Conexión →
+ Dirección del servidor** y escribe `http://<IP-DEL-PC>:8080/`. La app lo
+ guarda y lo usa siempre.
+
 ## Problemas comunes
 
 - **Al guardar una foto la identificación es siempre "Monstera"**: estás en
@@ -265,10 +298,8 @@ Lucia, creados por la migración `V4`).
   Revísalo en Open WebUI → *Settings → API Keys*.
 - **El modelo no identifica bien una planta**: debe ser multimodal. Con un
   modelo solo-texto la respuesta sale sin especie.
-- **La app no conecta ("failed to connect")**: la URL base se fija al compilar.
-  Revisa `plantia.api.baseUrl` en `local.properties` y que la IP sea la actual
-  (`ipconfig`). Si usas USB, ejecuta `scripts\conectar-dispositivo.bat`: el
-  puente `adb reverse` se pierde en cada reconexión del cable.
+- **La app no conecta ("failed to connect")**: revisa la sección *Conectar el
+  móvil sin depender de la red*; normalmente es la IP del PC que cambió.
 - **Spring no alcanza a Django**: confirma `IA_BASE_URL=http://127.0.0.1:8000`
   y que Django escuche en `127.0.0.1:8000`.
 - **El puerto 5432 está ocupado**: usa el contenedor en `5433` (paso 1) y ajusta
