@@ -63,7 +63,9 @@ data class BottomNavItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToScan: () -> Unit = {}
+    onNavigateToScan: () -> Unit = {},
+    onNavigateToGarden: () -> Unit = {},
+    onNavigateToCollection: () -> Unit = {}
 ) {
     val bottomNavItems = listOf(
         BottomNavItem("Inicio", Icons.Default.Home),
@@ -150,10 +152,10 @@ fun HomeScreen(
                         },
                         selected = selectedTab == index,
                         onClick = {
-                            if (index == 1) {
-                                onNavigateToScan()
-                            } else {
-                                selectedTab = index
+                            when (index) {
+                                1 -> onNavigateToScan()
+                                2 -> onNavigateToGarden()
+                                else -> selectedTab = index
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -186,14 +188,15 @@ fun HomeScreen(
 
             PlantSummaryCard(
                 plant = MockDashboardData.plantSummary,
-                onEnterGarden = {}
+                onEnterGarden = onNavigateToGarden
             )
 
             QuickAccessGrid(
                 items = MockDashboardData.quickAccessItems,
                 onItemClick = { item ->
-                    if (item.id == "scan") {
-                        onNavigateToScan()
+                    when (item.id) {
+                        "scan" -> onNavigateToScan()
+                        "collection" -> onNavigateToCollection()
                     }
                 }
             )

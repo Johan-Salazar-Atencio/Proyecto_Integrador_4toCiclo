@@ -1,28 +1,87 @@
 package com.plantia.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.plantia.screens.collection.CollectionScreen
+import com.plantia.screens.detail.PlantDetailScreen
+import com.plantia.screens.garden.VirtualGardenScreen
 import com.plantia.screens.home.HomeScreen
 import com.plantia.screens.scan.ScanScreen
 
+private const val DURACION_MS = 350
+
+private typealias Enter = AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition
+private typealias Exit = AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition
+
+// Avanzar: la nueva pantalla entra por la derecha, la actual sale parcialmente a la izquierda.
+private val entra: Enter = {
+    slideInHorizontally(tween(DURACION_MS)) { it } + fadeIn(tween(DURACION_MS))
+}
+private val sale: Exit = {
+    slideOutHorizontally(tween(DURACION_MS)) { -it / 3 } + fadeOut(tween(DURACION_MS))
+}
+
+// Volver (pop): sentido inverso.
+private val reEntra: Enter = {
+    slideInHorizontally(tween(DURACION_MS)) { -it / 3 } + fadeIn(tween(DURACION_MS))
+}
+private val reSale: Exit = {
+    slideOutHorizontally(tween(DURACION_MS)) { it } + fadeOut(tween(DURACION_MS))
+}
+
 @Composable
-fun AppNavigation() {
+fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
 
     NavHost(
         navController = navController,
-        startDestination = "home"
+        startDestination = Routes.HOME,
+        modifier = modifier,
+        enterTransition = entra,
+        exitTransition = sale,
+        popEnterTransition = reEntra,
+        popExitTransition = reSale
     ) {
-        composable("home") {
+        composable(Routes.HOME) {
             HomeScreen(
-                onNavigateToScan = { navController.navigate("scan") }
+                onNavigateToScan = { navController.navigate(Routes.SCAN) },
+                onNavigateToGarden = { navController.navigate(Routes.VIRTUAL_GARDEN) },
+                onNavigateToCollection = { navController.navigate(Routes.COLLECTION) }
             )
         }
-        composable("scan") {
-            ScanScreen(
-                onNavigateToHome = { navController.popBackStack() }
+        composable(Routes.SCAN) {
+            ScanScreen(onNavigateToHome = { navController.popBackStack() })
+        }
+        composable(
+            route = Routes.PLANT_DETAIL,
+            arguments = listOf(navArgument(Routes.ARG_PLANT_ID) { type = NavType.StringType })
+        ) { entry ->
+            PlantDetailScreen(
+                plantId = entry.arguments?.getString(Routes.ARG_PLANT_ID),
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(Routes.VIRTUAL_GARDEN) {
+            VirtualGardenScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.COLLECTION) {
+            CollectionScreen(
+                onBack = { navController.popBackStack() },
+                onItemClick = { item -> navController.navigate(Routes.plantDetail(item.id)) }
             )
         }
     }
