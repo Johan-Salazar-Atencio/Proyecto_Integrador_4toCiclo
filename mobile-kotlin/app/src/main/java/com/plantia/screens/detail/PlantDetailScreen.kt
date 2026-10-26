@@ -79,6 +79,7 @@ import androidx.compose.ui.unit.sp
 import android.app.Activity
 import androidx.core.view.WindowCompat
 import coil.compose.AsyncImage
+import com.plantia.data.MockGardenData
 import com.plantia.data.MockPlantData
 import com.plantia.data.ScanResultStore
 import com.plantia.data.remote.CuidadoSeccionDto
@@ -170,7 +171,11 @@ fun PlantDetailScreen(
     PlantDetailContent(
         resultado = resultado,
         onBack = onBack,
-        onDigitalize = onDigitalize,
+        onDigitalize = {
+            // Simulado: la planta escaneada pasa a ser la mascota del jardin.
+            MockGardenData.digitalizar(resultado)
+            onDigitalize()
+        },
         onSave = onSave
     )
 }
@@ -219,11 +224,15 @@ fun PlantDetailContent(
             )
         },
         bottomBar = {
-            BarraAcciones(
-                puedeGuardar = !fallida,
-                onDigitalize = onDigitalize,
-                onSave = onSave
-            )
+            if (fallida) {
+                BarraReintento(onBack)
+            } else {
+                BarraAcciones(
+                    puedeGuardar = true,
+                    onDigitalize = onDigitalize,
+                    onSave = onSave
+                )
+            }
         }
     ) { padding ->
         if (apaisado) {
@@ -571,6 +580,32 @@ private fun FalloIdentificacion() {
                 color = TextSecondary,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
+        }
+    }
+}
+
+/** Con la identificacion fallida no hay nada que guardar ni digitalizar: solo reintentar. */
+@Composable
+private fun BarraReintento(onReintentar: () -> Unit) {
+    Surface(color = SurfaceWhite, shadowElevation = 8.dp) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                )
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Button(
+                onClick = onReintentar,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+            ) {
+                Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.size(8.dp))
+                Text("Volver a escanear")
+            }
         }
     }
 }

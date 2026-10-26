@@ -75,11 +75,22 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         ) { entry ->
             PlantDetailScreen(
                 plantId = entry.arguments?.getString(Routes.ARG_PLANT_ID),
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                // Digitalizar: la planta pasa al jardin virtual; atras desde alli vuelve al inicio.
+                onDigitalize = {
+                    navController.navigate(Routes.VIRTUAL_GARDEN) { popUpTo(Routes.HOME) }
+                },
+                // Guardar: a la coleccion de plantas (el backend ya registra cada escaneo).
+                onSave = {
+                    navController.navigate(Routes.COLLECTION) { popUpTo(Routes.HOME) }
+                }
             )
         }
         composable(Routes.VIRTUAL_GARDEN) {
-            VirtualGardenScreen(onBack = { navController.popBackStack() })
+            VirtualGardenScreen(
+                onBack = { navController.popBackStack() },
+                onScan = { navController.navigate(Routes.SCAN) }
+            )
         }
         composable(Routes.COLLECTION) {
             CollectionScreen(
