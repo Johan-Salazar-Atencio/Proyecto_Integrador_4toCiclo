@@ -48,7 +48,7 @@ object MockDashboardData {
         QuickAccessItem(
             id = "collection",
             title = "Mi Coleccion",
-            subtitle = "8 companeras vivas",
+            subtitle = "Tus plantas",
             icon = "leaf",
             backgroundColor = Color(0xFFE8F8F0),
             iconColor = Color(0xFF22C55E)
@@ -64,7 +64,7 @@ object MockDashboardData {
         QuickAccessItem(
             id = "encyclopedia",
             title = "Enciclopedia",
-            subtitle = "Guas botanicas",
+            subtitle = "Guias botanicas",
             icon = "book",
             backgroundColor = Color(0xFFE8F4FD),
             iconColor = Color(0xFF3B82F6)

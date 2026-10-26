@@ -18,7 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.Yard
+import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -30,8 +30,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,6 +44,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.plantia.data.CollectionRepository
+import com.plantia.data.ColeccionResultado
 import com.plantia.data.MockDashboardData
 import com.plantia.screens.home.components.DailyMissionCard
 import com.plantia.screens.home.components.PlantSummaryCard
@@ -70,10 +74,30 @@ fun HomeScreen(
     val bottomNavItems = listOf(
         BottomNavItem("Inicio", Icons.Default.Home),
         BottomNavItem("Escanear", Icons.Default.PhotoCamera),
-        BottomNavItem("Jardin", Icons.Default.Yard),
+        BottomNavItem("Coleccion", Icons.Default.Collections),
         BottomNavItem("Perfil", Icons.Default.Person)
     )
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    // Cantidad real de plantas de la coleccion; se recarga cada vez que se vuelve al inicio.
+    var totalColeccion by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(Unit) {
+        totalColeccion = (CollectionRepository.listar() as? ColeccionResultado.Con)?.plantas?.size
+    }
+    val accesosRapidos = MockDashboardData.quickAccessItems.map { item ->
+        if (item.id != "collection") {
+            item
+        } else {
+            item.copy(
+                subtitle = when (val n = totalColeccion) {
+                    null -> "Tus plantas"
+                    0 -> "Aun sin plantas"
+                    1 -> "1 planta descubierta"
+                    else -> "$n plantas descubiertas"
+                }
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -154,7 +178,7 @@ fun HomeScreen(
                         onClick = {
                             when (index) {
                                 1 -> onNavigateToScan()
-                                2 -> onNavigateToGarden()
+                                2 -> onNavigateToCollection()
                                 else -> selectedTab = index
                             }
                         },
@@ -192,7 +216,7 @@ fun HomeScreen(
             )
 
             QuickAccessGrid(
-                items = MockDashboardData.quickAccessItems,
+                items = accesosRapidos,
                 onItemClick = { item ->
                     when (item.id) {
                         "scan" -> onNavigateToScan()
