@@ -43,8 +43,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.plantia.data.ScanResultStore
 import com.plantia.screens.scan.components.CameraPreview
 import com.plantia.screens.scan.components.PlantResultCard
+import com.plantia.screens.scan.components.ScanProgressOverlay
 import com.plantia.screens.scan.components.RecentScansRow
 import com.plantia.screens.scan.components.ScanControlsBar
 import com.plantia.screens.scan.components.ScanOverlay
@@ -56,6 +58,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun ScanScreen(
     onNavigateToHome: () -> Unit = {},
+    onScanSuccess: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val configuration = LocalConfiguration.current
@@ -286,7 +289,26 @@ fun ScanScreen(
 
         // Resultado del escaneo (identificación + cuidados) sobre la cámara
         val scanState = scanViewModel.uiState
-        if (scanState != ScanUiState.Idle) {
+
+        // Con respuesta del servidor (incluso 'Planta desconocida'): se muestra el check de exito
+        // un instante y luego se abre el detalle.
+        LaunchedEffect(scanState) {
+            if (scanState is ScanUiState.Success) {
+                ScanResultStore.ultimo = scanState.result
+                kotlinx.coroutines.delay(900)
+                scanViewModel.reiniciar()
+                onScanSuccess()
+            }
+        }
+
+        val enProgreso = scanState is ScanUiState.Loading || scanState is ScanUiState.Success
+        if (enProgreso) {
+            ScanProgressOverlay(
+                foto = lastCapturedFile,
+                terminado = scanState is ScanUiState.Success,
+                onCancelar = { scanViewModel.cancelar() }
+            )
+        } else if (scanState != ScanUiState.Idle) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

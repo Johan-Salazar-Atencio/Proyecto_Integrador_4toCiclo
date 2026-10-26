@@ -64,7 +64,10 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
         composable(Routes.SCAN) {
-            ScanScreen(onNavigateToHome = { navController.popBackStack() })
+            ScanScreen(
+                onNavigateToHome = { navController.popBackStack() },
+                onScanSuccess = { navController.navigate(Routes.plantDetail("ultimo")) }
+            )
         }
         composable(
             route = Routes.PLANT_DETAIL,
