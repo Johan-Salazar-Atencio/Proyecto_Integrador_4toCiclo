@@ -11,4 +11,9 @@ object Routes {
     const val PLANT_DETAIL = "PlantDetailScreen/{$ARG_PLANT_ID}"
 
     fun plantDetail(plantId: String) = "PlantDetailScreen/$plantId"
+
+    const val ARG_COLECCION_ID = "coleccionId"
+    const val COLLECTION_DETAIL = "CollectionDetailScreen/{$ARG_COLECCION_ID}"
+
+    fun collectionDetail(id: Int) = "CollectionDetailScreen/$id"
 }

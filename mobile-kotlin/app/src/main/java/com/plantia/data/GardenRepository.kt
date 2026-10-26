@@ -20,7 +20,7 @@ object GardenRepository {
     suspend fun plantaActiva(): PlantaActivaResultado = withContext(Dispatchers.IO) {
         // Si el usuario digitalizo una planta (simulado), esa es la que se muestra.
         MockGardenData.plantaDigital?.let {
-            return@withContext PlantaActivaResultado.ConPlanta(MockGardenData.aplicarAjustes(it))
+            return@withContext PlantaActivaResultado.ConPlanta(it.copy(imageUrl = normalizarUrlLocal(it.imageUrl)))
         }
         try {
             // `RetrofitClient.api` puede sondear la red la primera vez: siempre fuera del hilo principal.

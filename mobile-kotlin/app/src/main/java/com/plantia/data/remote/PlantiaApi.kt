@@ -8,6 +8,7 @@ import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Path
 
 interface PlantiaApi {
 
@@ -24,4 +25,16 @@ interface PlantiaApi {
     suspend fun plantaActiva(
         @Header("X-User-Id") userId: Int
     ): Response<PlantSummary>
+
+    /** Plantas escaneadas del usuario, la mas reciente primero. */
+    @GET("api/v1/coleccion")
+    suspend fun coleccion(
+        @Header("X-User-Id") userId: Int
+    ): List<ColeccionItemDto>
+
+    /** Una planta de la coleccion con sus cuidados. */
+    @GET("api/v1/coleccion/{id}")
+    suspend fun coleccionDetalle(
+        @Path("id") id: Int
+    ): ColeccionDetalleDto
 }

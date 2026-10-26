@@ -17,6 +17,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.plantia.screens.collection.CollectionScreen
+import com.plantia.data.MockGardenData
+import com.plantia.screens.detail.CollectionDetailScreen
 import com.plantia.screens.detail.PlantDetailScreen
 import com.plantia.screens.garden.VirtualGardenScreen
 import com.plantia.screens.home.HomeScreen
@@ -95,7 +97,25 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         composable(Routes.COLLECTION) {
             CollectionScreen(
                 onBack = { navController.popBackStack() },
-                onItemClick = { item -> navController.navigate(Routes.plantDetail(item.id)) }
+                onPlantaEscaneada = { planta -> navController.navigate(Routes.collectionDetail(planta.id)) },
+                // Planta digital: se vuelve la activa y se abre el jardin con ella.
+                onPlantaDigital = { planta ->
+                    MockGardenData.activar(planta.name)
+                    navController.navigate(Routes.VIRTUAL_GARDEN)
+                },
+                onScan = { navController.navigate(Routes.SCAN) }
+            )
+        }
+        composable(
+            route = Routes.COLLECTION_DETAIL,
+            arguments = listOf(navArgument(Routes.ARG_COLECCION_ID) { type = NavType.IntType })
+        ) { entry ->
+            CollectionDetailScreen(
+                coleccionId = entry.arguments?.getInt(Routes.ARG_COLECCION_ID) ?: 0,
+                onBack = { navController.popBackStack() },
+                onDigitalize = {
+                    navController.navigate(Routes.VIRTUAL_GARDEN) { popUpTo(Routes.HOME) }
+                }
             )
         }
     }

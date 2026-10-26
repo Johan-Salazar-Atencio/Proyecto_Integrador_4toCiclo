@@ -187,7 +187,8 @@ fun PlantDetailContent(
     onBack: () -> Unit,
     onDigitalize: () -> Unit,
     onSave: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    mostrarGuardar: Boolean = true
 ) {
     val fallida = resultado.identificacionFallida()
 
@@ -229,6 +230,7 @@ fun PlantDetailContent(
             } else {
                 BarraAcciones(
                     puedeGuardar = true,
+                    mostrarGuardar = mostrarGuardar,
                     onDigitalize = onDigitalize,
                     onSave = onSave
                 )
@@ -611,7 +613,12 @@ private fun BarraReintento(onReintentar: () -> Unit) {
 }
 
 @Composable
-private fun BarraAcciones(puedeGuardar: Boolean, onDigitalize: () -> Unit, onSave: () -> Unit) {
+private fun BarraAcciones(
+    puedeGuardar: Boolean,
+    mostrarGuardar: Boolean,
+    onDigitalize: () -> Unit,
+    onSave: () -> Unit
+) {
     Surface(color = SurfaceWhite, shadowElevation = 8.dp) {
         Row(
             modifier = Modifier
@@ -623,6 +630,20 @@ private fun BarraAcciones(puedeGuardar: Boolean, onDigitalize: () -> Unit, onSav
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Desde la coleccion la planta ya esta guardada: solo se ofrece Digitalizar, en verde.
+            if (!mostrarGuardar) {
+                Button(
+                    onClick = onDigitalize,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+                ) {
+                    Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.size(8.dp))
+                    Text("Digitalizar")
+                }
+                return@Row
+            }
             OutlinedButton(
                 onClick = onDigitalize,
                 modifier = Modifier.weight(1f),

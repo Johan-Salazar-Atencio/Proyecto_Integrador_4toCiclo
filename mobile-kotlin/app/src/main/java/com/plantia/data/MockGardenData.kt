@@ -14,26 +14,34 @@ enum class AccionCuidado(val etiqueta: String, val pista: String, val delta: Int
 data class ResultadoCuidado(val planta: PlantSummary, val mensaje: String)
 
 /**
- * SIMULACION de los cuidados del jardin.
+ * SIMULACION de las plantas digitales y sus cuidados.
  *
- * El backend todavia no tiene un endpoint para regar / dar sol / abonar (solo existe
- * GET /api/v1/plantas/activa) ni un proceso que cambie los porcentajes con el tiempo.
- * Mientras tanto los cuidados se aplican aqui, en memoria: se suman sobre lo que devuelve el
- * servidor y duran hasta que se cierre la app.
+ * El backend todavia no tiene: crear una planta digital a partir de un escaneo, un endpoint
+ * para regar / dar sol / abonar, ni un proceso que cambie los porcentajes con el tiempo
+ * (solo existe GET /api/v1/plantas/activa). Mientras tanto todo esto vive aqui, en memoria,
+ * hasta que se cierre la app.
  *
- * TODO(backend): cuando exista el endpoint de cuidados, reemplazar `aplicarCuidado` por la
- * llamada real y borrar `aplicarAjustes`.
+ * TODO(backend): reemplazar `digitalizar`, `activar` y `aplicarCuidado` por llamadas reales
+ * y borrar `aplicarAjustes`.
  */
 object MockGardenData {
 
+    // Ajustes sobre la planta que devuelve el servidor (la semilla), si no hay digitales.
     private var ajusteSalud = 0
     private var ajusteAgua = 0
     private var ajusteLuz = 0
     private var regadaEnEstaSesion = false
 
-    /** Planta digital creada con "Digitalizar" (simulada); si existe, el jardin la muestra. */
-    var plantaDigital: PlantSummary? = null
-        private set
+    // Coleccion de plantas digitales (las que pasaron por "Digitalizar"), la mas nueva primero.
+    private val digitales = mutableListOf<PlantSummary>()
+    private var nombreActiva: String? = null
+
+    val plantasDigitales: List<PlantSummary> get() = digitales.toList()
+
+    /** Planta digital que se muestra en el jardin, si hay alguna. */
+    val plantaDigital: PlantSummary? get() = digitales.firstOrNull { it.name == nombreActiva }
+
+    val nombreDeLaActiva: String? get() = nombreActiva
 
     /** Planta de ejemplo para Previews. */
     val plantaSimulada = PlantSummary(
@@ -49,16 +57,11 @@ object MockGardenData {
     val plantaSedienta = plantaSimulada.copy(healthPercent = 35, humidityPercent = 15, lightPercent = 55)
 
     /**
-     * SIMULA "Digitalizar": la planta escaneada pasa a ser la mascota del jardin.
-     * TODO(backend): reemplazar por la llamada real cuando exista el endpoint que crea
-     * la planta en crianza a partir de un escaneo.
+     * SIMULA "Digitalizar": la planta escaneada se suma a las digitales y pasa a ser la activa.
+     * Si ya existia una con el mismo nombre, se reemplaza por una nueva.
      */
     fun digitalizar(escaneo: ScanResultDto) {
-        ajusteSalud = 0
-        ajusteAgua = 0
-        ajusteLuz = 0
-        regadaEnEstaSesion = false
-        plantaDigital = PlantSummary(
+        val nueva = PlantSummary(
             name = escaneo.nombreComun?.takeIf { it.isNotBlank() } ?: "Mi planta",
             species = escaneo.nombreCientifico.orEmpty(),
             healthPercent = 90,
@@ -68,9 +71,17 @@ object MockGardenData {
             // Mientras no haya sprites, se muestra la foto del escaneo.
             imageUrl = escaneo.imagenUrl
         )
+        digitales.removeAll { it.name == nueva.name }
+        digitales.add(0, nueva)
+        nombreActiva = nueva.name
     }
 
-    /** Suma los cuidados simulados a lo que devolvio el servidor. */
+    /** Elige cual de las plantas digitales se ve en el jardin. */
+    fun activar(nombre: String) {
+        if (digitales.any { it.name == nombre }) nombreActiva = nombre
+    }
+
+    /** Suma los cuidados simulados a lo que devolvio el servidor (solo la planta semilla). */
     fun aplicarAjustes(base: PlantSummary): PlantSummary = base.copy(
         healthPercent = (base.healthPercent + ajusteSalud).coerceIn(0, 100),
         humidityPercent = (base.humidityPercent + ajusteAgua).coerceIn(0, 100),
@@ -81,41 +92,47 @@ object MockGardenData {
     /** Aplica un cuidado sobre la planta que se esta mostrando. */
     fun aplicarCuidado(actual: PlantSummary, accion: AccionCuidado): ResultadoCuidado {
         val nombre = actual.name
-        return when (accion) {
+        val nueva: PlantSummary = when (accion) {
             AccionCuidado.REGAR -> {
                 if (actual.humidityPercent >= 100) {
                     return ResultadoCuidado(actual, "$nombre ya tiene toda el agua que necesita")
                 }
-                ajusteAgua += accion.delta
-                regadaEnEstaSesion = true
-                ResultadoCuidado(
-                    actual.copy(
-                        humidityPercent = (actual.humidityPercent + accion.delta).coerceAtMost(100),
-                        lastWatered = "Hace unos minutos"
-                    ),
-                    "Regaste a $nombre: +${accion.delta}% de agua"
+                actual.copy(
+                    humidityPercent = (actual.humidityPercent + accion.delta).coerceAtMost(100),
+                    lastWatered = "Hace unos minutos"
                 )
             }
             AccionCuidado.SOL -> {
                 if (actual.lightPercent >= 100) {
                     return ResultadoCuidado(actual, "$nombre ya recibio toda la luz que necesita")
                 }
-                ajusteLuz += accion.delta
-                ResultadoCuidado(
-                    actual.copy(lightPercent = (actual.lightPercent + accion.delta).coerceAtMost(100)),
-                    "$nombre tomo sol: +${accion.delta}% de luz"
-                )
+                actual.copy(lightPercent = (actual.lightPercent + accion.delta).coerceAtMost(100))
             }
             AccionCuidado.ABONAR -> {
                 if (actual.healthPercent >= 100) {
                     return ResultadoCuidado(actual, "$nombre ya esta en plena salud")
                 }
-                ajusteSalud += accion.delta
-                ResultadoCuidado(
-                    actual.copy(healthPercent = (actual.healthPercent + accion.delta).coerceAtMost(100)),
-                    "Abonaste a $nombre: +${accion.delta}% de salud"
-                )
+                actual.copy(healthPercent = (actual.healthPercent + accion.delta).coerceAtMost(100))
             }
         }
+
+        val indice = digitales.indexOfFirst { it.name == nombre }
+        if (indice >= 0) {
+            digitales[indice] = nueva
+        } else {
+            // Planta del servidor: se recuerda el aporte para reaplicarlo al recargar.
+            when (accion) {
+                AccionCuidado.REGAR -> { ajusteAgua += accion.delta; regadaEnEstaSesion = true }
+                AccionCuidado.SOL -> ajusteLuz += accion.delta
+                AccionCuidado.ABONAR -> ajusteSalud += accion.delta
+            }
+        }
+
+        val mensaje = when (accion) {
+            AccionCuidado.REGAR -> "Regaste a $nombre: +${accion.delta}% de agua"
+            AccionCuidado.SOL -> "$nombre tomo sol: +${accion.delta}% de luz"
+            AccionCuidado.ABONAR -> "Abonaste a $nombre: +${accion.delta}% de salud"
+        }
+        return ResultadoCuidado(nueva, mensaje)
     }
 }
