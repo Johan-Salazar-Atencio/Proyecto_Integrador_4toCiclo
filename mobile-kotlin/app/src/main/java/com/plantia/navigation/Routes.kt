@@ -1,0 +1,27 @@
+package com.plantia.navigation
+
+/** Rutas de la app. Las que reciben argumentos exponen un helper para construirlas. */
+object Routes {
+    const val WELCOME = "welcome"
+    const val TERMINOS = "terminos"
+
+    const val ARG_MODO = "modo"
+    const val AUTH = "auth/{$ARG_MODO}"
+
+    fun auth(registro: Boolean) = "auth/${if (registro) "registro" else "login"}"
+
+    const val HOME = "home"
+    const val SCAN = "ScanScreen"
+    const val VIRTUAL_GARDEN = "VirtualGardenScreen"
+    const val COLLECTION = "CollectionScreen"
+
+    const val ARG_PLANT_ID = "plantId"
+    const val PLANT_DETAIL = "PlantDetailScreen/{$ARG_PLANT_ID}"
+
+    fun plantDetail(plantId: String) = "PlantDetailScreen/$plantId"
+
+    const val ARG_COLECCION_ID = "coleccionId"
+    const val COLLECTION_DETAIL = "CollectionDetailScreen/{$ARG_COLECCION_ID}"
+
+    fun collectionDetail(id: Int) = "CollectionDetailScreen/$id"
+}
