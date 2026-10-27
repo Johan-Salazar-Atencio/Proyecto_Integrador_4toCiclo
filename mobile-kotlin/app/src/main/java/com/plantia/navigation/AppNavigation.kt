@@ -88,7 +88,11 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             HomeScreen(
                 onNavigateToScan = { navController.navigate(Routes.SCAN) },
                 onNavigateToGarden = { navController.navigate(Routes.VIRTUAL_GARDEN) },
-                onNavigateToCollection = { navController.navigate(Routes.COLLECTION) }
+                onNavigateToCollection = { navController.navigate(Routes.COLLECTION) },
+                // Aun no hay sesion guardada: cerrar sesion es volver al Welcome con la pila limpia.
+                onCerrarSesion = {
+                    navController.navigate(Routes.WELCOME) { popUpTo(Routes.HOME) { inclusive = true } }
+                }
             )
         }
         composable(Routes.SCAN) {

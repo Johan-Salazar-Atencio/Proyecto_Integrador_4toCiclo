@@ -10,10 +10,10 @@ import java.io.IOException
 
 class ApiAuthRepository : AuthRepository {
 
-    private val api = RetrofitClient.api
-
     override suspend fun registrar(nombre: String, email: String, password: String): AuthResultado {
         return withContext(Dispatchers.IO) {
+            // La primera vez RetrofitClient sondea la red: nunca en el hilo principal.
+            val api = RetrofitClient.api
             try {
                 val response = api.registrar(
                     AuthRegistroRequestDto(
@@ -40,6 +40,7 @@ class ApiAuthRepository : AuthRepository {
 
     override suspend fun iniciarSesion(email: String, password: String): AuthResultado {
         return withContext(Dispatchers.IO) {
+            val api = RetrofitClient.api
             try {
                 val response = api.login(
                     AuthLoginRequestDto(

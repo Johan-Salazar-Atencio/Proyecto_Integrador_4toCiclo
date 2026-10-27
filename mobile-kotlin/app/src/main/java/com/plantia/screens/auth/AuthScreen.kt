@@ -50,7 +50,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -82,7 +81,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.plantia.BuildConfig
 import com.plantia.ui.components.EscenaBrote
 import com.plantia.ui.components.escalaAlPresionar
 import com.plantia.ui.theme.GreenDark
@@ -316,16 +314,6 @@ private fun Formulario(viewModel: AuthViewModel, onTerminos: () -> Unit, modifie
                 cargando = cargando,
                 alPulsar = { focus.clearFocus(); viewModel.enviar() }
             )
-
-            // Atajo solo para pruebas (versiones de depuracion): rellena la cuenta demo simulada.
-            if (BuildConfig.DEBUG && !registro) {
-                TextButton(
-                    onClick = viewModel::usarCuentaDemo,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                ) {
-                    Text("Usar cuenta demo (modo prueba)", fontSize = 13.sp, color = GreenDark)
-                }
-            }
         }
     }
 }

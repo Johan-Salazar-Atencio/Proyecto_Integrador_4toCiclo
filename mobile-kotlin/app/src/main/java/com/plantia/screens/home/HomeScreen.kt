@@ -15,18 +15,22 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -69,7 +73,8 @@ data class BottomNavItem(
 fun HomeScreen(
     onNavigateToScan: () -> Unit = {},
     onNavigateToGarden: () -> Unit = {},
-    onNavigateToCollection: () -> Unit = {}
+    onNavigateToCollection: () -> Unit = {},
+    onCerrarSesion: () -> Unit = {}
 ) {
     val bottomNavItems = listOf(
         BottomNavItem("Inicio", Icons.Default.Home),
@@ -78,6 +83,7 @@ fun HomeScreen(
         BottomNavItem("Perfil", Icons.Default.Person)
     )
     var selectedTab by remember { mutableIntStateOf(0) }
+    var confirmarSalida by remember { mutableStateOf(false) }
 
     // Cantidad real de plantas de la coleccion; se recarga cada vez que se vuelve al inicio.
     var totalColeccion by remember { mutableStateOf<Int?>(null) }
@@ -99,6 +105,27 @@ fun HomeScreen(
         }
     }
 
+    if (confirmarSalida) {
+        AlertDialog(
+            onDismissRequest = { confirmarSalida = false },
+            containerColor = Color.White,
+            titleContentColor = TextPrimary,
+            textContentColor = TextSecondary,
+            title = { Text("¿Cerrar sesión?") },
+            text = { Text("Volverás a la pantalla de bienvenida.") },
+            confirmButton = {
+                TextButton(onClick = { confirmarSalida = false; onCerrarSesion() }) {
+                    Text("Cerrar sesión", color = GreenPrimary, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmarSalida = false }) {
+                    Text("Cancelar", color = TextSecondary)
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -111,6 +138,13 @@ fun HomeScreen(
                     )
                 },
                 actions = {
+                    IconButton(onClick = { confirmarSalida = true }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Cerrar sesión",
+                            tint = TextSecondary
+                        )
+                    }
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = AmberLight,

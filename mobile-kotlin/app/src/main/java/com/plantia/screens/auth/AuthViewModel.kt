@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import com.plantia.data.ApiAuthRepository
 import com.plantia.data.AuthRepository
 import com.plantia.data.AuthResultado
-import com.plantia.data.MockAuthRepository
 import kotlinx.coroutines.launch
 
 enum class ModoAuth { LOGIN, REGISTRO }
@@ -108,13 +107,6 @@ class AuthViewModel : ViewModel() {
                 is AuthResultado.Error -> AuthEstado.Error(resultado.mensaje)
             }
         }
-    }
-
-    /** Solo para pruebas (cuenta demo del repositorio simulado). */
-    fun usarCuentaDemo() {
-        email = MockAuthRepository.CORREO_DEMO
-        password = MockAuthRepository.CLAVE_DEMO
-        estado = AuthEstado.Reposo
     }
 
     /** La pantalla ya navego: se limpia el estado de exito. */
