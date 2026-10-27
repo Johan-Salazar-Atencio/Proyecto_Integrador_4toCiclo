@@ -42,7 +42,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 fun ScanControlsBar(
     onGalleryClick: () -> Unit = {},
     onCaptureClick: () -> Unit = {},
-    onFlashClick: () -> Unit = {},
     onFlipCameraClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {

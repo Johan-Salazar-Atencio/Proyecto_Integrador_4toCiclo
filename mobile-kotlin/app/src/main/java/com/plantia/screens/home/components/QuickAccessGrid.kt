@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,13 +53,13 @@ fun QuickAccessGrid(
         ) {
             Text(
                 text = "Accesos Rapidos",
-                fontSize = 18.sp,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
             )
             Text(
                 text = "${items.size} herramientas",
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary
             )
         }
@@ -117,7 +118,7 @@ private fun QuickAccessCard(
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         shadowElevation = 2.dp,
-        color = Color.White
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
@@ -145,7 +146,7 @@ private fun QuickAccessCard(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = item.title,
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = TextPrimary,
                 textAlign = TextAlign.Center,
@@ -155,7 +156,7 @@ private fun QuickAccessCard(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = item.subtitle,
-                fontSize = 10.sp,
+                style = MaterialTheme.typography.labelSmall,
                 color = TextSecondary,
                 textAlign = TextAlign.Center,
                 maxLines = 1,

@@ -1,6 +1,8 @@
 package com.plantia.screens.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,14 +18,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.Yard
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -48,14 +53,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.data.CollectionRepository
 import com.plantia.data.ColeccionResultado
-import com.plantia.data.MockDashboardData
 import com.plantia.screens.home.components.DailyMissionCard
 import com.plantia.screens.home.components.PlantSummaryCard
 import com.plantia.screens.home.components.QuickAccessGrid
 import com.plantia.screens.home.components.UserHeaderCard
 import com.plantia.screens.home.components.WeatherAlertCard
+import com.plantia.screens.home.viewmodel.HomeViewModel
 import com.plantia.ui.theme.AmberAlert
 import com.plantia.ui.theme.AmberLight
 import com.plantia.ui.theme.BackgroundLight
@@ -74,35 +80,49 @@ fun HomeScreen(
     onNavigateToScan: () -> Unit = {},
     onNavigateToGarden: () -> Unit = {},
     onNavigateToCollection: () -> Unit = {},
+    onNavigateToColeccion: () -> Unit = {},
+    onNavigateToCatalogo: () -> Unit = {},
+    onNavigateToJardin: () -> Unit = {},
+    onNavigateToPerfil: () -> Unit = {},
     onCerrarSesion: () -> Unit = {}
 ) {
     val bottomNavItems = listOf(
         BottomNavItem("Inicio", Icons.Default.Home),
         BottomNavItem("Escanear", Icons.Default.PhotoCamera),
-        BottomNavItem("Coleccion", Icons.Default.Collections),
+        BottomNavItem("Jardín", Icons.Default.Yard),
+        BottomNavItem("Colección", Icons.Default.Collections),
         BottomNavItem("Perfil", Icons.Default.Person)
     )
     var selectedTab by remember { mutableIntStateOf(0) }
+
     var confirmarSalida by remember { mutableStateOf(false) }
 
-    // Cantidad real de plantas de la coleccion; se recarga cada vez que se vuelve al inicio.
+    // Cantidad real de plantas de la colección (mock fallback); se recarga cada vez que se vuelve al inicio.
     var totalColeccion by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(Unit) {
         totalColeccion = (CollectionRepository.listar() as? ColeccionResultado.Con)?.plantas?.size
     }
-    val accesosRapidos = MockDashboardData.quickAccessItems.map { item ->
-        if (item.id != "collection") {
-            item
-        } else {
-            item.copy(
-                subtitle = when (val n = totalColeccion) {
-                    null -> "Tus plantas"
-                    0 -> "Aun sin plantas"
-                    1 -> "1 planta descubierta"
-                    else -> "$n plantas descubiertas"
-                }
-            )
+
+    val homeViewModel: HomeViewModel = viewModel()
+    val state = homeViewModel.uiState
+
+    val accesosRapidos = if (totalColeccion != null) {
+        state.accesos.map { item ->
+            if (item.id != "collection") {
+                item
+            } else {
+                item.copy(
+                    subtitle = when (val n = totalColeccion) {
+                        null -> "Tus plantas"
+                        0 -> "Aun sin plantas"
+                        1 -> "1 planta descubierta"
+                        else -> "$n plantas descubiertas"
+                    }
+                )
+            }
         }
+    } else {
+        state.accesos
     }
 
     if (confirmarSalida) {
@@ -155,7 +175,7 @@ fun HomeScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "480",
+                                text = "${state.usuario?.leaves ?: 0}",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = AmberAlert
@@ -178,19 +198,19 @@ fun HomeScreen(
                                 text = "J",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.surface
                             )
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
         bottomBar = {
             NavigationBar(
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp
             ) {
                 bottomNavItems.forEachIndexed { index, item ->
@@ -210,10 +230,12 @@ fun HomeScreen(
                         },
                         selected = selectedTab == index,
                         onClick = {
+                            selectedTab = index
                             when (index) {
                                 1 -> onNavigateToScan()
-                                2 -> onNavigateToCollection()
-                                else -> selectedTab = index
+                                2 -> onNavigateToJardin()
+                                3 -> onNavigateToCollection()
+                                4 -> onNavigateToPerfil()
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -227,7 +249,7 @@ fun HomeScreen(
                 }
             }
         },
-        containerColor = BackgroundLight
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -237,29 +259,87 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            UserHeaderCard(user = MockDashboardData.userSummary)
-
-            WeatherAlertCard(
-                alert = MockDashboardData.weatherAlert,
-                onActionClick = {}
-            )
-
-            PlantSummaryCard(
-                plant = MockDashboardData.plantSummary,
-                onEnterGarden = onNavigateToGarden
-            )
-
-            QuickAccessGrid(
-                items = accesosRapidos,
-                onItemClick = { item ->
-                    when (item.id) {
-                        "scan" -> onNavigateToScan()
-                        "collection" -> onNavigateToCollection()
-                    }
+            if (state.cargando) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = GreenPrimary)
                 }
-            )
+            } else {
+                state.error?.let { mensaje ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFEE2E2)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = mensaje,
+                                fontSize = 13.sp,
+                                color = Color(0xFF991B1B),
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "Reintentar",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF991B1B),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { homeViewModel.recargar() }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
-            DailyMissionCard(mission = MockDashboardData.dailyMission)
+                state.usuario?.let { usuario ->
+                    UserHeaderCard(user = usuario)
+                }
+
+                state.alerta?.let { alerta ->
+                    WeatherAlertCard(
+                        alert = alerta,
+                        onActionClick = {}
+                    )
+                }
+
+                state.planta?.let { planta ->
+                    PlantSummaryCard(
+                        plant = planta,
+                        onEnterGarden = onNavigateToGarden
+                    )
+                }
+
+                if (accesosRapidos.isNotEmpty()) {
+                    QuickAccessGrid(
+                        items = accesosRapidos,
+                        onItemClick = { item ->
+                            when (item.id) {
+                                "scan" -> onNavigateToScan()
+                                "collection" -> onNavigateToColeccion()
+                                "encyclopedia" -> onNavigateToCatalogo()
+                                "garden" -> onNavigateToGarden()
+                                "jardin" -> onNavigateToJardin()
+                                // "store" todavía no tiene endpoint en el backend.
+                            }
+                        }
+                    )
+                }
+
+                state.mision?.let { mision ->
+                    DailyMissionCard(mission = mision)
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }

@@ -11,6 +11,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.plantia.data.remote.RetrofitClient
 import com.plantia.data.remote.ScanResultDto
+import com.plantia.data.toDomain
+import com.plantia.model.RecentScan
 import java.io.File
 import kotlin.math.max
 import kotlinx.coroutines.CancellationException
@@ -36,8 +38,20 @@ class ScanViewModel : ViewModel() {
 
     private var trabajo: Job? = null
 
+    /** Escaneos recientes del usuario (GET /api/v1/escaneos/recientes). */
+    var recientes: List<RecentScan> by mutableStateOf(emptyList())
+        private set
+
+    init {
+        cargarRecientes()
+    }
+
     /** Captura tomada -> se sube al backend y se espera la informacion de la planta. */
-    fun escanear(foto: File) {
+    fun escanear(foto: File, mimeType: String = "image/jpeg") {
+        if (!foto.exists() || foto.length() == 0L) {
+            uiState = ScanUiState.Error("La foto no se guardo correctamente")
+            return
+        }
         uiState = ScanUiState.Loading
         trabajo?.cancel()
         trabajo = viewModelScope.launch {
@@ -53,6 +67,8 @@ class ScanViewModel : ViewModel() {
                 val api = withContext(Dispatchers.IO) { RetrofitClient.api }
                 val result = api.escanear(USER_ID, part)
                 uiState = ScanUiState.Success(result)
+                // El historial ya incluye este escaneo: se refresca.
+                cargarRecientes()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -66,6 +82,27 @@ class ScanViewModel : ViewModel() {
         trabajo?.cancel()
         trabajo = null
         uiState = ScanUiState.Idle
+    }
+
+    /** Error de captura: cierra la pantalla de "Analizando..." con un mensaje. */
+    fun fallar(mensaje: String) {
+        if (uiState is ScanUiState.Loading) {
+            uiState = ScanUiState.Error(mensaje)
+        }
+    }
+
+    fun cargarRecientes() {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                RetrofitClient.api.escaneosRecientes().body().orEmpty()
+            }.onSuccess { lista ->
+                println("[ScanViewModel] recientes cargados: ${lista.size}")
+                recientes = lista.map { it.toDomain() }
+            }.onFailure {
+                println("[ScanViewModel] no se pudieron cargar los recientes: ${it.message}")
+                recientes = emptyList()
+            }
+        }
     }
 
     fun reiniciar() {

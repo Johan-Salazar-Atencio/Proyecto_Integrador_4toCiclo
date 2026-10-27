@@ -19,3 +19,11 @@ val SurfaceWhite = Color(0xFFFFFFFF)
 val TextPrimary = Color(0xFF1F2937)
 val TextSecondary = Color(0xFF6B7280)
 val DividerColor = Color(0xFFE5E7EB)
+
+// --- Modo oscuro ---
+val ColorDarkBackground = Color(0xFF111827)
+val ColorDarkSurface = Color(0xFF1F2937)
+val ColorDarkSurfaceVariant = Color(0xFF374151)
+val ColorDarkText = Color(0xFFF3F4F6)
+val ColorDarkTextMuted = Color(0xFF9CA3AF)
+val ColorDarkOutline = Color(0xFF4B5563)

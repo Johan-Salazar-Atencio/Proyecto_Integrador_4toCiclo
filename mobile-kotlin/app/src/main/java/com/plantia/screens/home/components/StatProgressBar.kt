@@ -1,5 +1,7 @@
 package com.plantia.screens.home.components
 
+import androidx.compose.material3.MaterialTheme
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,28 +29,31 @@ fun StatProgressBar(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        // Se acota el valor: el backend podria devolver algo fuera de 0..100
+        // y la barra se romperia.
+        val valor = percent.coerceIn(0, 100)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = label,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFF424242),
                 modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "$percent%",
-                fontSize = 14.sp,
+                text = "$valor%",
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = color
             )
         }
         Spacer(modifier = Modifier.height(6.dp))
         LinearProgressIndicator(
-            progress = { percent / 100f },
+            progress = { valor / 100f },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)

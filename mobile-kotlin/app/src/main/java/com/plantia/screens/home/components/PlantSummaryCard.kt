@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Yard
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,7 +56,10 @@ fun PlantSummaryCard(
                 .fillMaxWidth()
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(Color.White, GreenLight.copy(alpha = 0.2f))
+                        colors = listOf(
+                        MaterialTheme.colorScheme.surface,
+                        GreenLight.copy(alpha = 0.2f)
+                    )
                     )
                 )
                 .padding(20.dp)
@@ -85,20 +89,20 @@ fun PlantSummaryCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = plant.name,
-                        fontSize = 18.sp,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
                     Text(
                         text = plant.species,
-                        fontSize = 13.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary
                     )
                 }
 
                 Text(
                     text = "...",
-                    fontSize = 18.sp,
+                    style = MaterialTheme.typography.titleLarge,
                     color = TextSecondary,
                     fontWeight = FontWeight.Bold
                 )
@@ -114,11 +118,22 @@ fun PlantSummaryCard(
                     .background(GreenLight.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center
             ) {
+                // Sin libreria de imagenes todavia: se muestra el nombre real
+                // de la planta en vez de un texto fijo.
                 Text(
-                    text = "Monstera",
-                    fontSize = 24.sp,
+                    text = plant.name,
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = GreenPrimary
+                )
+            }
+
+            if (plant.lastWatered.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Ultimo riego: ${plant.lastWatered}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextSecondary
                 )
             }
 
@@ -153,8 +168,8 @@ fun PlantSummaryCard(
                 )
             ) {
                 Text(
-                    text = "Entrar al Jardín Virtual",
-                    fontSize = 15.sp,
+                    text = "Entrar al JardÃ­n Virtual",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
                     modifier = Modifier

@@ -5,8 +5,10 @@ import android.content.pm.PackageManager
 import android.util.Log
 import android.widget.Toast as AndroidToast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.camera.core.CameraSelector
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,12 +41,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.plantia.data.ImagenLocal
 import com.plantia.data.ScanResultStore
 import com.plantia.screens.scan.components.CameraPreview
+import com.plantia.screens.scan.components.FlashToggleButton
 import com.plantia.screens.scan.components.PlantResultCard
 import com.plantia.screens.scan.components.ScanProgressOverlay
 import com.plantia.screens.scan.components.RecentScansRow
@@ -58,6 +63,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun ScanScreen(
     onNavigateToHome: () -> Unit = {},
+    onNavigateToHistory: () -> Unit = {},
     onScanSuccess: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -71,6 +77,9 @@ fun ScanScreen(
     var toastMessage by remember { mutableStateOf("") }
     var captureTrigger by remember { mutableStateOf(0) }
     var hasCameraPermission by remember { mutableStateOf(false) }
+    // Lente de la camara y flash (linterna)
+    var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
+    var torchEnabled by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -79,6 +88,23 @@ fun ScanScreen(
             Log.d("ScanScreen", "Permiso de cámara: ${if (isGranted) "CONCEDIDO" else "DENEGADO"}")
         }
     )
+
+    // Galería: elegir una foto existente y escanearla.
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val preparada = ImagenLocal.desdeUri(context, uri)
+        if (preparada == null) {
+            Log.w("ScanScreen", "No se pudo leer la imagen de la galeria")
+            toastMessage = "No se pudo abrir la imagen"
+            showToast = true
+            return@rememberLauncherForActivityResult
+        }
+        Log.d("ScanScreen", "Imagen de galeria: ${preparada.archivo.absolutePath}")
+        lastCapturedFile = preparada.archivo
+        scanViewModel.escanear(preparada.archivo, preparada.mimeType)
+    }
 
     // Verificar permiso al iniciar
     LaunchedEffect(Unit) {
@@ -98,6 +124,15 @@ fun ScanScreen(
         Unit
     }
 
+    // Si la camara falla, se corta la espera: sin esto la UI queda en
+    // "Analizando..." indefinidamente.
+    val onCameraError = { mensaje: String ->
+        Log.w("ScanScreen", "Error de camara: $mensaje")
+        scanViewModel.fallar(mensaje)
+        toastMessage = mensaje
+        showToast = true
+    }
+
     val onCaptureClick = onCaptureClick@ {
         Log.d("ScanScreen", "Botón de captura presionado")
         if (!hasCameraPermission) {
@@ -107,6 +142,19 @@ fun ScanScreen(
             return@onCaptureClick
         }
         captureTrigger++
+    }
+
+    // Cambia entre camara trasera y frontal.
+    val onFlipCamera = {
+        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+            CameraSelector.LENS_FACING_FRONT
+        } else {
+            CameraSelector.LENS_FACING_BACK
+        }
+        // La camara frontal no tiene linterna.
+        torchEnabled = false
+        Log.d("ScanScreen", "Lente cambiada a $lensFacing")
+        Unit
     }
 
     Box(
@@ -133,6 +181,9 @@ fun ScanScreen(
                     CameraPreview(
                         modifier = Modifier.fillMaxSize(),
                         onImageCaptured = onImageCaptured,
+                        onError = onCameraError,
+                        lensFacing = lensFacing,
+                        torchEnabled = torchEnabled,
                         captureTrigger = captureTrigger
                     )
 
@@ -143,6 +194,17 @@ fun ScanScreen(
                             .padding(top = 72.dp, start = 24.dp, end = 24.dp, bottom = 16.dp)
                     ) {
                         ScanOverlay(modifier = Modifier.align(Alignment.Center))
+                    }
+
+                    // Flash (linterna): solo en la camara trasera.
+                    if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+                        FlashToggleButton(
+                            torchEnabled = torchEnabled,
+                            onToggle = { torchEnabled = !torchEnabled },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 84.dp, end = 20.dp)
+                        )
                     }
 
                     // Barra superior (TopBar) con statusBarsPadding
@@ -192,13 +254,19 @@ fun ScanScreen(
                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    RecentScansRow()
+                    RecentScansRow(
+                        scans = scanViewModel.recientes,
+                        onViewHistoryClick = onNavigateToHistory
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
                     ScanControlsBar(
-                        onGalleryClick = { },
+                        onGalleryClick = {
+                            galleryLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
                         onCaptureClick = onCaptureClick,
-                        onFlashClick = { },
-                        onFlipCameraClick = { }
+                        onFlipCameraClick = onFlipCamera
                     )
                 }
             }
@@ -217,6 +285,9 @@ fun ScanScreen(
                     CameraPreview(
                         modifier = Modifier.fillMaxSize(),
                         onImageCaptured = onImageCaptured,
+                        onError = onCameraError,
+                        lensFacing = lensFacing,
+                        torchEnabled = torchEnabled,
                         captureTrigger = captureTrigger
                     )
 
@@ -227,6 +298,17 @@ fun ScanScreen(
                             .padding(top = 72.dp, start = 24.dp, end = 24.dp, bottom = 16.dp)
                     ) {
                         ScanOverlay(modifier = Modifier.align(Alignment.Center))
+                    }
+
+                    // Flash (linterna): solo en la camara trasera.
+                    if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+                        FlashToggleButton(
+                            torchEnabled = torchEnabled,
+                            onToggle = { torchEnabled = !torchEnabled },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 84.dp, end = 20.dp)
+                        )
                     }
 
                     // Barra superior (TopBar) con statusBarsPadding
@@ -275,13 +357,19 @@ fun ScanScreen(
                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    RecentScansRow()
+                    RecentScansRow(
+                        scans = scanViewModel.recientes,
+                        onViewHistoryClick = onNavigateToHistory
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                     ScanControlsBar(
-                        onGalleryClick = { },
+                        onGalleryClick = {
+                            galleryLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
                         onCaptureClick = onCaptureClick,
-                        onFlashClick = { },
-                        onFlipCameraClick = { }
+                        onFlipCameraClick = onFlipCamera
                     )
                 }
             }

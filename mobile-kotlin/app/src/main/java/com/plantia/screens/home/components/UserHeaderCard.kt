@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,7 +46,7 @@ fun UserHeaderCard(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(16.dp),
         shadowElevation = 2.dp,
-        color = Color.White
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier
@@ -73,7 +74,7 @@ fun UserHeaderCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Hola, ${user.name}!",
-                    fontSize = 18.sp,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
                 )
@@ -84,7 +85,7 @@ fun UserHeaderCard(
                 ) {
                     Text(
                         text = "Nivel ${user.level} ${user.badge}",
-                        fontSize = 13.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary
                     )
                 }
@@ -101,7 +102,7 @@ fun UserHeaderCard(
                 ) {
                     Text(
                         text = "${user.leaves}",
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = AmberAlert
                     )

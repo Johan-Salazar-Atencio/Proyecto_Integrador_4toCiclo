@@ -1,5 +1,7 @@
 package com.plantia.screens.home.components
 
+import androidx.compose.material3.MaterialTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -65,9 +67,9 @@ fun DailyMissionCard(
             ) {
                 Text(
                     text = "OK",
-                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.surface
                 )
             }
 
@@ -80,8 +82,8 @@ fun DailyMissionCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Misión del Día: ${mission.title}",
-                        fontSize = 13.sp,
+                        text = "MisiÃ³n del DÃ­a: ${mission.title}",
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = TextPrimary,
                         modifier = Modifier.weight(1f),
@@ -91,7 +93,7 @@ fun DailyMissionCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "${mission.currentCount}/${mission.targetCount}",
-                        fontSize = 13.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = GreenPrimary
                     )
@@ -99,7 +101,7 @@ fun DailyMissionCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = mission.reward,
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelMedium,
                     color = TextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
