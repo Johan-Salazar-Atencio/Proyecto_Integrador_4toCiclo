@@ -16,13 +16,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.plantia.screens.auth.AuthScreen
 import com.plantia.screens.collection.CollectionScreen
 import com.plantia.data.MockGardenData
 import com.plantia.screens.detail.CollectionDetailScreen
 import com.plantia.screens.detail.PlantDetailScreen
 import com.plantia.screens.garden.VirtualGardenScreen
 import com.plantia.screens.home.HomeScreen
+import com.plantia.screens.legal.TermsScreen
 import com.plantia.screens.scan.ScanScreen
+import com.plantia.screens.welcome.WelcomeScreen
 
 private const val DURACION_MS = 350
 
@@ -51,13 +54,36 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.HOME,
+        startDestination = Routes.WELCOME,
         modifier = modifier,
         enterTransition = entra,
         exitTransition = sale,
         popEnterTransition = reEntra,
         popExitTransition = reSale
     ) {
+        composable(Routes.WELCOME) {
+            WelcomeScreen(
+                onCrearCuenta = { navController.navigate(Routes.auth(registro = true)) },
+                onIniciarSesion = { navController.navigate(Routes.auth(registro = false)) }
+            )
+        }
+        composable(
+            route = Routes.AUTH,
+            arguments = listOf(navArgument(Routes.ARG_MODO) { type = NavType.StringType })
+        ) { entry ->
+            AuthScreen(
+                modoInicial = entry.arguments?.getString(Routes.ARG_MODO),
+                onBack = { navController.popBackStack() },
+                onTerminos = { navController.navigate(Routes.TERMINOS) },
+                // Con sesion iniciada se entra a la app y Welcome/Auth salen de la pila.
+                onAutenticado = {
+                    navController.navigate(Routes.HOME) { popUpTo(Routes.WELCOME) { inclusive = true } }
+                }
+            )
+        }
+        composable(Routes.TERMINOS) {
+            TermsScreen(onBack = { navController.popBackStack() })
+        }
         composable(Routes.HOME) {
             HomeScreen(
                 onNavigateToScan = { navController.navigate(Routes.SCAN) },
