@@ -3,6 +3,8 @@ import Layout from './components/Layout'
 import { RUTAS } from './routes/rutas'
 import { useSesion } from './store/Sesion'
 import Auth from './pages/user/auth/Auth'
+import Coleccion from './pages/user/coleccion/Coleccion'
+import DetalleColeccion from './pages/user/coleccion/DetalleColeccion'
 import Escaneo from './pages/user/escaneo/Escaneo'
 import Home from './pages/user/home/Home'
 import Terminos from './pages/user/legal/Terminos'
@@ -28,7 +30,8 @@ export default function App() {
         <Route path={RUTAS.ESCANEAR} element={<Escaneo />} />
         <Route path={RUTAS.FICHA} element={<Ficha />} />
         <Route path={RUTAS.JARDIN} element={<Pronto titulo="Jardín virtual" />} />
-        <Route path={RUTAS.COLECCION} element={<Pronto titulo="Colección" />} />
+        <Route path={RUTAS.COLECCION} element={<Coleccion />} />
+        <Route path={`${RUTAS.COLECCION}/:id`} element={<DetalleColeccion />} />
         <Route path={RUTAS.CATALOGO} element={<Pronto titulo="Enciclopedia" />} />
         <Route path={RUTAS.PERFIL} element={<Pronto titulo="Perfil" />} />
       </Route>

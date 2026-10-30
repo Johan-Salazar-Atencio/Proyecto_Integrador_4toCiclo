@@ -35,6 +35,7 @@
 .ficha-fallo .boton { margin-top: 8px; }
 
 .ficha-acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ficha-acciones-sola { grid-template-columns: 1fr; }
 .ficha-acciones .boton { text-decoration: none; }
 
 @media (max-width: 560px) {

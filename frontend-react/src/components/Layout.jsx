@@ -21,7 +21,7 @@ export default function Layout() {
   const [confirmando, setConfirmando] = useState(false)
   const irA = useNavigate()
   const { pathname } = useLocation()
-  const titulo = MENU.find((m) => m.ruta === pathname)?.texto || TITULOS[pathname] || 'Plantia'
+  const titulo = MENU.find((m) => pathname.startsWith(m.ruta))?.texto || TITULOS[pathname] || 'Plantia'
 
   const salir = () => {
     cerrar()
