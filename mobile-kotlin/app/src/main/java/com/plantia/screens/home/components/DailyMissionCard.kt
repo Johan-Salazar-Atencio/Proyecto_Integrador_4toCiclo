@@ -83,7 +83,7 @@ fun DailyMissionCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "MisiÃ³n del DÃ­a: ${mission.title}",
+                        text = "Misión del Día: ${mission.title}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = TextPrimary,
