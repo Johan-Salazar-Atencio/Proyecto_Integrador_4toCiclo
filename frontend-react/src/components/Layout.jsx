@@ -8,12 +8,11 @@ import './layout.css'
 const MENU = [
   { ruta: RUTAS.HOME, icono: '🏠', texto: 'Inicio' },
   { ruta: RUTAS.ESCANEAR, icono: '📷', texto: 'Escanear' },
-  { ruta: RUTAS.JARDIN, icono: '🪴', texto: 'Jardín' },
   { ruta: RUTAS.COLECCION, icono: '📚', texto: 'Colección' },
   { ruta: RUTAS.PERFIL, icono: '👤', texto: 'Perfil' },
 ]
 
-const TITULOS = { [RUTAS.FICHA]: 'Ficha de la planta', [RUTAS.CATALOGO]: 'Enciclopedia' }
+const TITULOS = { [RUTAS.FICHA]: 'Ficha de la planta', [RUTAS.CATALOGO]: 'Enciclopedia', [RUTAS.JARDIN]: 'Jardín virtual' }
 
 // Marco de las paginas con sesion: menu lateral en pantallas anchas, barra inferior en moviles
 export default function Layout() {
