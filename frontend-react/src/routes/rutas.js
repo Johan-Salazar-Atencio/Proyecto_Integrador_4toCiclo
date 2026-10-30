@@ -5,6 +5,7 @@ export const RUTAS = {
   TERMINOS: '/terminos',
   HOME: '/inicio',
   ESCANEAR: '/escanear',
+  FICHA: '/ficha',
   JARDIN: '/jardin',
   COLECCION: '/coleccion',
   PERFIL: '/perfil',

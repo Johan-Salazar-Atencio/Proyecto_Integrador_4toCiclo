@@ -39,3 +39,7 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .aparece { animation: none; }
 }
+
+/* Piezas compartidas entre paginas */
+.tarjeta { padding: 20px; background: var(--superficie); border-radius: var(--radio); box-shadow: var(--sombra); }
+.seccion-titulo { margin-bottom: 12px; font-size: 1.05rem; }

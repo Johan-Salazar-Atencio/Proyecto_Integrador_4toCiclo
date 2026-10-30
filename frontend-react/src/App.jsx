@@ -3,8 +3,10 @@ import Layout from './components/Layout'
 import { RUTAS } from './routes/rutas'
 import { useSesion } from './store/Sesion'
 import Auth from './pages/user/auth/Auth'
+import Escaneo from './pages/user/escaneo/Escaneo'
 import Home from './pages/user/home/Home'
 import Terminos from './pages/user/legal/Terminos'
+import Ficha from './pages/user/planta/Ficha'
 import Pronto from './pages/user/pronto/Pronto'
 import Welcome from './pages/user/welcome/Welcome'
 
@@ -23,7 +25,8 @@ export default function App() {
 
       <Route element={<Protegida><Layout /></Protegida>}>
         <Route path={RUTAS.HOME} element={<Home />} />
-        <Route path={RUTAS.ESCANEAR} element={<Pronto titulo="Escanear" />} />
+        <Route path={RUTAS.ESCANEAR} element={<Escaneo />} />
+        <Route path={RUTAS.FICHA} element={<Ficha />} />
         <Route path={RUTAS.JARDIN} element={<Pronto titulo="Jardín virtual" />} />
         <Route path={RUTAS.COLECCION} element={<Pronto titulo="Colección" />} />
         <Route path={RUTAS.CATALOGO} element={<Pronto titulo="Enciclopedia" />} />

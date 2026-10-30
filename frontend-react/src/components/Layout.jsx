@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { RUTAS } from '../routes/rutas'
 import { useSesion } from '../store/Sesion'
 import Boton from './Boton'
@@ -13,11 +13,15 @@ const MENU = [
   { ruta: RUTAS.PERFIL, icono: '👤', texto: 'Perfil' },
 ]
 
+const TITULOS = { [RUTAS.FICHA]: 'Ficha de la planta', [RUTAS.CATALOGO]: 'Enciclopedia' }
+
 // Marco de las paginas con sesion: menu lateral en pantallas anchas, barra inferior en moviles
 export default function Layout() {
   const { usuario, cerrar } = useSesion()
   const [confirmando, setConfirmando] = useState(false)
   const irA = useNavigate()
+  const { pathname } = useLocation()
+  const titulo = MENU.find((m) => m.ruta === pathname)?.texto || TITULOS[pathname] || 'Plantia'
 
   const salir = () => {
     cerrar()
@@ -44,7 +48,7 @@ export default function Layout() {
 
       <div className="layout-cuerpo">
         <header className="layout-barra">
-          <h1>Inicio</h1>
+          <h1>{titulo}</h1>
           <div className="layout-barra-derecha">
             <button className="layout-salir-movil" onClick={() => setConfirmando(true)} aria-label="Cerrar sesión">🚪</button>
             <span className="layout-avatar" title={usuario?.nombre}>{usuario?.nombre?.[0]?.toUpperCase() || '?'}</span>

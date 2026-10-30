@@ -3,7 +3,7 @@ import { obtenerUsuarioId } from '../store/sesionGuardada'
 const BASE = '/api/v1'
 
 // Llamada JSON a Spring Boot. Agrega X-User-Id como el interceptor del movil.
-export async function llamar(ruta, { metodo = 'GET', cuerpo, formData } = {}) {
+export async function llamar(ruta, { metodo = 'GET', cuerpo, formData, senal } = {}) {
   const cabeceras = { 'X-User-Id': String(obtenerUsuarioId()) }
   let body
   if (formData) {
@@ -13,7 +13,7 @@ export async function llamar(ruta, { metodo = 'GET', cuerpo, formData } = {}) {
     body = JSON.stringify(cuerpo)
   }
 
-  const respuesta = await fetch(`${BASE}${ruta}`, { method: metodo, headers: cabeceras, body })
+  const respuesta = await fetch(`${BASE}${ruta}`, { method: metodo, headers: cabeceras, body, signal: senal })
   if (respuesta.status === 204) return null
 
   const texto = await respuesta.text()
