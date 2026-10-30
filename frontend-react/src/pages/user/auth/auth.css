@@ -3,7 +3,7 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: radial-gradient(circle at 50% 0%, var(--verde-claro), var(--fondo) 65%);
+  background: var(--degradado);
 }
 
 .auth-tarjeta {

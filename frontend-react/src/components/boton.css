@@ -19,9 +19,10 @@
 .boton-principal {
   background: var(--verde);
   color: #fff;
-  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.35);
+  background-image: linear-gradient(135deg, var(--verde), var(--verde-oscuro));
+  box-shadow: var(--brillo);
 }
-.boton-principal:hover:not(:disabled) { background: var(--verde-oscuro); }
+.boton-principal:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
 
 .boton-suave {
   background: var(--verde-claro);

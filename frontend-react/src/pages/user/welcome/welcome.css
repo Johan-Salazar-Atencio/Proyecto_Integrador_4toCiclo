@@ -1,7 +1,7 @@
 .welcome {
   min-height: 100vh;
   padding: 24px;
-  background: radial-gradient(circle at 50% 0%, var(--verde-claro), var(--fondo) 65%);
+  background: var(--degradado);
 }
 
 .welcome-marca { max-width: 960px; margin: 0 auto; font-size: 1.3rem; font-weight: 800; color: var(--verde-oscuro); }
