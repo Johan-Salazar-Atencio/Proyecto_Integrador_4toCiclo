@@ -7,6 +7,7 @@ import Coleccion from './pages/user/coleccion/Coleccion'
 import DetalleColeccion from './pages/user/coleccion/DetalleColeccion'
 import Escaneo from './pages/user/escaneo/Escaneo'
 import Home from './pages/user/home/Home'
+import Jardin from './pages/user/jardin/Jardin'
 import Terminos from './pages/user/legal/Terminos'
 import Ficha from './pages/user/planta/Ficha'
 import Pronto from './pages/user/pronto/Pronto'
@@ -29,7 +30,7 @@ export default function App() {
         <Route path={RUTAS.HOME} element={<Home />} />
         <Route path={RUTAS.ESCANEAR} element={<Escaneo />} />
         <Route path={RUTAS.FICHA} element={<Ficha />} />
-        <Route path={RUTAS.JARDIN} element={<Pronto titulo="Jardín virtual" />} />
+        <Route path={RUTAS.JARDIN} element={<Jardin />} />
         <Route path={RUTAS.COLECCION} element={<Coleccion />} />
         <Route path={`${RUTAS.COLECCION}/:id`} element={<DetalleColeccion />} />
         <Route path={RUTAS.CATALOGO} element={<Pronto titulo="Enciclopedia" />} />

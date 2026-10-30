@@ -1,0 +1,64 @@
+.jardin { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 960px; margin: 0 auto; }
+.jardin-panel { display: flex; flex-direction: column; gap: 16px; }
+
+/* Marco de la planta */
+.jardin-marco {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 280px;
+  padding: 24px;
+  background: linear-gradient(180deg, var(--azul-claro) 0%, var(--verde-claro) 100%);
+  border-radius: 28px;
+  box-shadow: var(--sombra);
+}
+.jardin-planta { position: relative; display: grid; place-items: center; width: 190px; height: 190px; overflow: hidden; background: var(--superficie); border-radius: 50%; border: 6px solid var(--superficie); box-shadow: var(--sombra); animation: respira-jardin 3.4s ease-in-out infinite; }
+.jardin-planta img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.jardin-respaldo { font-size: 5rem; }
+.jardin-salta { animation: salta 0.6s ease, respira-jardin 3.4s 0.6s ease-in-out infinite; }
+
+@keyframes respira-jardin { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+@keyframes salta {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.12) translateY(-10px); }
+  60% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+.jardin-animo { position: absolute; top: 16px; right: 16px; padding: 6px 14px; background: var(--superficie); border-radius: 999px; box-shadow: var(--sombra); font-size: 0.85rem; font-weight: 800; }
+.animo-feliz { color: var(--verde-oscuro); }
+.animo-regular { color: var(--ambar); }
+.animo-triste { color: var(--rojo); }
+
+/* Datos */
+.jardin-panel h2 { font-size: 1.4rem; }
+.jardin-especie { margin: 2px 0 14px; color: var(--texto-suave); font-style: italic; }
+.jardin-barras { display: flex; flex-direction: column; gap: 12px; }
+.jardin .barra { height: 12px; }
+.jardin .barra-relleno { transition: width 0.6s ease; }
+.jardin-riego { display: block; margin-top: 12px; color: var(--texto-suave); }
+
+.jardin-consejo { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--ambar-claro); border-radius: var(--radio); }
+.jardin-consejo span { font-size: 1.5rem; }
+.jardin-consejo p { font-weight: 600; line-height: 1.4; }
+
+/* Botones de cuidado */
+.jardin-acciones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.jardin-accion { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 8px; border: 0; border-radius: var(--radio); background: var(--superficie); box-shadow: var(--sombra); color: var(--texto); cursor: pointer; transition: transform 0.15s ease, background var(--transicion); }
+.jardin-accion span { font-size: 1.8rem; }
+.jardin-accion small { color: var(--verde-oscuro); font-weight: 800; }
+.jardin-accion:hover { background: var(--verde-claro); }
+.jardin-accion:active { transform: scale(0.92); }
+
+/* Aviso */
+.jardin-aviso { position: fixed; left: 50%; top: 76px; z-index: 15; max-width: calc(100% - 32px); padding: 12px 20px; transform: translateX(-50%); background: #1f2937; color: #fff; border-radius: 999px; font-weight: 600; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); animation: aviso-entra 0.3s ease both; }
+@keyframes aviso-entra { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+@media (min-width: 861px) {
+  .jardin { grid-template-columns: 1fr 1fr; align-items: start; }
+  .jardin-aviso { left: calc(50% + 115px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jardin-planta, .jardin-salta { animation: none; }
+}
