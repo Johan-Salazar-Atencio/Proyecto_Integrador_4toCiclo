@@ -5,9 +5,9 @@ import { RUTAS, RUTAS_ADMIN } from './routes/rutas'
 import { useSesion } from './store/Sesion'
 import { useSesionAdmin } from './store/SesionAdmin'
 import LoginAdmin from './pages/admin/login/LoginAdmin'
+import CatalogoAdmin from './pages/admin/catalogo/CatalogoAdmin'
 import Eventos from './pages/admin/eventos/Eventos'
 import Dashboard from './pages/admin/dashboard/Dashboard'
-import Pendiente from './pages/admin/Pendiente'
 import Auth from './pages/user/auth/Auth'
 import Catalogo from './pages/user/catalogo/Catalogo'
 import DetalleCatalogo from './pages/user/catalogo/DetalleCatalogo'
@@ -58,7 +58,7 @@ export default function App() {
       <Route element={<ProtegidaAdmin><LayoutAdmin /></ProtegidaAdmin>}>
         <Route path={RUTAS_ADMIN.DASHBOARD} element={<Dashboard />} />
         <Route path={RUTAS_ADMIN.EVENTOS} element={<Eventos />} />
-        <Route path={RUTAS_ADMIN.CATALOGO} element={<Pendiente titulo="Catálogo y moderación" />} />
+        <Route path={RUTAS_ADMIN.CATALOGO} element={<CatalogoAdmin />} />
       </Route>
 
       <Route path="*" element={<Navigate to={RUTAS.WELCOME} replace />} />
