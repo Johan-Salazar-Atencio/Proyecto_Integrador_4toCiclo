@@ -12,7 +12,12 @@ const MENU = [
   { ruta: RUTAS.PERFIL, icono: '👤', texto: 'Perfil' },
 ]
 
-const TITULOS = { [RUTAS.FICHA]: 'Ficha de la planta', [RUTAS.CATALOGO]: 'Enciclopedia', [RUTAS.JARDIN]: 'Jardín virtual' }
+const TITULOS = [
+  [RUTAS.FICHA, 'Ficha de la planta'],
+  [RUTAS.CATALOGO, 'Enciclopedia'],
+  [RUTAS.HISTORIAL, 'Historial'],
+  [RUTAS.JARDIN, 'Jardín virtual'],
+]
 
 // Marco de las paginas con sesion: menu lateral en pantallas anchas, barra inferior en moviles
 export default function Layout() {
@@ -20,7 +25,7 @@ export default function Layout() {
   const [confirmando, setConfirmando] = useState(false)
   const irA = useNavigate()
   const { pathname } = useLocation()
-  const titulo = MENU.find((m) => pathname.startsWith(m.ruta))?.texto || TITULOS[pathname] || 'Plantia'
+  const titulo = MENU.find((m) => pathname.startsWith(m.ruta))?.texto || TITULOS.find(([ruta]) => pathname.startsWith(ruta))?.[1] || 'Plantia'
 
   const salir = () => {
     cerrar()

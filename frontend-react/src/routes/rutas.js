@@ -10,4 +10,5 @@ export const RUTAS = {
   COLECCION: '/coleccion',
   PERFIL: '/perfil',
   CATALOGO: '/catalogo',
+  HISTORIAL: '/historial',
 }

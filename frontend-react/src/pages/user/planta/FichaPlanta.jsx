@@ -12,7 +12,7 @@ const LARGO_DIAGNOSTICO = 180
 
 // Contenido de la ficha de una planta (ScanResultDto). Se usa para un escaneo nuevo y para
 // una planta de la coleccion; en ese caso `mostrarGuardar` es false porque ya esta guardada.
-export default function FichaPlanta({ resultado, mostrarGuardar = true }) {
+export default function FichaPlanta({ resultado, mostrarGuardar = true, mostrarAcciones = true }) {
   const irA = useNavigate()
   const [largo, setLargo] = useState(false)
 
@@ -102,10 +102,12 @@ export default function FichaPlanta({ resultado, mostrarGuardar = true }) {
             )}
           </section>
 
-          <div className={`ficha-acciones ${mostrarGuardar ? '' : 'ficha-acciones-sola'}`}>
-            <Boton onClick={alDigitalizar}>🪴 Digitalizar</Boton>
-            {mostrarGuardar && <Link to={RUTAS.COLECCION} className="boton boton-suave">💾 Guardar</Link>}
-          </div>
+          {mostrarAcciones && (
+            <div className={`ficha-acciones ${mostrarGuardar ? '' : 'ficha-acciones-sola'}`}>
+              <Boton onClick={alDigitalizar}>🪴 Digitalizar</Boton>
+              {mostrarGuardar && <Link to={RUTAS.COLECCION} className="boton boton-suave">💾 Guardar</Link>}
+            </div>
+          )}
         </>
       )}
     </div>
