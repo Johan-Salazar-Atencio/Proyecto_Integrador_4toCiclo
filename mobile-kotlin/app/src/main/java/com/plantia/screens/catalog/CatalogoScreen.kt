@@ -47,6 +47,7 @@ import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.SurfaceWhite
 
 /** Catalogo/enciclopedia de plantas con buscador y filtro. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,7 +84,7 @@ fun CatalogoScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceWhite)
             )
         },
         containerColor = BackgroundLight,
@@ -165,7 +166,7 @@ fun CatalogoScreen(
 private fun CatalogoCard(item: CatalogoItem, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = Color.White,
+        color = SurfaceWhite,
         shadowElevation = 1.dp,
         modifier = Modifier
             .fillMaxWidth()

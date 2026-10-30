@@ -21,6 +21,7 @@ import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.SurfaceWhite
 
 /** Lista de secciones de cuidado (1:N) de una planta. */
 @Composable
@@ -60,7 +61,7 @@ private fun CuidadoCard(cuidado: Cuidado) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(14.dp),
-        color = Color.White,
+        color = SurfaceWhite,
         shadowElevation = 1.dp
     ) {
         Column(

@@ -28,15 +28,17 @@ import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.LocalTemaOscuro
 
 /**
  * Fondos del marco. Hoy solo hay uno neutro; para fondos intercambiables basta con agregar
  * mas `Brush` aqui (o pasar uno propio) sin tocar el resto de la pantalla.
  */
 object GardenBackgrounds {
-    val Neutro: Brush = Brush.verticalGradient(
-        listOf(Color(0xFFF1FAF5), Color(0xFFDDF3E6))
-    )
+    val Neutro: Brush
+        @Composable get() = Brush.verticalGradient(
+            if (LocalTemaOscuro.current) listOf(Color(0xFF173A28), Color(0xFF0F2E1C)) else listOf(Color(0xFFF1FAF5), Color(0xFFDDF3E6))
+        )
 }
 
 /**

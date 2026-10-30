@@ -90,14 +90,18 @@ import com.plantia.ui.theme.MobilekotlinTheme
 import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.FondoDegradado
+import com.plantia.ui.theme.CampoFondo
+import com.plantia.ui.theme.RojoClaro
 import com.plantia.util.IconosOscurosEnBarraDeEstado
 
-private val FondoAuth = Brush.verticalGradient(
-    listOf(Color(0xFFE8F8F0), Color(0xFFF7FBF8), Color(0xFFFFF6EC))
-)
-private val FondoCampo = Color(0xFFF1F5F9)
+private val FondoAuth: Brush
+    @Composable get() = FondoDegradado
+private val FondoCampo: Color
+    @Composable get() = CampoFondo
 private val RojoError = Color(0xFFEF4444)
-private val RojoErrorClaro = Color(0xFFFEE2E2)
+private val RojoErrorClaro: Color
+    @Composable get() = RojoClaro
 
 /**
  * Inicio de sesion y registro en una sola pantalla con pestanas.

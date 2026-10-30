@@ -44,6 +44,7 @@ import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.SurfaceWhite
 
 /**
  * Detalle de una planta: sus datos y las secciones de cuidado (1:N).
@@ -82,7 +83,7 @@ fun DetallePlantaScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceWhite)
             )
         },
         containerColor = BackgroundLight,
@@ -115,7 +116,7 @@ fun DetallePlantaScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
                         shape = RoundedCornerShape(16.dp),
-                        color = Color.White,
+                        color = SurfaceWhite,
                         shadowElevation = 2.dp
                     ) {
                         Row(
