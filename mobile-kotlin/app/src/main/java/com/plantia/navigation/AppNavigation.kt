@@ -20,6 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.plantia.data.ConexionConfig
+import com.plantia.data.TemaConfig
 import com.plantia.data.MockGardenData
 import com.plantia.data.ScanResultStore
 import com.plantia.data.Sesion
@@ -109,14 +110,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onNavigateToGarden = { navController.navigate(Routes.VIRTUAL_GARDEN) },
                 onNavigateToCollection = { navController.navigate(Routes.COLLECTION) },
                 onNavigateToCatalogo = { navController.navigate(Routes.CATALOGO) },
-                onNavigateToPerfil = { navController.navigate(Routes.PERFIL) },
-                onCerrarSesion = {
-                    // Vuelve al usuario por defecto y borra lo simulado en memoria de esta sesion.
-                    Sesion.setUserId(Sesion.USUARIO_POR_DEFECTO)
-                    MockGardenData.reiniciar()
-                    ScanResultStore.ultimo = null
-                    navController.navigate(Routes.WELCOME) { popUpTo(Routes.HOME) { inclusive = true } }
-                }
+                onNavigateToPerfil = { navController.navigate(Routes.PERFIL) }
             )
         }
 
@@ -232,24 +226,33 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         // ─── Perfil ────────────────────────────────────────────────────────────
         composable(Routes.PERFIL) {
             val perfilViewModel: PerfilViewModel = viewModel()
-            val userId by Sesion.userId.collectAsState()
             val baseUrl by RetrofitClient.baseUrl.collectAsState()
             val hostManual by ConexionConfig.host.collectAsState()
+            val modoTema by TemaConfig.modo.collectAsState()
             PerfilScreen(
                 usuario = perfilViewModel.usuario,
-                userIdActual = userId,
                 cargando = perfilViewModel.cargando,
                 error = perfilViewModel.error,
+                escaneadas = perfilViewModel.escaneadas,
+                digitales = MockGardenData.plantasDigitales.size,
+                modoTema = modoTema,
                 baseUrlActual = baseUrl,
                 hostManualActual = hostManual.orEmpty(),
+                onCambiarTema = { TemaConfig.setModo(it) },
                 onGuardarHost = { host ->
                     ConexionConfig.setHost(host)
                     RetrofitClient.reconectar()
                     perfilViewModel.recargar()
                 },
-                onCambiarUsuario = { id ->
-                    Sesion.setUserId(id)
-                    perfilViewModel.recargar()
+                onReintentar = { perfilViewModel.recargar() },
+                onVerHistorial = { navController.navigate(Routes.HISTORIAL) },
+                onVerTerminos = { navController.navigate(Routes.TERMINOS) },
+                onCerrarSesion = {
+                    // Vuelve al usuario por defecto y borra lo simulado en memoria de esta sesion.
+                    Sesion.setUserId(Sesion.USUARIO_POR_DEFECTO)
+                    MockGardenData.reiniciar()
+                    ScanResultStore.ultimo = null
+                    navController.navigate(Routes.WELCOME) { popUpTo(Routes.HOME) { inclusive = true } }
                 },
                 onVolver = { navController.popBackStack() }
             )

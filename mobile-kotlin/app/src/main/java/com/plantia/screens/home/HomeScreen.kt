@@ -17,17 +17,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.Yard
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -35,7 +31,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -68,6 +63,8 @@ import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.RojoClaro
+import com.plantia.ui.theme.RojoTexto
 
 data class BottomNavItem(
     val label: String,
@@ -81,19 +78,15 @@ fun HomeScreen(
     onNavigateToGarden: () -> Unit = {},
     onNavigateToCollection: () -> Unit = {},
     onNavigateToCatalogo: () -> Unit = {},
-    onNavigateToPerfil: () -> Unit = {},
-    onCerrarSesion: () -> Unit = {}
+    onNavigateToPerfil: () -> Unit = {}
 ) {
     val bottomNavItems = listOf(
         BottomNavItem("Inicio", Icons.Default.Home),
         BottomNavItem("Escanear", Icons.Default.PhotoCamera),
-        BottomNavItem("Jardín", Icons.Default.Yard),
         BottomNavItem("Colección", Icons.Default.Collections),
         BottomNavItem("Perfil", Icons.Default.Person)
     )
     var selectedTab by remember { mutableIntStateOf(0) }
-
-    var confirmarSalida by remember { mutableStateOf(false) }
 
     // Cantidad real de plantas de la colección (mock fallback); se recarga cada vez que se vuelve al inicio.
     var totalColeccion by remember { mutableStateOf<Int?>(null) }
@@ -104,8 +97,10 @@ fun HomeScreen(
     val homeViewModel: HomeViewModel = viewModel()
     val state = homeViewModel.uiState
 
+    // El Jardin ya no va como acceso rapido: se entra desde la tarjeta de la planta o desde la Coleccion.
+    val accesosSinJardin = state.accesos.filterNot { it.id == "garden" || it.id == "jardin" }
     val accesosRapidos = if (totalColeccion != null) {
-        state.accesos.map { item ->
+        accesosSinJardin.map { item ->
             if (item.id != "collection") {
                 item
             } else {
@@ -120,28 +115,7 @@ fun HomeScreen(
             }
         }
     } else {
-        state.accesos
-    }
-
-    if (confirmarSalida) {
-        AlertDialog(
-            onDismissRequest = { confirmarSalida = false },
-            containerColor = Color.White,
-            titleContentColor = TextPrimary,
-            textContentColor = TextSecondary,
-            title = { Text("¿Cerrar sesión?") },
-            text = { Text("Volverás a la pantalla de bienvenida.") },
-            confirmButton = {
-                TextButton(onClick = { confirmarSalida = false; onCerrarSesion() }) {
-                    Text("Cerrar sesión", color = GreenPrimary, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmarSalida = false }) {
-                    Text("Cancelar", color = TextSecondary)
-                }
-            }
-        )
+        accesosSinJardin
     }
 
     Scaffold(
@@ -156,13 +130,6 @@ fun HomeScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = { confirmarSalida = true }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Cerrar sesión",
-                            tint = TextSecondary
-                        )
-                    }
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = AmberLight,
@@ -231,9 +198,8 @@ fun HomeScreen(
                             selectedTab = index
                             when (index) {
                                 1 -> onNavigateToScan()
-                                2 -> onNavigateToGarden()
-                                3 -> onNavigateToCollection()
-                                4 -> onNavigateToPerfil()
+                                2 -> onNavigateToCollection()
+                                3 -> onNavigateToPerfil()
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -273,7 +239,7 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFFEE2E2)
+                        color = RojoClaro
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
@@ -282,14 +248,14 @@ fun HomeScreen(
                             Text(
                                 text = mensaje,
                                 fontSize = 13.sp,
-                                color = Color(0xFF991B1B),
+                                color = RojoTexto,
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
                                 text = "Reintentar",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF991B1B),
+                                color = RojoTexto,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
                                     .clickable { homeViewModel.recargar() }
