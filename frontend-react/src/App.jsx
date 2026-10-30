@@ -1,7 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
-import { RUTAS } from './routes/rutas'
+import LayoutAdmin from './components/admin/LayoutAdmin'
+import { RUTAS, RUTAS_ADMIN } from './routes/rutas'
 import { useSesion } from './store/Sesion'
+import { useSesionAdmin } from './store/SesionAdmin'
+import LoginAdmin from './pages/admin/login/LoginAdmin'
+import Pendiente from './pages/admin/Pendiente'
 import Auth from './pages/user/auth/Auth'
 import Catalogo from './pages/user/catalogo/Catalogo'
 import DetalleCatalogo from './pages/user/catalogo/DetalleCatalogo'
@@ -22,6 +26,12 @@ function Protegida({ children }) {
   return usuario ? children : <Navigate to={RUTAS.WELCOME} replace />
 }
 
+// Lo mismo para el panel de administracion
+function ProtegidaAdmin({ children }) {
+  const { admin } = useSesionAdmin()
+  return admin ? children : <Navigate to={RUTAS_ADMIN.LOGIN} replace />
+}
+
 export default function App() {
   return (
     <Routes>
@@ -40,6 +50,13 @@ export default function App() {
         <Route path={`${RUTAS.CATALOGO}/:id`} element={<DetalleCatalogo />} />
         <Route path={RUTAS.HISTORIAL} element={<Historial />} />
         <Route path={RUTAS.PERFIL} element={<Perfil />} />
+      </Route>
+
+      <Route path={RUTAS_ADMIN.LOGIN} element={<LoginAdmin />} />
+      <Route element={<ProtegidaAdmin><LayoutAdmin /></ProtegidaAdmin>}>
+        <Route path={RUTAS_ADMIN.DASHBOARD} element={<Pendiente titulo="Dashboard" />} />
+        <Route path={RUTAS_ADMIN.EVENTOS} element={<Pendiente titulo="Lanzador de desastres" />} />
+        <Route path={RUTAS_ADMIN.CATALOGO} element={<Pendiente titulo="Catálogo y moderación" />} />
       </Route>
 
       <Route path="*" element={<Navigate to={RUTAS.WELCOME} replace />} />

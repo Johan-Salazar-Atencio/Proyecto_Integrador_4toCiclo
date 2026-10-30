@@ -12,3 +12,11 @@ export const RUTAS = {
   CATALOGO: '/catalogo',
   HISTORIAL: '/historial',
 }
+
+// Rutas del panel de administracion
+export const RUTAS_ADMIN = {
+  LOGIN: '/admin',
+  DASHBOARD: '/admin/dashboard',
+  EVENTOS: '/admin/eventos',
+  CATALOGO: '/admin/catalogo',
+}

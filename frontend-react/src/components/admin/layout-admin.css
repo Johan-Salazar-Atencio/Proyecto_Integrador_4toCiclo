@@ -1,0 +1,47 @@
+.admin { min-height: 100vh; display: flex; background: var(--fondo); }
+
+.admin-menu { position: sticky; top: 0; height: 100vh; width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; padding: 24px 16px; background: var(--superficie); border-right: 1px solid var(--linea); }
+.admin-marca { display: flex; align-items: center; gap: 12px; padding: 0 8px 18px; }
+.admin-marca > span { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, var(--verde), var(--verde-oscuro)); font-size: 1.3rem; box-shadow: var(--brillo); }
+.admin-marca b { display: block; font-size: 1.15rem; }
+.admin-marca small { color: var(--verde-oscuro); font-weight: 800; letter-spacing: 0.08em; font-size: 0.65rem; }
+.admin-seccion { padding: 0 12px; margin-bottom: 4px; color: var(--texto-suave); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.1em; }
+.admin-menu nav { display: flex; flex-direction: column; gap: 4px; }
+
+.admin-enlace { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radio-chico); color: var(--texto-suave); font-weight: 600; transition: background var(--transicion), color var(--transicion); }
+.admin-enlace:hover { background: var(--verde-claro); color: var(--verde-oscuro); }
+.admin-enlace.active { background: var(--verde); color: #fff; box-shadow: var(--brillo); }
+
+.admin-cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.admin-barra { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 28px; background: var(--superficie); border-bottom: 1px solid var(--linea); }
+.admin-barra h1 { font-size: 1.25rem; }
+.admin-barra-derecha { display: flex; align-items: center; gap: 16px; }
+
+.admin-estado { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--fondo); border-radius: 999px; font-size: 0.8rem; font-weight: 700; color: var(--texto-suave); }
+.admin-estado i { width: 8px; height: 8px; border-radius: 50%; background: var(--texto-suave); }
+.admin-estado-ok { background: var(--verde-claro); color: var(--verde-oscuro); }
+.admin-estado-ok i { background: var(--verde); animation: pulso 2s ease-in-out infinite; }
+.admin-estado-fallo { background: var(--rojo-claro); color: var(--rojo); }
+.admin-estado-fallo i { background: var(--rojo); }
+@keyframes pulso { 0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); } 50% { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); } }
+
+.admin-persona { display: flex; align-items: center; gap: 10px; }
+.admin-persona b { display: block; font-size: 0.85rem; }
+.admin-persona small { color: var(--texto-suave); font-size: 0.72rem; }
+.admin-avatar { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--verde), var(--verde-oscuro)); color: #fff; font-weight: 800; }
+.admin-salir { padding: 8px 14px; border: 1.5px solid var(--linea); border-radius: 999px; background: transparent; color: var(--texto-suave); font-weight: 700; cursor: pointer; transition: background var(--transicion), color var(--transicion); }
+.admin-salir:hover { background: var(--rojo-claro); color: var(--rojo); }
+
+.admin-contenido { width: 100%; max-width: 1280px; margin: 0 auto; padding: 28px; }
+
+@media (max-width: 900px) {
+  .admin { flex-direction: column; }
+  .admin-menu { position: static; width: auto; height: auto; flex-direction: row; align-items: center; gap: 12px; padding: 10px 14px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--linea); }
+  .admin-marca { padding: 0; }
+  .admin-marca div, .admin-seccion { display: none; }
+  .admin-menu nav { flex-direction: row; }
+  .admin-enlace { white-space: nowrap; padding: 8px 12px; }
+  .admin-barra { padding: 12px 16px; position: static; }
+  .admin-persona div { display: none; }
+  .admin-contenido { padding: 16px; }
+}
