@@ -1,0 +1,38 @@
+/* Colores y medidas de Plantia (mismos valores que la app Kotlin) */
+:root {
+  --verde: #22c55e;
+  --verde-claro: #e8f8f0;
+  --verde-oscuro: #16a34a;
+  --ambar: #f59e0b;
+  --ambar-claro: #fff3e0;
+  --azul: #3b82f6;
+  --azul-claro: #e8f4fd;
+  --rojo: #ef4444;
+  --rojo-claro: #fdecec;
+
+  --fondo: #f9fafb;
+  --superficie: #ffffff;
+  --texto: #1f2937;
+  --texto-suave: #6b7280;
+  --linea: #e5e7eb;
+
+  --radio: 16px;
+  --radio-chico: 10px;
+  --sombra: 0 2px 12px rgba(31, 41, 55, 0.07);
+  --transicion: 0.25s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --verde-claro: #12301f;
+    --ambar-claro: #3a2a0e;
+    --azul-claro: #14263d;
+    --rojo-claro: #3d1a1a;
+    --fondo: #111827;
+    --superficie: #1f2937;
+    --texto: #f3f4f6;
+    --texto-suave: #9ca3af;
+    --linea: #374151;
+    --sombra: 0 2px 12px rgba(0, 0, 0, 0.35);
+  }
+}
