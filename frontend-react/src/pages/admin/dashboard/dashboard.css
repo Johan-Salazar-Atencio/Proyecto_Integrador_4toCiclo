@@ -1,0 +1,54 @@
+.dashboard { display: flex; flex-direction: column; gap: 22px; }
+.dashboard-intro { color: var(--texto-suave); }
+.dashboard-ejemplo { display: inline-block; padding: 2px 10px; background: var(--ambar-claro); color: var(--ambar); border-radius: 999px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* Tarjetas de cifras */
+.dashboard-tarjetas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.kpi { position: relative; display: flex; flex-direction: column; gap: 4px; transition: transform var(--transicion), box-shadow var(--transicion); }
+.kpi:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(31, 41, 55, 0.14); }
+.kpi-cabecera { display: flex; justify-content: space-between; align-items: center; color: var(--texto-suave); font-weight: 700; font-size: 0.9rem; }
+.kpi-cabecera i { display: grid; place-items: center; width: 40px; height: 40px; background: var(--verde-claro); border-radius: 12px; font-style: normal; font-size: 1.2rem; }
+.kpi > b { margin-top: 8px; font-size: 2.1rem; line-height: 1; }
+.kpi small { color: var(--texto-suave); font-weight: 600; }
+.kpi-etiqueta { position: absolute; right: 16px; bottom: 16px; }
+
+.dashboard-titulo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+.dashboard-titulo h2 { font-size: 1.1rem; }
+.dashboard-titulo p { color: var(--texto-suave); font-size: 0.85rem; }
+
+/* Grafico */
+.grafico-leyenda { display: flex; gap: 18px; margin-bottom: 8px; font-size: 0.85rem; font-weight: 700; }
+.grafico-leyenda i, .grafico-dato i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 50%; }
+.grafico-caja { position: relative; }
+.grafico svg { display: block; width: 100%; height: auto; cursor: crosshair; }
+.grafico-guia { stroke: var(--linea); stroke-dasharray: 3 5; }
+.grafico-linea { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: dibuja 1.4s ease forwards; }
+@keyframes dibuja { to { stroke-dashoffset: 0; } }
+.grafico-eje { fill: var(--texto-suave); font-size: 11px; font-weight: 600; }
+.grafico-cursor { stroke: var(--texto-suave); stroke-dasharray: 3 3; }
+.grafico-punto { stroke: var(--superficie); stroke-width: 2.5; }
+.grafico-dato { position: absolute; top: 4px; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; transform: translateX(-50%); pointer-events: none; background: #1f2937; color: #fff; border-radius: 10px; font-size: 0.78rem; white-space: nowrap; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25); }
+
+/* Tabla */
+.tabla-escaneos { overflow-x: auto; }
+.tabla-escaneos table { width: 100%; border-collapse: collapse; min-width: 640px; }
+.tabla-escaneos th { padding: 10px 12px; text-align: left; color: var(--texto-suave); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; background: var(--fondo); }
+.tabla-escaneos th:first-child { border-radius: 10px 0 0 10px; }
+.tabla-escaneos th:last-child { border-radius: 0 10px 10px 0; }
+.tabla-escaneos td { padding: 14px 12px; border-bottom: 1px solid var(--linea); vertical-align: middle; }
+.tabla-escaneos tr:last-child td { border-bottom: 0; }
+.tabla-escaneos tbody tr { transition: background var(--transicion); }
+.tabla-escaneos tbody tr:hover { background: var(--verde-claro); }
+.tabla-escaneos td small { display: block; color: var(--texto-suave); font-style: italic; }
+.tabla-avatar { display: inline-grid; place-items: center; width: 32px; height: 32px; margin-right: 8px; background: var(--verde-claro); color: var(--verde-oscuro); border-radius: 50%; font-weight: 800; font-size: 0.85rem; }
+.tabla-precision { min-width: 170px; }
+.tabla-precision span { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; font-size: 0.85rem; }
+.tabla-precision small { display: inline; font-style: normal; font-weight: 700; }
+.tabla-precision .barra { height: 6px; }
+.tabla-estado { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; white-space: nowrap; }
+.tabla-validado { background: var(--verde-claro); color: var(--verde-oscuro); }
+.tabla-revision { background: var(--ambar-claro); color: var(--ambar); }
+
+@media (max-width: 1100px) { .dashboard-tarjetas { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .dashboard-tarjetas { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .grafico-linea { animation: none; stroke-dashoffset: 0; } }

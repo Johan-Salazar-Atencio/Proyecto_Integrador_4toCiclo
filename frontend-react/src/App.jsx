@@ -5,6 +5,7 @@ import { RUTAS, RUTAS_ADMIN } from './routes/rutas'
 import { useSesion } from './store/Sesion'
 import { useSesionAdmin } from './store/SesionAdmin'
 import LoginAdmin from './pages/admin/login/LoginAdmin'
+import Dashboard from './pages/admin/dashboard/Dashboard'
 import Pendiente from './pages/admin/Pendiente'
 import Auth from './pages/user/auth/Auth'
 import Catalogo from './pages/user/catalogo/Catalogo'
@@ -54,7 +55,7 @@ export default function App() {
 
       <Route path={RUTAS_ADMIN.LOGIN} element={<LoginAdmin />} />
       <Route element={<ProtegidaAdmin><LayoutAdmin /></ProtegidaAdmin>}>
-        <Route path={RUTAS_ADMIN.DASHBOARD} element={<Pendiente titulo="Dashboard" />} />
+        <Route path={RUTAS_ADMIN.DASHBOARD} element={<Dashboard />} />
         <Route path={RUTAS_ADMIN.EVENTOS} element={<Pendiente titulo="Lanzador de desastres" />} />
         <Route path={RUTAS_ADMIN.CATALOGO} element={<Pendiente titulo="Catálogo y moderación" />} />
       </Route>
