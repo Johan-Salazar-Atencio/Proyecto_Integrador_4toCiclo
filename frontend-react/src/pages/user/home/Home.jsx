@@ -1,18 +1,32 @@
-import { useNavigate } from 'react-router-dom'
-import Boton from '../../../components/Boton'
-import { RUTAS } from '../../../routes/rutas'
-import { useSesion } from '../../../store/Sesion'
+import AlertaClima from './components/AlertaClima'
+import Accesos from './components/Accesos'
+import MisionDiaria from './components/MisionDiaria'
+import TarjetaPlanta from './components/TarjetaPlanta'
+import TarjetaUsuario from './components/TarjetaUsuario'
+import useHome from './useHome'
+import './home.css'
 
-// Pagina provisional: el inicio real llega en el commit 3
 export default function Home() {
-  const { usuario, cerrar } = useSesion()
-  const irA = useNavigate()
+  const { cargando, usuario, alerta, planta, mision, error, recargar } = useHome()
+
+  if (cargando) {
+    return <div className="home-cargando"><span className="home-giro" aria-label="Cargando" /></div>
+  }
 
   return (
-    <main className="aparece" style={{ padding: 32, textAlign: 'center' }}>
-      <h1>Hola, {usuario?.nombre}</h1>
-      <p style={{ color: 'var(--texto-suave)', margin: '8px 0 20px' }}>Sesión iniciada.</p>
-      <Boton variante="suave" onClick={() => { cerrar(); irA(RUTAS.WELCOME, { replace: true }) }}>Cerrar sesión</Boton>
-    </main>
+    <div className="home">
+      {error && (
+        <div className="home-error" role="alert">
+          <span>{error}</span>
+          <button onClick={recargar}>Reintentar</button>
+        </div>
+      )}
+
+      {usuario && <TarjetaUsuario usuario={usuario} />}
+      {alerta && <AlertaClima alerta={alerta} />}
+      {planta && <TarjetaPlanta planta={planta} />}
+      <Accesos />
+      {mision && <MisionDiaria mision={mision} />}
+    </div>
   )
 }

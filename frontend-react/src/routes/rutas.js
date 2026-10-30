@@ -4,4 +4,9 @@ export const RUTAS = {
   ACCESO: '/acceso',
   TERMINOS: '/terminos',
   HOME: '/inicio',
+  ESCANEAR: '/escanear',
+  JARDIN: '/jardin',
+  COLECCION: '/coleccion',
+  PERFIL: '/perfil',
+  CATALOGO: '/catalogo',
 }
