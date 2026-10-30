@@ -80,9 +80,7 @@ fun HomeScreen(
     onNavigateToScan: () -> Unit = {},
     onNavigateToGarden: () -> Unit = {},
     onNavigateToCollection: () -> Unit = {},
-    onNavigateToColeccion: () -> Unit = {},
     onNavigateToCatalogo: () -> Unit = {},
-    onNavigateToJardin: () -> Unit = {},
     onNavigateToPerfil: () -> Unit = {},
     onCerrarSesion: () -> Unit = {}
 ) {
@@ -233,7 +231,7 @@ fun HomeScreen(
                             selectedTab = index
                             when (index) {
                                 1 -> onNavigateToScan()
-                                2 -> onNavigateToJardin()
+                                2 -> onNavigateToGarden()
                                 3 -> onNavigateToCollection()
                                 4 -> onNavigateToPerfil()
                             }
@@ -326,10 +324,10 @@ fun HomeScreen(
                         onItemClick = { item ->
                             when (item.id) {
                                 "scan" -> onNavigateToScan()
-                                "collection" -> onNavigateToColeccion()
+                                "collection" -> onNavigateToCollection()
                                 "encyclopedia" -> onNavigateToCatalogo()
                                 "garden" -> onNavigateToGarden()
-                                "jardin" -> onNavigateToJardin()
+                                "jardin" -> onNavigateToGarden()
                                 // "store" todavía no tiene endpoint en el backend.
                             }
                         }

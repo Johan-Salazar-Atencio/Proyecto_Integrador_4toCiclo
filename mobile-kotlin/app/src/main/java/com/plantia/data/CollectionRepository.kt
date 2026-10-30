@@ -17,27 +17,26 @@ sealed interface DetalleColeccionResultado {
 }
 
 /**
- * Convierte URLs que el backend arma con `localhost` (p. ej. fotos de escaneos) al host que
- * realmente responde, para que las imagenes tambien carguen por WiFi. Llamar fuera del hilo
- * principal: la primera vez `baseUrlEfectiva` sondea la red.
+ * El backend arma algunas URLs con `localhost` (fotos de escaneos). Se cambia el host por el que
+ * realmente responde para que las imagenes tambien carguen por WiFi.
  */
 fun normalizarUrlLocal(url: String?): String? {
     if (url.isNullOrBlank()) return null
-    val prefijo = listOf("http://localhost:8080", "http://127.0.0.1:8080").firstOrNull { url.startsWith(it) }
-        ?: return url
-    return RetrofitClient.baseUrlEfectiva.trimEnd('/') + url.removePrefix(prefijo)
+    return RetrofitClient.urlAbsoluta(url) ?: url
 }
 
 /** Coleccion de plantas escaneadas (datos reales de Spring). */
 object CollectionRepository {
 
-    private const val USER_ID = 1
-
     suspend fun listar(): ColeccionResultado = withContext(Dispatchers.IO) {
         try {
-            val plantas = RetrofitClient.api.coleccion(USER_ID)
+            val respuesta = RetrofitClient.api.coleccion()
+            if (!respuesta.isSuccessful) {
+                return@withContext ColeccionResultado.Fallo("El servidor respondio ${respuesta.code()}")
+            }
+            val plantas = respuesta.body().orEmpty()
                 // Se descartan registros sin nombre o resultados fallidos de la IA.
-                .filter { !it.nombreComun.isNullOrBlank() && !it.nombreComun.startsWith("No identificado", ignoreCase = true) }
+                .filter { it.nombreComun.isNotBlank() && !it.nombreComun.startsWith("No identificado", ignoreCase = true) }
                 .map { it.copy(fotoUrl = normalizarUrlLocal(it.fotoUrl)) }
             ColeccionResultado.Con(plantas)
         } catch (e: Exception) {
@@ -48,8 +47,12 @@ object CollectionRepository {
     /** Detalle de una planta guardada, con la misma forma que un escaneo (sin porcentaje de IA). */
     suspend fun detalle(id: Int): DetalleColeccionResultado = withContext(Dispatchers.IO) {
         try {
-            val d = RetrofitClient.api.coleccionDetalle(id)
-            val item = d.item ?: return@withContext DetalleColeccionResultado.Fallo("Planta no encontrada")
+            val respuesta = RetrofitClient.api.coleccionDetalle(id)
+            val detalle = respuesta.body()
+            if (!respuesta.isSuccessful || detalle == null) {
+                return@withContext DetalleColeccionResultado.Fallo("Planta no encontrada")
+            }
+            val item = detalle.item
             DetalleColeccionResultado.Con(
                 ScanResultDto(
                     idEscaneo = 0,
@@ -59,7 +62,7 @@ object CollectionRepository {
                     confianza = null,
                     imagenUrl = normalizarUrlLocal(item.fotoUrl),
                     nuevoEnColeccion = false,
-                    cuidados = d.cuidados.orEmpty()
+                    cuidados = detalle.cuidados
                 )
             )
         } catch (e: Exception) {

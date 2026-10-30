@@ -76,6 +76,16 @@ object MockGardenData {
         nombreActiva = nueva.name
     }
 
+    /** Borra todo lo simulado en memoria (al cerrar sesion). */
+    fun reiniciar() {
+        digitales.clear()
+        nombreActiva = null
+        ajusteSalud = 0
+        ajusteAgua = 0
+        ajusteLuz = 0
+        regadaEnEstaSesion = false
+    }
+
     /** Elige cual de las plantas digitales se ve en el jardin. */
     fun activar(nombre: String) {
         if (digitales.any { it.name == nombre }) nombreActiva = nombre

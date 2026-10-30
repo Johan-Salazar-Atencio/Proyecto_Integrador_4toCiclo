@@ -37,7 +37,7 @@ object MockAuthRepository : AuthRepository {
             return AuthResultado.Error("Ese correo ya está registrado. Prueba iniciando sesión.")
         }
         cuentas[clave] = Cuenta(nombre.trim(), password)
-        return entrar(UsuarioAuth(nombre.trim(), clave))
+        return entrar(UsuarioAuth(0, nombre.trim(), clave))
     }
 
     override suspend fun iniciarSesion(email: String, password: String): AuthResultado {
@@ -47,7 +47,7 @@ object MockAuthRepository : AuthRepository {
         if (cuenta == null || cuenta.password != password) {
             return AuthResultado.Error("Correo o contraseña incorrectos.")
         }
-        return entrar(UsuarioAuth(cuenta.nombre, clave))
+        return entrar(UsuarioAuth(0, cuenta.nombre, clave))
     }
 
     private fun entrar(usuario: UsuarioAuth): AuthResultado {

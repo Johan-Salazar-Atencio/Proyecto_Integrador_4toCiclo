@@ -1,6 +1,5 @@
 package com.plantia.data.remote
 
-import com.plantia.model.PlantSummary
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -12,9 +11,16 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+/**
+ * Endpoints del backend (Spring Boot).
+ *
+ * El id del usuario viaja en el header `X-User-Id`, que `RetrofitClient` agrega a todas las
+ * peticiones a partir de `Sesion`; por eso la mayoria de funciones no lo piden.
+ * Los endpoints que pueden responder 204 devuelven `Response<...>`.
+ */
 interface PlantiaApi {
 
-    // ─── Scan ────────────────────────────────────────────────────────────────
+    // Escaneo
 
     /** Sube la foto al backend; este identifica la planta con IA y la guarda. */
     @Multipart
@@ -24,9 +30,12 @@ interface PlantiaApi {
         @Part foto: MultipartBody.Part
     ): ScanResultDto
 
-    // ─── Home (feat/movil) ──────────────────────────────────────────────────
+    /** Historial de escaneos. */
+    @GET("api/v1/escaneos/recientes")
+    suspend fun escaneosRecientes(): Response<List<RecentScanDto>>
 
-    /** Accesos rapidos del menu. */
+    // Home
+
     @GET("api/v1/accesos")
     suspend fun accesos(): Response<List<QuickAccessDto>>
 
@@ -46,9 +55,7 @@ interface PlantiaApi {
     @GET("api/v1/misiones/diaria")
     suspend fun misionDiaria(): Response<DailyMissionDto>
 
-    /** Historial de escaneos. */
-    @GET("api/v1/escaneos/recientes")
-    suspend fun escaneosRecientes(): Response<List<RecentScanDto>>
+    // Catalogo
 
     /** Catalogo de plantas, con busqueda y filtro de toxicidad. */
     @GET("api/v1/catalogo")
@@ -63,7 +70,9 @@ interface PlantiaApi {
         @Path("id") idCatalogo: Int
     ): Response<List<CuidadoSeccionDto>>
 
-    /** Mi coleccion de plantas vistas. */
+    // Coleccion
+
+    /** Mi coleccion de plantas escaneadas. */
     @GET("api/v1/coleccion")
     suspend fun coleccion(): Response<List<ColeccionItemDto>>
 
@@ -73,37 +82,14 @@ interface PlantiaApi {
         @Path("id") idColeccion: Int
     ): Response<ColeccionDetalleDto>
 
-    // ─── Auth (HEAD/main) ───────────────────────────────────────────────────
+    // Acceso
 
-    /** Planta en crianza del usuario con userId explicito (auth header). */
-    @GET("api/v1/plantas/activa")
-    suspend fun plantaActivaAuth(
-        @Header("X-User-Id") userId: Int
-    ): Response<PlantSummary>
-
-    /** Plantas escaneadas del usuario, la mas reciente primero (con userId). */
-    @GET("api/v1/coleccion")
-    suspend fun coleccionAuth(
-        @Header("X-User-Id") userId: Int
-    ): List<ColeccionItemDto>
-
-    /** Una planta de la coleccion con sus cuidados (con userId). */
-    @GET("api/v1/coleccion/{id}")
-    suspend fun coleccionDetalleAuth(
-        @Header("X-User-Id") userId: Int,
-        @Path("id") id: Int
-    ): ColeccionDetalleDto
-
-    /** Registrar nuevo usuario. */
     @POST("api/v1/auth/registro")
     suspend fun registrar(@Body request: AuthRegistroRequestDto): AuthUsuarioResponseDto
 
-    /** Login de usuario. */
     @POST("api/v1/auth/login")
     suspend fun login(@Body request: AuthLoginRequestDto): AuthUsuarioResponseDto
 }
-
-// ─── DTOs Home (feat/movil) ─────────────────────────────────────────────────
 
 /** GET /api/v1/escaneos/recientes */
 data class RecentScanDto(
@@ -143,72 +129,4 @@ data class ColeccionItemDto(
 data class ColeccionDetalleDto(
     val item: ColeccionItemDto = ColeccionItemDto(),
     val cuidados: List<CuidadoSeccionDto> = emptyList()
-)
-
-/** DTO for auth */
-data class AuthRegistroRequestDto(
-    val nombre: String,
-    val email: String,
-    val password: String
-)
-
-data class AuthLoginRequestDto(
-    val email: String,
-    val password: String
-)
-
-data class AuthUsuarioResponseDto(
-    val id: Int = 0,
-    val nombre: String = "",
-    val email: String = ""
-)
-
-/** DTO for user summary */
-data class UserSummaryDto(
-    val nombre: String = "",
-    val nivel: Int = 1,
-    val insignia: String = "",
-    val hojas: Int = 0,
-    val experiencia: Int = 0,
-    val experienciaSiguienteNivel: Int = 0
-)
-
-/** DTO for weather alert */
-data class WeatherAlertDto(
-    val titulo: String = "",
-    val descripcion: String = "",
-    val severidad: String = "LOW",
-    val tiempoRestante: String = "",
-    val textoAccion: String = ""
-)
-
-/** DTO for quick access items */
-data class QuickAccessDto(
-    val texto: String = "",
-    val tipo: String = "",
-    val icono: String = ""
-)
-
-/** DTO for daily mission */
-data class DailyMissionDto(
-    val titulo: String = "",
-    val descripcion: String = "",
-    val recompensa: Int = 0,
-    val completada: Boolean = false
-)
-
-/** DTO for plant summary */
-data class PlantSummaryDto(
-    val nombre: String = "",
-    val especie: String = "",
-    val diasPlantada: Int = 0,
-    val proximoRiego: String = "",
-    val estadoSalud: String = "BUENA",
-    val fotoUrl: String? = null
-)
-
-/** DTO for care sections */
-data class CuidadoSeccionDto(
-    val titulo: String = "",
-    val items: List<String> = emptyList()
 )
