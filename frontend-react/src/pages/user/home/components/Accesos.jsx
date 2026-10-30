@@ -6,7 +6,6 @@ const ACCESOS = [
   { ruta: RUTAS.ESCANEAR, icono: '📷', titulo: 'Escanear', detalle: 'Identifica una planta', fondo: 'var(--verde-claro)' },
   { ruta: RUTAS.COLECCION, icono: '📚', titulo: 'Mi Colección', detalle: 'Tus plantas descubiertas', fondo: 'var(--azul-claro)' },
   { ruta: RUTAS.CATALOGO, icono: '📖', titulo: 'Enciclopedia', detalle: 'Guías botánicas', fondo: 'var(--ambar-claro)' },
-  { ruta: RUTAS.JARDIN, icono: '🪴', titulo: 'Jardín Virtual', detalle: 'Cuida tu mascota', fondo: 'var(--verde-claro)' },
 ]
 
 export default function Accesos() {
