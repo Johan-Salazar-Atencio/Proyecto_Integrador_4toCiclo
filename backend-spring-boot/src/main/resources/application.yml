@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: plantia-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/plantia?stringtype=unspecified}
+    username: ${DB_USER:plantia}
+    password: ${DB_PASSWORD:plantia}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    # Acepta ambos CWD: backend-spring-boot (mvn spring-boot:run) y la raiz (java -jar).
+    fail-on-missing-locations: false
+    locations:
+      - "${FLYWAY_LOCATIONS:filesystem:../db/migration}"
+      - "filesystem:db/migration"
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 15MB
+
+app:
+  storage:
+    images-dir: ${STORAGE_IMAGES_DIR:storage/images}
+    public-base-url: ${STORAGE_PUBLIC_URL:http://localhost:8080/files}
+  ia:
+    base-url: ${IA_BASE_URL:http://localhost:8000}
+    provider: ${IA_PROVIDER:auto}
+
+logging:
+  level:
+    com.plantia: DEBUG

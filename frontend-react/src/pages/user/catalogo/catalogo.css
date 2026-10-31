@@ -1,0 +1,18 @@
+.catalogo { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+.catalogo-filtros { display: flex; flex-wrap: wrap; gap: 10px; }
+.catalogo-filtros input { flex: 1; min-width: 200px; height: 46px; padding: 0 16px; background: var(--superficie); border: 1.5px solid var(--linea); border-radius: 999px; color: var(--texto); outline: 0; transition: border-color var(--transicion), box-shadow var(--transicion); }
+.catalogo-filtros input:focus { border-color: var(--verde); box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
+.catalogo-toxicas { height: 46px; padding: 0 18px; background: var(--superficie); border: 1.5px solid var(--linea); border-radius: 999px; color: var(--texto-suave); font-weight: 700; cursor: pointer; transition: background var(--transicion), color var(--transicion), border-color var(--transicion); }
+.catalogo-toxicas.activa { background: var(--ambar-claro); border-color: var(--ambar); color: var(--ambar); }
+
+.catalogo-cuenta { color: var(--texto-suave); font-weight: 600; font-size: 0.9rem; }
+.catalogo-lista { display: flex; flex-direction: column; gap: 10px; }
+
+.catalogo-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; color: var(--texto); transition: transform var(--transicion), box-shadow var(--transicion); }
+.catalogo-item:hover { transform: translateY(-2px); }
+.catalogo-icono { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; background: var(--verde-claro); border-radius: 14px; font-size: 1.5rem; }
+.catalogo-item small { display: block; color: var(--texto-suave); font-style: italic; }
+.catalogo-datos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.catalogo-datos span { padding: 2px 10px; background: var(--fondo); border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+.catalogo-datos .chip-alerta { background: var(--ambar-claro); color: var(--ambar); }

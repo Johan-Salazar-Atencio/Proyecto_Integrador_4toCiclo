@@ -1,0 +1,13 @@
+.brote-planta {
+  transform-origin: 100px 118px;
+  animation: respira 3.2s ease-in-out infinite;
+}
+
+@keyframes respira {
+  0%, 100% { transform: scale(1) rotate(-1.5deg); }
+  50%      { transform: scale(1.06) rotate(1.5deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brote-planta { animation: none; }
+}

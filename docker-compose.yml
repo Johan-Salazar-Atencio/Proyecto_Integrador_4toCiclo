@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: plantia-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: plantia
+      POSTGRES_USER: plantia
+      POSTGRES_PASSWORD: plantia
+    ports:
+      - "5432:5432"
+    volumes:
+      - plantia_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plantia -d plantia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Aplica las migraciones Flyway de db/migration.
+  # Spring Boot tambien las aplica al arrancar (misma tabla flyway_schema_history).
+  flyway:
+    image: flyway/flyway:10-alpine
+    container_name: plantia-flyway
+    command: >
+      -url=jdbc:postgresql://postgres:5432/plantia
+      -user=plantia
+      -password=plantia
+      -connectRetries=10
+      migrate
+    volumes:
+      - ./db/migration:/flyway/sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  plantia_pgdata:

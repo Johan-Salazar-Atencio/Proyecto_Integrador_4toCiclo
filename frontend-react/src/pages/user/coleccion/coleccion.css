@@ -1,0 +1,33 @@
+.coleccion { display: flex; flex-direction: column; gap: 20px; }
+
+.coleccion-cabecera { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+.coleccion-cabecera h2 { font-size: 1.4rem; }
+.coleccion-cabecera p { color: var(--texto-suave); font-weight: 600; }
+
+.coleccion-pestanas { display: inline-flex; padding: 4px; background: var(--superficie); border-radius: 999px; box-shadow: var(--sombra); }
+.coleccion-pestanas button { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: var(--texto-suave); font-weight: 700; cursor: pointer; transition: background var(--transicion), color var(--transicion); }
+.coleccion-pestanas button b { padding: 1px 8px; background: var(--fondo); border-radius: 999px; font-size: 0.75rem; }
+.coleccion-pestanas button.activa { background: var(--verde); color: #fff; }
+.coleccion-pestanas button.activa b { background: rgba(255, 255, 255, 0.25); }
+
+.coleccion-grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+
+.planta-card { display: flex; flex-direction: column; padding: 0; overflow: hidden; text-align: left; background: var(--superficie); border: 0; border-radius: var(--radio); box-shadow: var(--sombra); color: var(--texto); font: inherit; cursor: pointer; transition: transform var(--transicion), box-shadow var(--transicion); }
+.planta-card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(31, 41, 55, 0.14); }
+
+.planta-card-foto { position: relative; display: grid; place-items: center; aspect-ratio: 1; background: var(--verde-claro); font-size: 3rem; }
+.planta-card-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.planta-card-datos { display: flex; flex-direction: column; gap: 2px; padding: 12px; }
+.planta-card-datos small { color: var(--texto-suave); font-style: italic; }
+.planta-card-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.planta-card-chips span { padding: 2px 8px; background: var(--azul-claro); border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+.planta-card-chips .chip-alerta { background: var(--ambar-claro); color: var(--ambar); }
+.planta-card-chips .chip-activo { background: var(--verde); color: #fff; }
+
+.planta-card-mas { align-items: center; justify-content: center; gap: 8px; min-height: 200px; padding: 16px; text-align: center; background: transparent; border: 2px dashed var(--verde); box-shadow: none; color: var(--verde-oscuro); }
+.planta-card-mas span { font-size: 2rem; }
+
+.coleccion-vacio { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 48px 16px; text-align: center; color: var(--texto-suave); }
+.coleccion-vacio > span { font-size: 3.4rem; }
+.coleccion-vacio h2 { color: var(--texto); }
+.coleccion-vacio .boton { margin-top: 8px; text-decoration: none; }
