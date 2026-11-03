@@ -1,24 +1,48 @@
-// Acceso del administrador. La autenticacion corresponde a Django (ver arquitectura).
+// Acceso del administrador contra Django (endpoint real).
 //
-// SIMULADO: Django aun no tiene un endpoint de login para la API (solo su /admin/ de sesion),
-// y en la BD no hay un usuario con rol ADMIN. Mientras tanto se acepta cualquier correo con
-// contrasena y se crea una sesion de prueba.
+// POST /django/api/admin/login { email, password }
+//   -> 200 { id, nombre, email, rol: "ADMIN" }
+//   -> 401 credenciales invalidas, 403 si el usuario no es ADMIN
 //
-// TODO(django): reemplazar por
-//   POST /django/api/admin/login  { email, password }  ->  { id, nombre, email, rol: "ADMIN" }
-//   (200 si es ADMIN, 401 credenciales invalidas, 403 si el usuario no es ADMIN)
-// y mandar el token o la cookie de sesion en cada llamada del panel.
+// La sesion se guarda en sessionStorage (se borra al cerrar el navegador).
 
-const PAUSA_MS = 600
+const CLAVE = 'plantia.admin'
+
+export function leerAdmin() {
+  try { return JSON.parse(localStorage.getItem(CLAVE) || 'null') } catch { return null }
+}
+
+export function guardarAdmin(admin) {
+  try { localStorage.setItem(CLAVE, JSON.stringify(admin)) } catch { /* sin almacenamiento */ }
+}
+
+export function borrarAdmin() {
+  try { localStorage.removeItem(CLAVE) } catch { /* nada que borrar */ }
+}
+
+export function obtenerAdminId() {
+  return leerAdmin()?.id ?? null
+}
 
 export async function iniciarSesionAdmin(email, password) {
-  await new Promise((ok) => setTimeout(ok, PAUSA_MS))
-  if (!email.trim() || !password) {
-    const error = new Error('Escribe tu correo y contraseña.')
-    error.estado = 401
+  const respuesta = await fetch('/django/api/admin/login/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.trim(), password }),
+  })
+  const texto = await respuesta.text()
+  const datos = texto ? JSON.parse(texto) : null
+  if (!respuesta.ok) {
+    const error = new Error(datos?.error || datos?.mensaje || `Error ${respuesta.status}`)
+    error.estado = respuesta.status
     throw error
   }
-  return { id: 0, nombre: 'Admin Tecsup', email: email.trim(), rol: 'ADMIN' }
+  guardarAdmin(datos)
+  return datos
+}
+
+export function cerrarSesionAdmin() {
+  borrarAdmin()
 }
 
 // Estado del motor de IA / Django para el indicador de la barra superior

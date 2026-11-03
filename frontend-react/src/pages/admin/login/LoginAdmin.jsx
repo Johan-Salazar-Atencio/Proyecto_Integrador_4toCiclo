@@ -53,7 +53,7 @@ export default function LoginAdmin() {
 
         <Boton type="submit" cargando={cargando}>Entrar al panel</Boton>
 
-        <p className="login-admin-aviso">Modo de prueba: el acceso aún no está conectado con Django, entra cualquier correo.</p>
+        <p className="login-admin-aviso">Acceso real contra Django: solo usuarios con rol ADMIN.</p>
         <Link to={RUTAS.WELCOME} className="login-admin-volver">← Volver a Plantia</Link>
       </form>
     </main>
