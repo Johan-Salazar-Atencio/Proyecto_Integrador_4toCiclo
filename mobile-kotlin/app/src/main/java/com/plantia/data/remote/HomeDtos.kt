@@ -62,3 +62,24 @@ data class DailyMissionDto(
     val targetCount: Int = 0,
     val isCompleted: Boolean = false
 )
+
+/** GET /api/v1/escaneos/recientes */
+data class RecentScanDto(
+    val id: String = "",
+    val plantName: String = "",
+    val confidence: String = "",
+    val statusColor: String = ""
+)
+
+/** GET /api/v1/catalogo */
+data class CatalogoItemDto(
+    val id: Int = 0,
+    val nombreComun: String = "",
+    val nombreCientifico: String = "",
+    val frecuenciaRiegoDias: Int = 0,
+    val frecuenciaSolHoras: Int = 0,
+    val temperaturaMinC: Int? = null,
+    val temperaturaMaxC: Int? = null,
+    val esToxicaMascotas: Boolean = false,
+    val spriteBaseUrl: String = ""
+)

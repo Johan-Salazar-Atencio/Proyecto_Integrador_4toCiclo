@@ -1,6 +1,8 @@
 package com.plantia.data
 
+import com.plantia.data.remote.PlantSummaryDto
 import com.plantia.data.remote.RetrofitClient
+import com.plantia.data.toDomain
 import com.plantia.model.PlantSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,8 +17,6 @@ sealed interface PlantaActivaResultado {
 /** Acceso a los datos del jardin: lectura real (Spring) + cuidados simulados. */
 object GardenRepository {
 
-    private const val USER_ID = 1
-
     suspend fun plantaActiva(): PlantaActivaResultado = withContext(Dispatchers.IO) {
         // Si el usuario digitalizo una planta (simulado), esa es la que se muestra.
         MockGardenData.plantaDigital?.let {
@@ -24,13 +24,13 @@ object GardenRepository {
         }
         try {
             // `RetrofitClient.api` puede sondear la red la primera vez: siempre fuera del hilo principal.
-            val respuesta = RetrofitClient.api.plantaActiva(USER_ID)
+            val respuesta = RetrofitClient.api.plantaActiva()
             val cuerpo = respuesta.body()
             when {
                 respuesta.code() == 204 -> PlantaActivaResultado.SinPlanta
                 respuesta.isSuccessful && cuerpo != null -> {
-                    val conUrl = cuerpo.copy(imageUrl = urlAbsoluta(cuerpo.imageUrl))
-                    PlantaActivaResultado.ConPlanta(MockGardenData.aplicarAjustes(conUrl))
+                    val domain = cuerpo.toDomain()
+                    PlantaActivaResultado.ConPlanta(MockGardenData.aplicarAjustes(domain))
                 }
                 else -> PlantaActivaResultado.Fallo("El servidor respondio ${respuesta.code()}")
             }
@@ -43,6 +43,7 @@ object GardenRepository {
     private fun urlAbsoluta(ruta: String?): String? {
         if (ruta.isNullOrBlank()) return null
         if (ruta.startsWith("http")) return ruta
-        return RetrofitClient.baseUrlEfectiva.trimEnd('/') + "/" + ruta.trimStart('/')
+        return RetrofitClient.urlAbsoluta(ruta).takeIf { it.isNullOrEmpty().not() }
+            ?: "${RetrofitClient.baseUrl.value?.trimEnd('/') ?: ""}/$ruta"
     }
 }

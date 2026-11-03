@@ -11,17 +11,25 @@ object Routes {
     fun auth(registro: Boolean) = "auth/${if (registro) "registro" else "login"}"
 
     const val HOME = "home"
-    const val SCAN = "ScanScreen"
-    const val VIRTUAL_GARDEN = "VirtualGardenScreen"
-    const val COLLECTION = "CollectionScreen"
+    const val SCAN = "scan"
+    const val HISTORIAL = "historial"
+    const val COLECCION = "coleccion"
+    const val COLECCION_DETALLE = "coleccion/{id}"
+    const val ARG_COLECCION_ID = "id"
+    const val CATALOGO = "catalogo"
+    const val CATALOGO_DETALLE = "catalogo/{id}"
+    const val JARDIN = "jardin"
+    const val PERFIL = "perfil"
+
+    const val COLLECTION = "collection"
+    const val VIRTUAL_GARDEN = "virtualGarden"
 
     const val ARG_PLANT_ID = "plantId"
-    const val PLANT_DETAIL = "PlantDetailScreen/{$ARG_PLANT_ID}"
+    const val PLANT_DETAIL = "plantDetail/{$ARG_PLANT_ID}"
 
-    fun plantDetail(plantId: String) = "PlantDetailScreen/$plantId"
+    fun plantDetail(plantId: String) = "plantDetail/$plantId"
 
-    const val ARG_COLECCION_ID = "coleccionId"
-    const val COLLECTION_DETAIL = "CollectionDetailScreen/{$ARG_COLECCION_ID}"
+    const val COLLECTION_DETAIL = "collection/{id}"
 
-    fun collectionDetail(id: Int) = "CollectionDetailScreen/$id"
+    fun collectionDetail(id: Int) = "collection/$id"
 }

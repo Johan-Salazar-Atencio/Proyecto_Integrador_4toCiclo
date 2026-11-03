@@ -10,7 +10,7 @@ class CatalogoListView(generics.ListAPIView):
     serializer_class = PlantaCatalogoSerializer
 
     def get_queryset(self):
-        qs = PlantaCatalogo.objects.all().prefetch_related("cuidadosseccion_set")
+        qs = PlantaCatalogo.objects.all().prefetch_related("cuidadoseccion_set")
         q = self.request.query_params.get("q")
         if q:
             qs = qs.filter(nombre_comun__icontains=q) | qs.filter(
@@ -23,7 +23,7 @@ class CatalogoListView(generics.ListAPIView):
 
 
 class CatalogoDetailView(generics.RetrieveAPIView):
-    queryset = PlantaCatalogo.objects.all().prefetch_related("cuidadosseccion_set")
+    queryset = PlantaCatalogo.objects.all().prefetch_related("cuidadoseccion_set")
     serializer_class = PlantaCatalogoSerializer
 
 

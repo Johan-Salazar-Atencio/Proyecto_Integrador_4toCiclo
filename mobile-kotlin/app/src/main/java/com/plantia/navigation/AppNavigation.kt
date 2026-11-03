@@ -69,31 +69,7 @@ private val reSale: Exit = {
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-
-object Routes {
-    const val WELCOME = "welcome"
-    const val AUTH = "auth"
-    const val ARG_MODO = "modo"
-    const val HOME = "home"
-    const val SCAN = "scan"
-    const val HISTORIAL = "historial"
-    const val COLECCION = "coleccion"
-    const val COLECCION_DETALLE = "coleccion/{id}"
-    const val ARG_COLECCION_ID = "id"
-    const val CATALOGO = "catalogo"
-    const val CATALOGO_DETALLE = "catalogo/{id}"
-    const val JARDIN = "jardin"
-    const val PERFIL = "perfil"
-    const val TERMINOS = "terminos"
-    const val PLANT_DETAIL = "plantDetail"
-    const val ARG_PLANT_ID = "plantId"
-    const val COLLECTION = "collection"
-    const val VIRTUAL_GARDEN = "virtualGarden"
-
-    fun auth(registro: Boolean = false): String = "auth/$registro"
-    fun plantDetail(plantId: String): String = "plantDetail/$plantId"
-    fun collectionDetail(coleccionId: Int): String = "collection/$coleccionId"
-}
+// (definidas en Routes.kt; este fichero solo referencia las rutas)
 
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
