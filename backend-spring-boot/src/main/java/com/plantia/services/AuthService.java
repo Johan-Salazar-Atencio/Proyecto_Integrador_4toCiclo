@@ -1,6 +1,7 @@
 package com.plantia.services;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -19,6 +20,9 @@ public class AuthService {
 
     private final UsuarioRepository usuarioRepo;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    // Hash BCrypt valido usado para comparar cuando el email no existe, para que
+    // el tiempo de respuesta no revele si el correo esta registrado.
+    private static final String DUMMY_HASH = "$2a$10$n7uGz2GzFEIhdSm3KDEOYO0ZMzGL132epZ61oqWefVWQYQIufMQVy";
 
     public AuthService(UsuarioRepository usuarioRepo) {
         this.usuarioRepo = usuarioRepo;
@@ -36,6 +40,8 @@ public class AuthService {
         }
 
         String nombre = request.nombre() == null ? "" : request.nombre().trim();
+        // Evitar XSS almacenado: se eliminan etiquetas HTML del nombre.
+        nombre = nombre.replaceAll("<[^>]*>", "").trim();
         if (nombre.length() < 2) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre debe tener al menos 2 caracteres");
         }
@@ -62,10 +68,13 @@ public class AuthService {
         usuario.setUpdatedAt(LocalDateTime.now());
 
         Usuario guardado = usuarioRepo.save(usuario);
-        return new AuthUsuarioResponse(guardado.getIdUsuario(), guardado.getNombre(), guardado.getEmail(), guardado.getRol());
+        String token = generarToken();
+        guardado.setSessionToken(token);
+        usuarioRepo.save(guardado);
+        return new AuthUsuarioResponse(guardado.getIdUsuario(), guardado.getNombre(), guardado.getEmail(), guardado.getRol(), token);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthUsuarioResponse login(AuthLoginRequest request) {
         String emailNormalizado = normalizarEmail(request.email());
         String password = request.password() == null ? "" : request.password();
@@ -75,13 +84,28 @@ public class AuthService {
         }
 
         Usuario usuario = usuarioRepo.findByEmail(emailNormalizado)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos"));
+                .orElse(null);
+
+        if (usuario == null) {
+            // Comparamos contra un hash valido para no revelar (por tiempo) si
+            // el email existe. Siempre lanzamos el mismo error.
+            passwordEncoder.matches(password, DUMMY_HASH);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
+        }
 
         if (!passwordEncoder.matches(password, usuario.getPasswordHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
         }
 
-        return new AuthUsuarioResponse(usuario.getIdUsuario(), usuario.getNombre(), usuario.getEmail(), usuario.getRol());
+        String token = generarToken();
+        usuario.setSessionToken(token);
+        usuarioRepo.save(usuario);
+
+        return new AuthUsuarioResponse(usuario.getIdUsuario(), usuario.getNombre(), usuario.getEmail(), usuario.getRol(), token);
+    }
+
+    private String generarToken() {
+        return UUID.randomUUID().toString().replace("-", "");
     }
 
     private String normalizarEmail(String email) {

@@ -1,10 +1,12 @@
-import { obtenerUsuarioId } from '../store/sesionGuardada'
+import { obtenerUsuarioId, obtenerToken } from '../store/sesionGuardada'
 
 const BASE = '/api/v1'
 
-// Llamada JSON a Spring Boot. Agrega X-User-Id como el interceptor del movil.
+// Llamada JSON a Spring Boot. Agrega X-User-Id y X-Session-Token como el interceptor del movil.
 export async function llamar(ruta, { metodo = 'GET', cuerpo, formData, senal } = {}) {
   const cabeceras = { 'X-User-Id': String(obtenerUsuarioId()) }
+  const token = obtenerToken()
+  if (token) cabeceras['X-Session-Token'] = token
   let body
   if (formData) {
     body = formData

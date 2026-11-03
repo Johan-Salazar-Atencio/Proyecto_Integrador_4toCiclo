@@ -22,7 +22,7 @@ class ApiAuthRepository : AuthRepository {
                         password = password
                     )
                 )
-                AuthResultado.Ok(iniciarSesionLocal(response.id, response.nombre, response.email))
+                AuthResultado.Ok(iniciarSesionLocal(response.id, response.nombre, response.email, response.sessionToken))
             } catch (e: HttpException) {
                 val mensaje = when (e.code()) {
                     409 -> "Ese correo ya está registrado. Prueba iniciando sesión."
@@ -48,7 +48,7 @@ class ApiAuthRepository : AuthRepository {
                         password = password
                     )
                 )
-                AuthResultado.Ok(iniciarSesionLocal(response.id, response.nombre, response.email))
+                AuthResultado.Ok(iniciarSesionLocal(response.id, response.nombre, response.email, response.sessionToken))
             } catch (e: HttpException) {
                 val mensaje = when (e.code()) {
                     401 -> "Correo o contraseña incorrectos."
@@ -64,9 +64,9 @@ class ApiAuthRepository : AuthRepository {
         }
     }
 
-    /** Guarda el id del usuario en la sesion: desde aqui toda la app consulta SUS datos. */
-    private fun iniciarSesionLocal(id: Int, nombre: String, email: String): UsuarioAuth {
-        Sesion.setUserId(id)
+    /** Guarda el id y el token del usuario en la sesion. */
+    private fun iniciarSesionLocal(id: Int, nombre: String, email: String, token: String?): UsuarioAuth {
+        Sesion.setSesion(id, token)
         return UsuarioAuth(id = id, nombre = nombre, email = email)
     }
 

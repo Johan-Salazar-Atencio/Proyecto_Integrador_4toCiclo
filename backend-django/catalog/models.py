@@ -40,6 +40,7 @@ class PlantaCatalogo(models.Model):
     temperatura_max_c = models.IntegerField(default=30)
     es_toxica_mascotas = models.BooleanField(default=False)
     sprite_base_url = models.CharField(max_length=255, default="/assets/plantas/default.png")
+    publicada = models.BooleanField(default=True)
     etapa_semilla_url = models.CharField(max_length=255, null=True, blank=True)
     etapa_brote_url = models.CharField(max_length=255, null=True, blank=True)
     etapa_adulta_url = models.CharField(max_length=255, null=True, blank=True)
