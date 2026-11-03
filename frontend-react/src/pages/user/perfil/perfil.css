@@ -11,6 +11,14 @@
 .perfil-dato b { font-size: 1.4rem; }
 .perfil-dato small { color: var(--texto-suave); font-weight: 600; }
 
+@media (max-width: 480px) {
+  .perfil { padding: 0 4px; }
+  .perfil-datos { grid-template-columns: repeat(2, 1fr); }
+  .perfil-avatar { width: 72px; height: 72px; font-size: 1.9rem; }
+  .perfil-cabecera h2 { font-size: 1.25rem; }
+  .perfil-enlaces .tarjeta { padding: 12px; }
+}
+
 .perfil-enlaces { display: flex; flex-direction: column; gap: 10px; }
 .perfil-enlaces .tarjeta { display: flex; align-items: center; gap: 12px; padding: 16px; border: 0; color: var(--texto); font-weight: 700; text-align: left; cursor: pointer; transition: transform var(--transicion), box-shadow var(--transicion); }
 .perfil-enlaces .tarjeta:hover { transform: translateX(4px); }
