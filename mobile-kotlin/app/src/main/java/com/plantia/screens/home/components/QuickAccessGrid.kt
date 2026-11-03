@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,6 +35,8 @@ import androidx.compose.ui.unit.sp
 import com.plantia.model.QuickAccessItem
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.LocalTemaOscuro
+import com.plantia.ui.theme.SurfaceWhite
 
 @Composable
 fun QuickAccessGrid(
@@ -124,7 +127,7 @@ private fun QuickAccessCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(115.dp)
-                .background(item.backgroundColor)
+                .background(fondoTarjeta(item.backgroundColor))
                 .padding(horizontal = 8.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
@@ -165,3 +168,8 @@ private fun QuickAccessCard(
         }
     }
 }
+
+/** El servidor manda colores pastel: en tema oscuro se mezclan con la superficie para que el texto se lea. */
+@Composable
+private fun fondoTarjeta(color: Color): Color =
+    if (LocalTemaOscuro.current) color.copy(alpha = 0.18f).compositeOver(SurfaceWhite) else color

@@ -28,6 +28,8 @@ import com.plantia.ui.theme.AmberAlert
 import com.plantia.ui.theme.AmberLight
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.RojoClaro
+import com.plantia.ui.theme.GreenLight
 
 @Composable
 fun WeatherAlertCard(
@@ -50,8 +52,8 @@ fun WeatherAlertCard(
             else -> AmberAlert
         }
         val fondo = when (alert.severity) {
-            AlertSeverity.HIGH -> Color(0xFFFEE2E2)
-            AlertSeverity.LOW -> Color(0xFFDCFCE7)
+            AlertSeverity.HIGH -> RojoClaro
+            AlertSeverity.LOW -> GreenLight
             else -> AmberLight
         }
         Column(

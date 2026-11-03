@@ -1,8 +1,7 @@
 package com.plantia.data
 
-import com.plantia.data.remote.PlantSummaryDto
+import com.plantia.BuildConfig
 import com.plantia.data.remote.RetrofitClient
-import com.plantia.data.toDomain
 import com.plantia.model.PlantSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -23,14 +22,15 @@ object GardenRepository {
             return@withContext PlantaActivaResultado.ConPlanta(it.copy(imageUrl = normalizarUrlLocal(it.imageUrl)))
         }
         try {
-            // `RetrofitClient.api` puede sondear la red la primera vez: siempre fuera del hilo principal.
             val respuesta = RetrofitClient.api.plantaActiva()
             val cuerpo = respuesta.body()
             when {
                 respuesta.code() == 204 -> PlantaActivaResultado.SinPlanta
                 respuesta.isSuccessful && cuerpo != null -> {
-                    val domain = cuerpo.toDomain()
-                    PlantaActivaResultado.ConPlanta(MockGardenData.aplicarAjustes(domain))
+                    val planta = cuerpo.toDomain()
+                    PlantaActivaResultado.ConPlanta(
+                        MockGardenData.aplicarAjustes(planta.copy(imageUrl = urlAbsoluta(planta.imageUrl)))
+                    )
                 }
                 else -> PlantaActivaResultado.Fallo("El servidor respondio ${respuesta.code()}")
             }
@@ -42,8 +42,8 @@ object GardenRepository {
     /** El backend manda rutas relativas ("/sprites/..."); se completan con el host que responde. */
     private fun urlAbsoluta(ruta: String?): String? {
         if (ruta.isNullOrBlank()) return null
-        if (ruta.startsWith("http")) return ruta
-        return RetrofitClient.urlAbsoluta(ruta).takeIf { it.isNullOrEmpty().not() }
-            ?: "${RetrofitClient.baseUrl.value?.trimEnd('/') ?: ""}/$ruta"
+        if (ruta.startsWith("http")) return normalizarUrlLocal(ruta)
+        val base = (RetrofitClient.baseUrl.value ?: BuildConfig.API_BASE_URL).trimEnd('/')
+        return base + "/" + ruta.trimStart('/')
     }
 }

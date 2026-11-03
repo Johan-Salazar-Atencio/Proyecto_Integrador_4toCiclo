@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.plantia.data.Sesion
 import com.plantia.data.remote.RetrofitClient
 import com.plantia.data.remote.ScanResultDto
 import com.plantia.data.toDomain
@@ -65,7 +66,7 @@ class ScanViewModel : ViewModel() {
                 )
                 // La primera vez RetrofitClient sondea el host por red: nunca en el hilo principal.
                 val api = withContext(Dispatchers.IO) { RetrofitClient.api }
-                val result = api.escanear(USER_ID, part)
+                val result = api.escanear(Sesion.userId.value, part)
                 uiState = ScanUiState.Success(result)
                 // El historial ya incluye este escaneo: se refresca.
                 cargarRecientes()
@@ -149,8 +150,4 @@ class ScanViewModel : ViewModel() {
         return destino
     }
 
-    companion object {
-        /** Usuario temporal (sin auth) hasta integrar login. */
-        const val USER_ID = 1
-    }
 }

@@ -42,6 +42,7 @@ import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.SurfaceWhite
 
 /** Historial completo de escaneos del usuario. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,7 +73,7 @@ fun HistorialScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceWhite)
             )
         },
         containerColor = BackgroundLight,
@@ -118,7 +119,7 @@ fun HistorialScreen(
 private fun HistorialItem(escaneo: RecentScan) {
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = Color.White,
+        color = SurfaceWhite,
         shadowElevation = 1.dp,
         modifier = Modifier.fillMaxWidth()
     ) {

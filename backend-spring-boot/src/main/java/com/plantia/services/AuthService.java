@@ -44,6 +44,10 @@ public class AuthService {
         if (password.length() < 8) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña debe tener al menos 8 caracteres");
         }
+        // Nueva validación: BCrypt limita a 72 bytes, rechazamos >72 con 400
+        if (password.length() > 72) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña no puede tener más de 72 caracteres");
+        }
 
         Usuario usuario = new Usuario();
         usuario.setNombre(nombre);
@@ -58,7 +62,7 @@ public class AuthService {
         usuario.setUpdatedAt(LocalDateTime.now());
 
         Usuario guardado = usuarioRepo.save(usuario);
-        return new AuthUsuarioResponse(guardado.getIdUsuario(), guardado.getNombre(), guardado.getEmail());
+        return new AuthUsuarioResponse(guardado.getIdUsuario(), guardado.getNombre(), guardado.getEmail(), guardado.getRol());
     }
 
     @Transactional(readOnly = true)
@@ -77,7 +81,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
         }
 
-        return new AuthUsuarioResponse(usuario.getIdUsuario(), usuario.getNombre(), usuario.getEmail());
+        return new AuthUsuarioResponse(usuario.getIdUsuario(), usuario.getNombre(), usuario.getEmail(), usuario.getRol());
     }
 
     private String normalizarEmail(String email) {

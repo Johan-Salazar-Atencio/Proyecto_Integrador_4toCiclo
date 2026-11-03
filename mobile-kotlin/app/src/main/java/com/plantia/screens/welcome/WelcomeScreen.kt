@@ -62,12 +62,12 @@ import com.plantia.ui.theme.MobilekotlinTheme
 import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.FondoDegradado
 import com.plantia.util.IconosOscurosEnBarraDeEstado
 import kotlinx.coroutines.delay
 
-private val FondoBienvenida = Brush.verticalGradient(
-    listOf(Color(0xFFE8F8F0), Color(0xFFF7FBF8), Color(0xFFFFF6EC))
-)
+private val FondoBienvenida: Brush
+    @Composable get() = FondoDegradado
 
 /**
  * Primera pantalla de la app: presenta Plantia y lleva a crear la cuenta o a iniciar sesion.

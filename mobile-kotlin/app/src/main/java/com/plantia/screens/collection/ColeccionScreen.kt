@@ -48,6 +48,7 @@ import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.SurfaceWhite
 
 /** "Mi coleccion": las plantas que el usuario ha visto. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,7 +81,7 @@ fun ColeccionScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceWhite)
             )
         },
         containerColor = BackgroundLight,

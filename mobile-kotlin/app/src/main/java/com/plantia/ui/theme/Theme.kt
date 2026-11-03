@@ -5,16 +5,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 
-/**
- * Esquema oscuro real. Antes reutilizaba los colores claros, por lo que el
- * modo oscuro era identico al claro.
- */
 private val DarkColorScheme = darkColorScheme(
     primary = GreenSecondary,
     onPrimary = ColorDarkSurface,
     primaryContainer = GreenDark,
-    onPrimaryContainer = GreenLight,
+    onPrimaryContainer = GreenLightClaro,
     secondary = GreenPrimary,
     onSecondary = ColorDarkSurface,
     tertiary = AmberAlert,
@@ -30,35 +27,39 @@ private val DarkColorScheme = darkColorScheme(
 
 private val LightColorScheme = lightColorScheme(
     primary = GreenPrimary,
-    onPrimary = SurfaceWhite,
-    primaryContainer = GreenLight,
+    onPrimary = SurfaceWhiteClaro,
+    primaryContainer = GreenLightClaro,
     onPrimaryContainer = GreenDark,
     secondary = GreenSecondary,
-    onSecondary = SurfaceWhite,
+    onSecondary = SurfaceWhiteClaro,
     tertiary = AmberAlert,
-    onTertiary = SurfaceWhite,
-    background = BackgroundLight,
-    onBackground = TextPrimary,
-    surface = SurfaceWhite,
-    onSurface = TextPrimary,
-    surfaceVariant = BackgroundLight,
-    onSurfaceVariant = TextSecondary,
-    outline = DividerColor
+    onTertiary = SurfaceWhiteClaro,
+    background = BackgroundLightClaro,
+    onBackground = TextPrimaryClaro,
+    surface = SurfaceWhiteClaro,
+    onSurface = TextPrimaryClaro,
+    surfaceVariant = BackgroundLightClaro,
+    onSurfaceVariant = TextSecondaryClaro,
+    outline = DividerColorClaro
 )
 
+/**
+ * `darkTheme` lo decide MainActivity segun el tema que eligio el usuario (Sistema, Claro u Oscuro).
+ * El color dinamico del sistema (Material You) anula la paleta verde de marca, por eso no se usa.
+ */
 @Composable
 fun MobilekotlinTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // El color dinamico del sistema (Material You) anula la paleta verde de
-    // marca, por eso viene desactivado por defecto.
-    dynamicColor: Boolean = false,
+    @Suppress("UNUSED_PARAMETER") dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalTemaOscuro provides darkTheme) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

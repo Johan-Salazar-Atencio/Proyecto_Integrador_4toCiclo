@@ -168,7 +168,7 @@ fun PlantSummaryCard(
                 )
             ) {
                 Text(
-                    text = "Entrar al JardÃ­n Virtual",
+                    text = "Entrar al Jardín Virtual",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,

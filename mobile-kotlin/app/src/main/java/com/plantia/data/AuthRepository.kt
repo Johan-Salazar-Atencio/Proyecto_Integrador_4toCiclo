@@ -1,7 +1,7 @@
 package com.plantia.data
 
 /** Usuario autenticado tal como lo necesita la app. */
-data class UsuarioAuth(val nombre: String, val email: String)
+data class UsuarioAuth(val id: Int, val nombre: String, val email: String)
 
 sealed interface AuthResultado {
     data class Ok(val usuario: UsuarioAuth) : AuthResultado

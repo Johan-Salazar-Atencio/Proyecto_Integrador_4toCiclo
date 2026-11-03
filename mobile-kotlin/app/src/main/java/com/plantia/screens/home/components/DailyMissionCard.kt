@@ -33,6 +33,7 @@ import com.plantia.ui.theme.GreenLight
 import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.GreenLightSuave
 
 @Composable
 fun DailyMissionCard(
@@ -52,7 +53,7 @@ fun DailyMissionCard(
                 .fillMaxWidth()
                 .background(
                     brush = Brush.horizontalGradient(
-                        colors = listOf(GreenLight, Color(0xFFF0FDF4))
+                        colors = listOf(GreenLight, GreenLightSuave)
                     )
                 )
                 .padding(16.dp),
@@ -82,7 +83,7 @@ fun DailyMissionCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "MisiÃ³n del DÃ­a: ${mission.title}",
+                        text = "Misión del Día: ${mission.title}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = TextPrimary,

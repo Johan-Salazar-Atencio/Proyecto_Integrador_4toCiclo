@@ -22,7 +22,7 @@ class ApiAuthRepository : AuthRepository {
                         password = password
                     )
                 )
-                AuthResultado.Ok(UsuarioAuth(nombre = response.nombre, email = response.email))
+                AuthResultado.Ok(iniciarSesionLocal(response.id, response.nombre, response.email))
             } catch (e: HttpException) {
                 val mensaje = when (e.code()) {
                     409 -> "Ese correo ya está registrado. Prueba iniciando sesión."
@@ -48,7 +48,7 @@ class ApiAuthRepository : AuthRepository {
                         password = password
                     )
                 )
-                AuthResultado.Ok(UsuarioAuth(nombre = response.nombre, email = response.email))
+                AuthResultado.Ok(iniciarSesionLocal(response.id, response.nombre, response.email))
             } catch (e: HttpException) {
                 val mensaje = when (e.code()) {
                     401 -> "Correo o contraseña incorrectos."
@@ -62,6 +62,12 @@ class ApiAuthRepository : AuthRepository {
                 AuthResultado.Error("Ocurrió un error inesperado.")
             }
         }
+    }
+
+    /** Guarda el id del usuario en la sesion: desde aqui toda la app consulta SUS datos. */
+    private fun iniciarSesionLocal(id: Int, nombre: String, email: String): UsuarioAuth {
+        Sesion.setUserId(id)
+        return UsuarioAuth(id = id, nombre = nombre, email = email)
     }
 
     private fun extraerMensaje(e: HttpException): String? {

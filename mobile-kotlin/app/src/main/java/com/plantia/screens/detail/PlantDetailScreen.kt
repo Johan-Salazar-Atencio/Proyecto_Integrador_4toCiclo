@@ -96,6 +96,7 @@ import com.plantia.ui.theme.MobilekotlinTheme
 import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
+import com.plantia.ui.theme.RojoClaro
 import kotlin.math.roundToInt
 
 private const val NOMBRE_DESCONOCIDA = "Planta desconocida"
@@ -107,7 +108,8 @@ private val TIPOS_DIAGNOSTICO = setOf("PLAGAS", "TOXICIDAD", "OTRO")
 private val PRIORIDAD_TIPO = mapOf("RIEGO" to 0, "LUZ" to 1, "TEMPERATURA" to 2, "SUSTRATO" to 3, "PODA" to 4, "ABONO" to 5)
 
 private val RojoCalor = Color(0xFFEF4444)
-private val RojoCalorLight = Color(0xFFFEE2E2)
+private val RojoCalorLight: Color
+    @Composable get() = RojoClaro
 
 // ---------------------------------------------------------------------------
 // Mapeo DTO -> vista (funciones puras)
@@ -145,6 +147,7 @@ internal fun ScanResultDto.etiquetaPrecision(): String? =
 
 private data class EstiloCuidado(val icono: ImageVector, val color: Color, val fondo: Color)
 
+@Composable
 private fun estiloDe(tipo: String?): EstiloCuidado = when (tipo?.uppercase()) {
     "RIEGO" -> EstiloCuidado(Icons.Filled.WaterDrop, BlueInfo, BlueLight)
     "LUZ" -> EstiloCuidado(Icons.Filled.WbSunny, AmberAlert, AmberLight)

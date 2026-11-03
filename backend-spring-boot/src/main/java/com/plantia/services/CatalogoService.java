@@ -47,6 +47,8 @@ public class CatalogoService {
         if (toxica != null) {
             spec = spec.and((root, cq, cb) -> cb.equal(root.get("esToxicaMascotas"), toxica));
         }
+        // NUEVO: solo mostrar especies publicadas por default
+        spec = spec.and((root, cq, cb) -> cb.equal(root.get("publicada"), true));
 
         return catalogoRepo.findAll(spec, Sort.by(Sort.Direction.ASC, "nombreComun"))
                 .stream().map(CatalogoService::toDto).toList();
@@ -54,6 +56,13 @@ public class CatalogoService {
 
     @Transactional(readOnly = true)
     public List<CuidadoSeccionDto> cuidados(Integer idCatalogo) {
+        if (idCatalogo == null) {
+            return List.<CuidadoSeccionDto>of();
+        }
+        PlantaCatalogo catalogo = catalogoRepo.findById(idCatalogo).orElse(null);
+        if (catalogo == null || !Boolean.TRUE.equals(catalogo.getPublicada())) {
+            return List.<CuidadoSeccionDto>of();
+        }
         return cuidadoRepo.findByIdCatalogoOrderByOrdenAsc(idCatalogo).stream()
                 .map(CatalogoService::toCuidado).toList();
     }

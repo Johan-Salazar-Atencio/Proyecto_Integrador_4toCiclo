@@ -5,6 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.plantia.data.CollectionRepository
+import com.plantia.data.ColeccionResultado
 import com.plantia.data.remote.RetrofitClient
 import com.plantia.data.toDomain
 import com.plantia.model.UserSummary
@@ -21,6 +23,10 @@ class PerfilViewModel : ViewModel() {
         private set
 
     var error: String? by mutableStateOf(null)
+        private set
+
+    /** Plantas escaneadas en la coleccion (null si aun no se sabe o no se pudo leer). */
+    var escaneadas: Int? by mutableStateOf(null)
         private set
 
     init {
@@ -47,6 +53,7 @@ class PerfilViewModel : ViewModel() {
             }.onFailure {
                 error = "No se pudo cargar el perfil"
             }
+            escaneadas = (CollectionRepository.listar() as? ColeccionResultado.Con)?.plantas?.size
             cargando = false
         }
     }

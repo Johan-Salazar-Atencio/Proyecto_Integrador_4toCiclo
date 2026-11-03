@@ -20,24 +20,21 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.plantia.data.ConexionConfig
+import com.plantia.data.TemaConfig
 import com.plantia.data.MockGardenData
+import com.plantia.data.ScanResultStore
 import com.plantia.data.Sesion
 import com.plantia.data.remote.RetrofitClient
 import com.plantia.screens.auth.AuthScreen
 import com.plantia.screens.catalog.CatalogoScreen
 import com.plantia.screens.catalog.viewmodel.CatalogoViewModel
 import com.plantia.screens.catalog.viewmodel.CuidadosCatalogoViewModel
-import com.plantia.screens.collection.ColeccionScreen
 import com.plantia.screens.collection.CollectionScreen
-import com.plantia.screens.collection.viewmodel.ColeccionDetalleViewModel
-import com.plantia.screens.collection.viewmodel.ColeccionViewModel
 import com.plantia.screens.common.DetallePlantaScreen
 import com.plantia.screens.detail.CollectionDetailScreen
 import com.plantia.screens.detail.PlantDetailScreen
 import com.plantia.screens.garden.VirtualGardenScreen
 import com.plantia.screens.home.HomeScreen
-import com.plantia.screens.jardin.JardinScreen
-import com.plantia.screens.jardin.viewmodel.JardinViewModel
 import com.plantia.screens.legal.TermsScreen
 import com.plantia.screens.profile.PerfilScreen
 import com.plantia.screens.profile.viewmodel.PerfilViewModel
@@ -68,9 +65,6 @@ private val reSale: Exit = {
     slideOutHorizontally(tween(DURACION_MS)) { it } + fadeOut(tween(DURACION_MS))
 }
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
-// (definidas en Routes.kt; este fichero solo referencia las rutas)
-
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
@@ -84,7 +78,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         popEnterTransition = reEntra,
         popExitTransition = reSale
     ) {
-        // ─── Auth flow (remoto/main) ───────────────────────────────────────────
+        // ─── Entrada ───────────────────────────────────────────────────────────
         composable(Routes.WELCOME) {
             WelcomeScreen(
                 onCrearCuenta = { navController.navigate(Routes.auth(registro = true)) },
@@ -109,20 +103,14 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             TermsScreen(onBack = { navController.popBackStack() })
         }
 
-        // ─── Main app ──────────────────────────────────────────────────────────
+        // ─── App ───────────────────────────────────────────────────────────────
         composable(Routes.HOME) {
             HomeScreen(
                 onNavigateToScan = { navController.navigate(Routes.SCAN) },
                 onNavigateToGarden = { navController.navigate(Routes.VIRTUAL_GARDEN) },
                 onNavigateToCollection = { navController.navigate(Routes.COLLECTION) },
-                onNavigateToColeccion = { navController.navigate(Routes.COLECCION) },
                 onNavigateToCatalogo = { navController.navigate(Routes.CATALOGO) },
-                onNavigateToJardin = { navController.navigate(Routes.JARDIN) },
-                onNavigateToPerfil = { navController.navigate(Routes.PERFIL) },
-                // Aun no hay sesion guardada: cerrar sesion es volver al Welcome con la pila limpia.
-                onCerrarSesion = {
-                    navController.navigate(Routes.WELCOME) { popUpTo(Routes.HOME) { inclusive = true } }
-                }
+                onNavigateToPerfil = { navController.navigate(Routes.PERFIL) }
             )
         }
 
@@ -171,17 +159,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-        composable(Routes.JARDIN) {
-            val jardinViewModel: JardinViewModel = viewModel()
-            JardinScreen(
-                planta = jardinViewModel.planta,
-                cargando = jardinViewModel.cargando,
-                error = jardinViewModel.error,
-                onVolver = { navController.popBackStack() }
-            )
-        }
-
-        // ─── Collection (from scan flow) ───────────────────────────────────────
+        // ─── Coleccion ─────────────────────────────────────────────────────────
         composable(Routes.COLLECTION) {
             CollectionScreen(
                 onBack = { navController.popBackStack() },
@@ -208,41 +186,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-        // ─── Coleccion flow (from feat/mobile) ─────────────────────────────────
-        composable(Routes.COLECCION) {
-            val coleccionViewModel: ColeccionViewModel = viewModel()
-            ColeccionScreen(
-                items = coleccionViewModel.items,
-                cargando = coleccionViewModel.cargando,
-                error = coleccionViewModel.error,
-                onVolver = { navController.popBackStack() },
-                onItemClick = { navController.navigate(Routes.COLECCION_DETALLE.replace("{id}", it.id.toString())) }
-            )
-        }
-
-        composable(
-            route = Routes.COLECCION_DETALLE,
-            arguments = listOf(navArgument("id") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getInt("id") ?: 0
-            val detalleViewModel: ColeccionDetalleViewModel = viewModel()
-            androidx.compose.runtime.LaunchedEffect(id) {
-                detalleViewModel.cargar(id)
-            }
-            val item = detalleViewModel.item
-            DetallePlantaScreen(
-                titulo = "Mi coleccion",
-                nombreComun = item?.nombreComun.orEmpty(),
-                nombreCientifico = item?.nombreCientifico.orEmpty(),
-                cuidados = detalleViewModel.cuidados,
-                cargando = detalleViewModel.cargando,
-                error = detalleViewModel.error,
-                imagenUrl = item?.fotoUrl,
-                onVolver = { navController.popBackStack() }
-            )
-        }
-
-        // ─── Catalogo flow (from feat/mobile) ──────────────────────────────────
+        // ─── Catalogo ──────────────────────────────────────────────────────────
         composable(Routes.CATALOGO) {
             val catalogoViewModel: CatalogoViewModel = viewModel()
             CatalogoScreen(
@@ -254,15 +198,15 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onConsultaCambia = { catalogoViewModel.onConsultaCambia(it) },
                 onToxicasCambia = { catalogoViewModel.onToxicasCambia(it) },
                 onVolver = { navController.popBackStack() },
-                onItemClick = { navController.navigate(Routes.CATALOGO_DETALLE.replace("{id}", it.id.toString())) }
+                onItemClick = { navController.navigate(Routes.catalogoDetalle(it.id)) }
             )
         }
 
         composable(
             route = Routes.CATALOGO_DETALLE,
-            arguments = listOf(navArgument("id") { type = NavType.IntType })
+            arguments = listOf(navArgument(Routes.ARG_CATALOGO_ID) { type = NavType.IntType })
         ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getInt("id") ?: 0
+            val id = backStackEntry.arguments?.getInt(Routes.ARG_CATALOGO_ID) ?: 0
             val cuidadosViewModel: CuidadosCatalogoViewModel = viewModel()
             androidx.compose.runtime.LaunchedEffect(id) {
                 cuidadosViewModel.cargar(id)
@@ -279,27 +223,36 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-        // ─── Profile (from feat/mobile) ────────────────────────────────────────
+        // ─── Perfil ────────────────────────────────────────────────────────────
         composable(Routes.PERFIL) {
             val perfilViewModel: PerfilViewModel = viewModel()
-            val userId by Sesion.userId.collectAsState()
             val baseUrl by RetrofitClient.baseUrl.collectAsState()
             val hostManual by ConexionConfig.host.collectAsState()
+            val modoTema by TemaConfig.modo.collectAsState()
             PerfilScreen(
                 usuario = perfilViewModel.usuario,
-                userIdActual = userId,
                 cargando = perfilViewModel.cargando,
                 error = perfilViewModel.error,
+                escaneadas = perfilViewModel.escaneadas,
+                digitales = MockGardenData.plantasDigitales.size,
+                modoTema = modoTema,
                 baseUrlActual = baseUrl,
                 hostManualActual = hostManual.orEmpty(),
+                onCambiarTema = { TemaConfig.setModo(it) },
                 onGuardarHost = { host ->
                     ConexionConfig.setHost(host)
                     RetrofitClient.reconectar()
                     perfilViewModel.recargar()
                 },
-                onCambiarUsuario = { id ->
-                    Sesion.setUserId(id)
-                    perfilViewModel.recargar()
+                onReintentar = { perfilViewModel.recargar() },
+                onVerHistorial = { navController.navigate(Routes.HISTORIAL) },
+                onVerTerminos = { navController.navigate(Routes.TERMINOS) },
+                onCerrarSesion = {
+                    // Vuelve al usuario por defecto y borra lo simulado en memoria de esta sesion.
+                    Sesion.setUserId(Sesion.USUARIO_POR_DEFECTO)
+                    MockGardenData.reiniciar()
+                    ScanResultStore.ultimo = null
+                    navController.navigate(Routes.WELCOME) { popUpTo(Routes.HOME) { inclusive = true } }
                 },
                 onVolver = { navController.popBackStack() }
             )

@@ -8,6 +8,8 @@ public record UserSummaryDto(
         int leaves,
         int experience,
         int experienceToNextLevel,
-        String profileImageUrl
+        String profileImageUrl,
+        String email,
+        int streakDays
 ) {
 }

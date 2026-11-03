@@ -5,6 +5,7 @@ public record RecentScanDto(
         String id,
         String plantName,
         String confidence,
+        Integer confianza,
         String statusColor
 ) {
 }
