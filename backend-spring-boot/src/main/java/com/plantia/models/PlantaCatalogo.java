@@ -54,6 +54,9 @@ public class PlantaCatalogo {
     @Column(name = "datos_ia_raw", columnDefinition = "jsonb")
     private String datosIaRaw;
 
+    @Column(name = "publicada", nullable = false)
+    private Boolean publicada = true;
+
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
 
@@ -76,6 +79,8 @@ public class PlantaCatalogo {
     public void setTemperaturaMaxC(Integer temperaturaMaxC) { this.temperaturaMaxC = temperaturaMaxC; }
     public Boolean getEsToxicaMascotas() { return esToxicaMascotas; }
     public void setEsToxicaMascotas(Boolean esToxicaMascotas) { this.esToxicaMascotas = esToxicaMascotas; }
+    public Boolean getPublicada() { return publicada; }
+    public void setPublicada(Boolean publicada) { this.publicada = publicada; }
     public String getSpriteBaseUrl() { return spriteBaseUrl; }
     public void setSpriteBaseUrl(String spriteBaseUrl) { this.spriteBaseUrl = spriteBaseUrl; }
     public String getEtapaSemillaUrl() { return etapaSemillaUrl; }

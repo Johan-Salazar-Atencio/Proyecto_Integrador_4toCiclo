@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.plantia.dto.CuidadoSeccionDto;
 import com.plantia.dto.IaResultDto;
 import com.plantia.dto.RecentScanDto;
 import com.plantia.dto.ScanResultDto;

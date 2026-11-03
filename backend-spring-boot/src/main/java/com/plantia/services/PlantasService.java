@@ -1,5 +1,6 @@
 package com.plantia.services;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -48,7 +49,10 @@ public class PlantasService {
             throw new IllegalArgumentException("El escaneo no tiene planta identificada");
         }
 
-        PlantaCatalogo catalogo = escaneo.getIdCatalogo();
+        PlantaCatalogo catalogo = catalogoRepo.findById(escaneo.getIdCatalogo()).orElse(null);
+        if (catalogo == null) {
+            throw new IllegalArgumentException("Catalogo no encontrado para el escaneo");
+        }
 
         PlantaUsuario planta = new PlantaUsuario();
         planta.setIdUsuario(userId);
@@ -103,6 +107,26 @@ public class PlantasService {
             default:
                 throw new IllegalArgumentException("Acción inválida: " + accion);
         }
+        p.setUpdatedAt(LocalDateTime.now());
+        plantaRepo.save(p);
+        return map(p);
+    }
+
+    /** Activa una planta digital (avanza su etapa: SEMILLA -> BROTE -> ADULTA). */
+    @Transactional
+    public PlantSummaryDto activar(Integer idPlantaUsuario) {
+        Optional<PlantaUsuario> opt = plantaRepo.findById(idPlantaUsuario);
+        if (opt.isEmpty()) {
+            throw new IllegalArgumentException("Planta no encontrada");
+        }
+        PlantaUsuario p = opt.get();
+        String etapa = p.getEtapaCrecimiento() == null ? "SEMILLA" : p.getEtapaCrecimiento();
+        String siguiente = switch (etapa) {
+            case "SEMILLA" -> "BROTE";
+            case "BROTE" -> "ADULTA";
+            default -> "ADULTA";
+        };
+        p.setEtapaCrecimiento(siguiente);
         p.setUpdatedAt(LocalDateTime.now());
         plantaRepo.save(p);
         return map(p);

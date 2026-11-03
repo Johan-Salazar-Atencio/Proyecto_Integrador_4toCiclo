@@ -28,10 +28,10 @@ class ContratoMovilTest {
 
     @Test
     void userSummary() throws Exception {
-        assertThat(claves(new UserSummaryDto("Johan", 5, "Cuidador", 320, 2450, 3000, null)))
+        assertThat(claves(new UserSummaryDto("Johan", 5, "Cuidador", 320, 2450, 3000, null, "johan@plantia.com", 3)))
                 .containsExactlyInAnyOrder(
                         "name", "level", "badge", "leaves", "experience",
-                        "experienceToNextLevel", "profileImageUrl");
+                        "experienceToNextLevel", "profileImageUrl", "email", "streakDays");
     }
 
     @Test
@@ -66,8 +66,8 @@ class ContratoMovilTest {
 
     @Test
     void recentScan() throws Exception {
-        assertThat(claves(new RecentScanDto("1", "Monstera", "Confianza 92.5%", "#10B981")))
-                .containsExactlyInAnyOrder("id", "plantName", "confidence", "statusColor");
+        assertThat(claves(new RecentScanDto("1", "Monstera", "Confianza 92%", 92, "#10B981")))
+                .containsExactlyInAnyOrder("id", "plantName", "confidence", "confianza", "statusColor");
     }
 
     @Test
@@ -77,10 +77,10 @@ class ContratoMovilTest {
                 .containsExactlyInAnyOrder("id", "tipo", "titulo", "contenido", "orden", "generadoPorIa");
 
         ScanResultDto scan = new ScanResultDto(1, 2, "Monstera", "Monstera deliciosa", 92.5,
-                "/files/x.jpg", true, List.of(cuidado));
+                "/files/x.jpg", true, List.of(cuidado), true);
         assertThat(claves(scan))
                 .containsExactlyInAnyOrder(
                         "idEscaneo", "idCatalogo", "nombreComun", "nombreCientifico",
-                        "confianza", "imagenUrl", "nuevoEnColeccion", "cuidados");
+                        "confianza", "imagenUrl", "nuevoEnColeccion", "cuidados", "identificado");
     }
 }
