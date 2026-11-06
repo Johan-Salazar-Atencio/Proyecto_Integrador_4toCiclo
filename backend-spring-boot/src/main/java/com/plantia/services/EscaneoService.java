@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.plantia.dto.CuidadoSeccionDto;
 import com.plantia.dto.IaResultDto;
 import com.plantia.dto.RecentScanDto;
 import com.plantia.dto.ScanResultDto;
@@ -60,8 +61,18 @@ public class EscaneoService {
             ia = IaClient.fallback();
         }
 
-        // Determinar si la planta fue identificada basándose en si hay nombre científico
-        boolean identificado = ia.nombreCientifico() != null && !ia.nombreCientifico().isBlank();
+        // Identificado solo si la IA devolvio un nombre cientifico real con
+        // confianza > 0. El motor responde "Desconocido"/"No identificable"/
+        // "No identificado" (confianza 0) cuando la foto no sirve; ese
+        // marcador NO debe crear especies en el catalogo.
+        String nombreCientificoIa = ia.nombreCientifico() == null ? "" : ia.nombreCientifico().trim();
+        boolean confianzaPositiva = ia.confianza() != null && ia.confianza() > 0;
+        boolean nombreReal = !nombreCientificoIa.isBlank()
+                && !nombreCientificoIa.equalsIgnoreCase("desconocido")
+                && !nombreCientificoIa.equalsIgnoreCase("unknown")
+                && !nombreCientificoIa.equalsIgnoreCase("no identificable")
+                && !nombreCientificoIa.equalsIgnoreCase("no identificado");
+        boolean identificado = confianzaPositiva && nombreReal;
 
         PlantaCatalogo catalogo = null;
         if (identificado) {

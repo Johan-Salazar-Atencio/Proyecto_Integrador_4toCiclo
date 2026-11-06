@@ -13,10 +13,10 @@ public interface EventoDesastreRepository extends JpaRepository<EventoDesastre, 
     @Query("""
             SELECT e FROM EventoDesastre e
             WHERE e.estado = 'ACTIVO'
-              AND e.fecha_inicio <= CURRENT_TIMESTAMP
-              AND e.fecha_fin > CURRENT_TIMESTAMP
+              AND e.fechaInicio <= CURRENT_TIMESTAMP
+              AND e.fechaFin > CURRENT_TIMESTAMP
               AND (e.region = 'GLOBAL' OR e.region = :region)
-            ORDER BY e.fecha_inicio DESC
+            ORDER BY e.fechaInicio DESC
             """)
     List<EventoDesastre> activosParaRegion(@Param("region") String region);
 }
