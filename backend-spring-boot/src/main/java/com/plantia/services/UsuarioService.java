@@ -30,6 +30,9 @@ public class UsuarioService {
         int xp = u.getExperienciaXp() != null ? u.getExperienciaXp() : 0;
         int siguiente = nivelRepo.findById(nivel + 1).map(n -> n.getXpRequerido()).orElse(xp + 500);
 
+        String email = u.getEmail();
+        int streakDays = u.getRachaDias() != null ? u.getRachaDias() : 0;
+
         return new UserSummaryDto(
                 u.getNombre(),
                 nivel,
@@ -37,7 +40,9 @@ public class UsuarioService {
                 u.getMonedas() != null ? u.getMonedas() : 0,
                 xp,
                 siguiente,
-                null);
+                null,
+                email,
+                streakDays);
     }
 
     private static String badge(int nivel) {

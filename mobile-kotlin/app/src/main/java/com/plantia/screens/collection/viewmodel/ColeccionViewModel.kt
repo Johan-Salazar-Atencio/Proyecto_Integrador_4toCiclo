@@ -68,9 +68,11 @@ class ColeccionDetalleViewModel : ViewModel() {
             }.onSuccess { detalle ->
                 if (detalle == null) {
                     error = "No se encontro la planta"
-                } else {
+                } else if (detalle.item != null) {
                     item = detalle.item.toDomain()
-                    cuidados = detalle.cuidados.map { it.toDomain() }
+                    cuidados = detalle.cuidados.orEmpty().map { it.toDomain() }
+                } else {
+                    error = "No se encontro la planta"
                 }
             }.onFailure {
                 error = "No se pudo cargar el detalle"

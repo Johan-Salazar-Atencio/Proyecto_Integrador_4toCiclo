@@ -11,6 +11,7 @@ public record ScanResultDto(
         Double confianza,
         String imagenUrl,
         boolean nuevoEnColeccion,
-        List<CuidadoSeccionDto> cuidados
+        List<CuidadoSeccionDto> cuidados,
+        boolean identificado
 ) {
 }

@@ -45,6 +45,31 @@ public class ColeccionService {
         });
     }
 
+    @Transactional
+    public ColeccionItemDto agregar(Integer userId, Integer idCatalogo) {
+        Optional<ColeccionUsuario> existente = coleccionRepo.findByIdUsuarioAndIdCatalogo(userId, idCatalogo);
+        LocalDateTime ahora = LocalDateTime.now();
+
+        if (existente.isPresent()) {
+            ColeccionUsuario c = existente.get();
+            c.setVecesVista((c.getVecesVista() != null ? c.getVecesVista() : 1) + 1);
+            c.setUltimaVez(ahora);
+            coleccionRepo.save(c);
+            return map(c);
+        }
+
+        ColeccionUsuario c = new ColeccionUsuario();
+        c.setIdUsuario(userId);
+        c.setIdCatalogo(idCatalogo);
+        c.setIdEscaneo(null);
+        c.setFotoUrl(null);
+        c.setVecesVista(1);
+        c.setPrimeraVez(ahora);
+        c.setUltimaVez(ahora);
+        coleccionRepo.save(c);
+        return map(c);
+    }
+
     private ColeccionItemDto map(ColeccionUsuario c) {
         PlantaCatalogo cat = c.getIdCatalogo() != null
                 ? catalogoRepo.findById(c.getIdCatalogo()).orElse(null)
