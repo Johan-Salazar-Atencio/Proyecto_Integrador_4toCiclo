@@ -44,6 +44,19 @@ object CollectionRepository {
         }
     }
 
+    /** Agrega una planta a la coleccion (idempotente). */
+    suspend fun agregar(idEscaneo: Int): ColeccionResultado = withContext(Dispatchers.IO) {
+        try {
+            val respuesta = RetrofitClient.api.agregarColeccion(mapOf("idEscaneo" to idEscaneo))
+            if (!respuesta.isSuccessful) {
+                return@withContext ColeccionResultado.Fallo("El servidor respondio ${respuesta.code()}")
+            }
+            ColeccionResultado.Con(respuesta.body()?.let { listOf(it) } ?: emptyList())
+        } catch (e: Exception) {
+            ColeccionResultado.Fallo(e.message ?: "No se pudo conectar con el servidor")
+        }
+    }
+
     /** Detalle de una planta guardada, con la misma forma que un escaneo (sin porcentaje de IA). */
     suspend fun detalle(id: Int): DetalleColeccionResultado = withContext(Dispatchers.IO) {
         try {
