@@ -4,7 +4,9 @@ const BASE = '/api/v1'
 
 // Llamada JSON a Spring Boot. Agrega X-User-Id y X-Session-Token como el interceptor del movil.
 export async function llamar(ruta, { metodo = 'GET', cuerpo, formData, senal } = {}) {
-  const cabeceras = { 'X-User-Id': String(obtenerUsuarioId()) }
+  const cabeceras = {}
+  const usuarioId = obtenerUsuarioId()
+  if (usuarioId != null) cabeceras['X-User-Id'] = String(usuarioId)
   const token = obtenerToken()
   if (token) cabeceras['X-Session-Token'] = token
   let body

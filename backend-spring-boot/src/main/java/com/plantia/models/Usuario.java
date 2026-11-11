@@ -30,8 +30,12 @@ public class Usuario {
     @Column(name = "rol")
     private String rol;
 
+    /** SHA-256 del token de sesion (nunca el token); ver util/TokenSesion. */
     @Column(name = "session_token")
     private String sessionToken;
+
+    @Column(name = "session_expira")
+    private LocalDateTime sessionExpira;
 
     @Column(name = "nivel")
     private Integer nivel;
@@ -66,6 +70,8 @@ public class Usuario {
     public void setRol(String rol) { this.rol = rol; }
     public String getSessionToken() { return sessionToken; }
     public void setSessionToken(String sessionToken) { this.sessionToken = sessionToken; }
+    public LocalDateTime getSessionExpira() { return sessionExpira; }
+    public void setSessionExpira(LocalDateTime sessionExpira) { this.sessionExpira = sessionExpira; }
     public Integer getNivel() { return nivel; }
     public void setNivel(Integer nivel) { this.nivel = nivel; }
     public Integer getExperienciaXp() { return experienciaXp; }

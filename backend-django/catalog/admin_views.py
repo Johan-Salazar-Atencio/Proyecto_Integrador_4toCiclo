@@ -1,12 +1,15 @@
 """Endpoints de administracion (escritura) consumidos por el panel React.
 
-Autenticacion: el login devuelve un token de sesion que se guarda en
-`usuarios.session_token` (la misma columna que usa Spring). Cada peticion de
-escritura debe traer `X-Admin-Id` y `X-Admin-Token`; se comprueba que el token
-coincida y que el usuario tenga rol ADMIN.
+Autenticacion: el login devuelve un token de sesion; en `usuarios.session_token`
+solo se guarda su SHA-256, con caducidad en `session_expira` (mismo esquema que
+TokenSesion.java en Spring). Cada peticion de escritura debe traer `X-Admin-Id`
+y `X-Admin-Token`; se comprueba el token, que no haya caducado y el rol ADMIN.
 """
+import hashlib
 import hmac
 import secrets
+from datetime import timedelta
+from datetime import timezone as dt_timezone
 
 import bcrypt
 from django.utils import timezone
@@ -21,6 +24,19 @@ from .models import EventoDesastre, PlantaCatalogo, Usuario
 # respuesta no revela si esta registrado (mismo criterio que AuthService de Spring).
 _HASH_FICTICIO = b"$2a$10$n7uGz2GzFEIhdSm3KDEOYO0ZMzGL132epZ61oqWefVWQYQIufMQVy"
 _CREDENCIALES_INVALIDAS = {"error": "Credenciales invalidas"}
+_DURACION_SESION = timedelta(days=30)
+
+
+def _como_aware(valor):
+    """session_expira es TIMESTAMP sin zona y Django la guarda en UTC: si llega sin zona, es UTC.
+    (Spring la escribe en hora local; con 30 dias de duracion, unas horas de diferencia no importan.)"""
+    if timezone.is_naive(valor):
+        return timezone.make_aware(valor, dt_timezone.utc)
+    return valor
+
+
+def _hash_token(token):
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def _admin_desde_request(request):
@@ -36,7 +52,10 @@ def _admin_desde_request(request):
     except Usuario.DoesNotExist:
         return None
     guardado = u.session_token or ""
-    if u.rol != "ADMIN" or not guardado or not hmac.compare_digest(guardado, token):
+    caducada = u.session_expira is None or _como_aware(u.session_expira) < timezone.now()
+    if u.rol != "ADMIN" or caducada or not guardado or not token:
+        return None
+    if not hmac.compare_digest(guardado, _hash_token(token)):
         return None
     return u
 
@@ -63,10 +82,12 @@ class AdminLoginView(APIView):
         # Mismo mensaje para "no es admin" y "clave incorrecta": no se revela que el correo existe
         if not _password_valida(password, u.password_hash) or u.rol != "ADMIN":
             return Response(_CREDENCIALES_INVALIDAS, status=status.HTTP_401_UNAUTHORIZED)
-        u.session_token = secrets.token_hex(16)
-        u.save(update_fields=["session_token"])
+        token = secrets.token_hex(16)
+        u.session_token = _hash_token(token)
+        u.session_expira = timezone.now() + _DURACION_SESION
+        u.save(update_fields=["session_token", "session_expira"])
         return Response({"id": u.id_usuario, "nombre": u.nombre, "email": u.email, "rol": u.rol,
-                         "token": u.session_token})
+                         "token": token})
 
 
 class AdminCatalogoUpdateView(APIView):

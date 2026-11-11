@@ -17,8 +17,9 @@ class Usuario(models.Model):
     monedas = models.IntegerField(default=100)
     racha_dias = models.IntegerField(default=0)
     region = models.CharField(max_length=100, default="GLOBAL")
-    # Token de la sesion activa (columna creada por Flyway V7; la comparte con Spring)
+    # SHA-256 del token de la sesion activa (Flyway V7/V11; la comparte con Spring)
     session_token = models.CharField(max_length=64, null=True, blank=True)
+    session_expira = models.DateTimeField(null=True, blank=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

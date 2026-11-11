@@ -1,6 +1,7 @@
 package com.plantia.config;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.springframework.core.Ordered;
@@ -12,6 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.plantia.models.Usuario;
 import com.plantia.repositories.UsuarioRepository;
+import com.plantia.util.TokenSesion;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -21,7 +23,8 @@ import jakarta.servlet.http.HttpServletResponse;
 /**
  * Cierra la suplantacion por header X-User-Id: toda peticion a /api/v1/*
  * (excepto /api/v1/auth/*) debe incluir un X-Session-Token valido para el
- * usuario indicado. Sin token o con token que no coincide -> 401.
+ * usuario indicado. Sin token, con token que no coincide o con la sesion
+ * caducada -> 401. En la BD solo esta el hash del token (TokenSesion).
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
@@ -59,8 +62,8 @@ public class AuthFilter extends OncePerRequestFilter {
             return;
         }
         Usuario u = opt.get();
-        String stored = u.getSessionToken();
-        if (stored == null || stored.isBlank() || token == null || !stored.equals(token)) {
+        boolean caducada = u.getSessionExpira() == null || u.getSessionExpira().isBefore(LocalDateTime.now());
+        if (caducada || !TokenSesion.coincide(u.getSessionToken(), token)) {
             rechazar(response, "Sesión inválida o expirada. Inicia sesión de nuevo.");
             return;
         }
