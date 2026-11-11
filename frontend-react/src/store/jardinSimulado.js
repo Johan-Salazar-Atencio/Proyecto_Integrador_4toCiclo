@@ -3,6 +3,7 @@
 // navegador para sobrevivir a recargas.
 // TODO(backend): reemplazar `digitalizar`, `activar` y `aplicarCuidado` por llamadas reales
 // y borrar este archivo.
+import { SALUD_MARCHITA } from '../pages/user/jardin/etapas'
 import { obtenerUsuarioId } from './sesionGuardada'
 
 export const ACCIONES = {
@@ -11,7 +12,7 @@ export const ACCIONES = {
   ABONAR: { texto: 'Abonar', icono: '🌿', pista: '+10%', delta: 10 },
 }
 
-const VACIO = { plantas: [], activa: null, ajustes: { salud: 0, agua: 0, luz: 0, regada: false } }
+const VACIO = { plantas: [], activa: null, ajustes: { salud: 0, agua: 0, luz: 0, regada: false, crecimiento: 0 } }
 const clave = () => `plantia.jardin.${obtenerUsuarioId()}`
 
 function leer() {
@@ -30,11 +31,35 @@ function guardar(datos) {
   }
 }
 
+// Desgaste por hora sin cuidados: el agua y la luz bajan solas, y si alguna queda en rojo
+// la salud tambien baja. Con la salud bajo el 30% la planta se marchita (ver jardin/etapas.js).
+const DESGASTE_HORA = { agua: 4, luz: 3, salud: 2 }
+const NECESIDAD_CRITICA = 30
+const MS_HORA = 3_600_000
+
+function envejecer(planta, ahora = Date.now()) {
+  const desde = planta.actualizado ?? ahora
+  const horas = (ahora - desde) / MS_HORA
+  if (horas <= 0) return { ...planta, actualizado: ahora }
+  const humidityPercent = tope(Math.round(planta.humidityPercent - DESGASTE_HORA.agua * horas))
+  const lightPercent = tope(Math.round(planta.lightPercent - DESGASTE_HORA.luz * horas))
+  const descuidada = humidityPercent < NECESIDAD_CRITICA || lightPercent < NECESIDAD_CRITICA
+  const healthPercent = descuidada
+    ? tope(Math.round(planta.healthPercent - DESGASTE_HORA.salud * horas))
+    : planta.healthPercent
+  return { ...planta, humidityPercent, lightPercent, healthPercent, actualizado: ahora }
+}
+
 export const listarDigitales = () => leer().plantas
 
 export function plantaActiva() {
-  const { plantas, activa } = leer()
-  return plantas.find((p) => p.name === activa) || null
+  const datos = leer()
+  const indice = datos.plantas.findIndex((p) => p.name === datos.activa)
+  if (indice < 0) return null
+  const planta = envejecer(datos.plantas[indice])
+  datos.plantas[indice] = planta
+  guardar(datos)
+  return planta
 }
 
 // La planta escaneada pasa a ser la activa; si ya existia una con ese nombre, se reemplaza
@@ -48,6 +73,8 @@ export function digitalizar(escaneo) {
     lightPercent: 70,
     lastWatered: 'Recién digitalizada',
     imageUrl: escaneo.imagenUrl || null,
+    crecimiento: 0,
+    actualizado: Date.now(),
   }
   guardar({ ...datos, plantas: [nueva, ...datos.plantas.filter((p) => p.name !== nueva.name)], activa: nueva.name })
 }
@@ -67,6 +94,7 @@ export function aplicarAjustes(base) {
     humidityPercent: tope(base.humidityPercent + ajustes.agua),
     lightPercent: tope(base.lightPercent + ajustes.luz),
     lastWatered: ajustes.regada ? 'Hace unos minutos' : base.lastWatered,
+    crecimiento: ajustes.crecimiento || 0,
   }
 }
 
@@ -82,7 +110,14 @@ export function aplicarCuidado(actual, accion) {
   }[accion]
   if (actual[campo] >= 100) return { planta: actual, mensaje: completo }
 
-  const nueva = { ...actual, [campo]: tope(actual[campo] + delta) }
+  // Cada cuidado util hace crecer la planta, salvo si esta marchita: primero hay que recuperarla
+  const crece = actual.healthPercent >= SALUD_MARCHITA
+  const nueva = {
+    ...actual,
+    [campo]: tope(actual[campo] + delta),
+    crecimiento: (actual.crecimiento || 0) + (crece ? 1 : 0),
+    actualizado: Date.now(),
+  }
   if (accion === 'REGAR') nueva.lastWatered = 'Hace unos minutos'
 
   const datos = leer()
@@ -95,6 +130,7 @@ export function aplicarCuidado(actual, accion) {
     if (accion === 'REGAR') { a.agua += delta; a.regada = true }
     if (accion === 'SOL') a.luz += delta
     if (accion === 'ABONAR') a.salud += delta
+    if (crece) a.crecimiento = (a.crecimiento || 0) + 1
   }
   guardar(datos)
 

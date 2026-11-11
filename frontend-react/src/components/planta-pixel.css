@@ -1,0 +1,18 @@
+.planta-pixel { display: block; image-rendering: pixelated; }
+
+/* Balanceo suave anclado en la base del tallo */
+.planta-pixel-viva .planta-pixel-tallo {
+  transform-box: view-box;
+  transform-origin: 50% 82%;
+  animation: planta-pixel-balanceo 3.2s ease-in-out infinite;
+}
+
+@keyframes planta-pixel-balanceo {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-2.5deg); }
+  75% { transform: rotate(2.5deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planta-pixel-viva .planta-pixel-tallo { animation: none; }
+}
