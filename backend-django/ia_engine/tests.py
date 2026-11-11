@@ -5,7 +5,8 @@ from ia_engine.providers import base
 from ia_engine.providers.factory import get_provider
 from ia_engine.providers.mock_provider import MockProvider
 
-CONTRATO_IDENT = {"nombreComun", "nombreCientifico", "confianza", "cuidados", "datosRaw"}
+# apariencia: rasgos visuales para el jardin pixel art (None si la IA no los da)
+CONTRATO_IDENT = {"nombreComun", "nombreCientifico", "confianza", "cuidados", "datosRaw", "apariencia"}
 
 
 class PromptTests(SimpleTestCase):
