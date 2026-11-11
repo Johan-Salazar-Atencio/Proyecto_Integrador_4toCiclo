@@ -36,9 +36,12 @@ public class ColeccionService {
                 .toList();
     }
 
+    /** Detalle de un registro de la coleccion; vacio si no existe o es de otro usuario. */
     @Transactional(readOnly = true)
-    public Optional<ColeccionDetalleDto> detalle(Integer idColeccion) {
-        return coleccionRepo.findById(idColeccion).map(c -> {
+    public Optional<ColeccionDetalleDto> detalle(Integer userId, Integer idColeccion) {
+        return coleccionRepo.findById(idColeccion)
+                .filter(c -> userId.equals(c.getIdUsuario()))
+                .map(c -> {
             var cuidados = c.getIdCatalogo() != null
                     ? catalogoService.cuidados(c.getIdCatalogo())
                     : List.<com.plantia.dto.CuidadoSeccionDto>of();

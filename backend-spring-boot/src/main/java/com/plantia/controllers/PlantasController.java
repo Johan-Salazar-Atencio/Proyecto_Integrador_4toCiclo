@@ -29,7 +29,7 @@ public class PlantasController {
     /** Crea una planta digital desde un escaneo. */
     @PostMapping
     public ResponseEntity<PlantSummaryDto> crear(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId,
+            @RequestHeader("X-User-Id") Integer userId,
             @RequestBody Map<String, Integer> body) {
         Integer idEscaneo = body.get("idEscaneo");
         if (idEscaneo == null) {
@@ -42,7 +42,7 @@ public class PlantasController {
     /** Lista todas las plantas digitales del usuario. */
     @GetMapping
     public ResponseEntity<List<PlantSummaryDto>> listar(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId) {
+            @RequestHeader("X-User-Id") Integer userId) {
         List<PlantSummaryDto> plantas = plantasService.listar(userId);
         return ResponseEntity.ok(plantas);
     }
@@ -50,30 +50,30 @@ public class PlantasController {
     /** Aplica un cuidado a la planta. */
     @PostMapping("/{id}/cuidados")
     public ResponseEntity<PlantSummaryDto> cuidar(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId,
+            @RequestHeader("X-User-Id") Integer userId,
             @PathVariable("id") Integer idPlantaUsuario,
             @RequestBody Map<String, String> body) {
         String accion = body.get("accion");
         if (accion == null) {
             return ResponseEntity.badRequest().build();
         }
-        PlantSummaryDto actualizado = plantasService.cuidar(idPlantaUsuario, accion);
+        PlantSummaryDto actualizado = plantasService.cuidar(userId, idPlantaUsuario, accion);
         return ResponseEntity.ok(actualizado);
     }
 
     /** Activa una planta digital (cambia su etapa). */
     @PostMapping("/{id}/activar")
     public ResponseEntity<PlantSummaryDto> activar(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId,
+            @RequestHeader("X-User-Id") Integer userId,
             @PathVariable("id") Integer idPlantaUsuario) {
-        PlantSummaryDto activado = plantasService.activar(idPlantaUsuario);
+        PlantSummaryDto activado = plantasService.activar(userId, idPlantaUsuario);
         return ResponseEntity.ok(activado);
     }
 
     /** Devuelve la planta digital activa del usuario (204 si no tiene ninguna). */
     @GetMapping("/activa")
     public ResponseEntity<PlantSummaryDto> activa(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId) {
+            @RequestHeader("X-User-Id") Integer userId) {
         return plantasService.activa(userId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());

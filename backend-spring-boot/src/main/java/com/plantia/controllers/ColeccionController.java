@@ -35,14 +35,17 @@ public class ColeccionController {
     /** Listado del dashboard "Mi coleccion". */
     @GetMapping
     public List<ColeccionItemDto> listar(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId) {
+            @RequestHeader("X-User-Id") Integer userId) {
         return coleccionService.listar(userId);
     }
 
     /** Pantalla de detalle con los cuidados de la planta. */
     @GetMapping("/{id}")
-    public ResponseEntity<ColeccionDetalleDto> detalle(@PathVariable("id") Integer id) {
-        return coleccionService.detalle(id)
+    public ResponseEntity<ColeccionDetalleDto> detalle(
+            @RequestHeader("X-User-Id") Integer userId,
+            @PathVariable("id") Integer id) {
+        // 404 tambien si es de otro usuario: no se revela que el id existe
+        return coleccionService.detalle(userId, id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -53,13 +56,14 @@ public class ColeccionController {
      *  201 si se creó nuevo, 200 si ya existía. */
     @PostMapping
     public ResponseEntity<ColeccionItemDto> agregar(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId,
+            @RequestHeader("X-User-Id") Integer userId,
             @RequestBody Map<String, Integer> body) {
         Integer idEscaneo = body.get("idEscaneo");
         if (idEscaneo == null) {
             return ResponseEntity.badRequest().build();
         }
-        Optional<EscaneoHistorial> escaneoOpt = escaneoRepo.findById(idEscaneo);
+        Optional<EscaneoHistorial> escaneoOpt = escaneoRepo.findById(idEscaneo)
+                .filter(e -> userId.equals(e.getIdUsuario()));
         if (escaneoOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }

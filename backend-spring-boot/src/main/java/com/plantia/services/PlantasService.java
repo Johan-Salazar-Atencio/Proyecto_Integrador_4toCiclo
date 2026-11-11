@@ -5,8 +5,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.plantia.dto.PlantSummaryDto;
 import com.plantia.models.EscaneoHistorial;
@@ -40,9 +42,10 @@ public class PlantasService {
 
     @Transactional
     public PlantSummaryDto crearDesdeEscaneo(Integer userId, Integer idEscaneo) {
-        Optional<EscaneoHistorial> escaneoOpt = escaneoRepo.findById(idEscaneo);
+        Optional<EscaneoHistorial> escaneoOpt = escaneoRepo.findById(idEscaneo)
+                .filter(e -> userId.equals(e.getIdUsuario()));
         if (escaneoOpt.isEmpty()) {
-            throw new IllegalArgumentException("Escaneo no encontrado");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Escaneo no encontrado");
         }
         EscaneoHistorial escaneo = escaneoOpt.get();
         if (escaneo.getIdCatalogo() == null) {
@@ -82,12 +85,8 @@ public class PlantasService {
     }
 
     @Transactional
-    public PlantSummaryDto cuidar(Integer idPlantaUsuario, String accion) {
-        Optional<PlantaUsuario> opt = plantaRepo.findById(idPlantaUsuario);
-        if (opt.isEmpty()) {
-            throw new IllegalArgumentException("Planta no encontrada");
-        }
-        PlantaUsuario p = opt.get();
+    public PlantSummaryDto cuidar(Integer userId, Integer idPlantaUsuario, String accion) {
+        PlantaUsuario p = propia(userId, idPlantaUsuario);
         LocalDateTime ahora = LocalDateTime.now();
 
         switch (accion) {
@@ -114,12 +113,8 @@ public class PlantasService {
 
     /** Activa una planta digital (avanza su etapa: SEMILLA -> BROTE -> ADULTA). */
     @Transactional
-    public PlantSummaryDto activar(Integer idPlantaUsuario) {
-        Optional<PlantaUsuario> opt = plantaRepo.findById(idPlantaUsuario);
-        if (opt.isEmpty()) {
-            throw new IllegalArgumentException("Planta no encontrada");
-        }
-        PlantaUsuario p = opt.get();
+    public PlantSummaryDto activar(Integer userId, Integer idPlantaUsuario) {
+        PlantaUsuario p = propia(userId, idPlantaUsuario);
         String etapa = p.getEtapaCrecimiento() == null ? "SEMILLA" : p.getEtapaCrecimiento();
         String siguiente = switch (etapa) {
             case "SEMILLA" -> "BROTE";
@@ -130,6 +125,13 @@ public class PlantasService {
         p.setUpdatedAt(LocalDateTime.now());
         plantaRepo.save(p);
         return map(p);
+    }
+
+    /** La planta si es del usuario; 404 si no existe o es de otro (no se revela que existe). */
+    private PlantaUsuario propia(Integer userId, Integer idPlantaUsuario) {
+        return plantaRepo.findById(idPlantaUsuario)
+                .filter(p -> userId.equals(p.getIdUsuario()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Planta no encontrada"));
     }
 
     private PlantSummaryDto map(PlantaUsuario p) {
