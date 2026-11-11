@@ -81,6 +81,7 @@ class ContratoMovilTest {
         assertThat(claves(scan))
                 .containsExactlyInAnyOrder(
                         "idEscaneo", "idCatalogo", "nombreComun", "nombreCientifico",
-                        "confianza", "imagenUrl", "nuevoEnColeccion", "cuidados", "identificado");
+                        "confianza", "imagenUrl", "nuevoEnColeccion", "cuidados", "identificado",
+                        "apariencia");
     }
 }
