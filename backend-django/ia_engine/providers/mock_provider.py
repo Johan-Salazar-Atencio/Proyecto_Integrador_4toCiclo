@@ -21,6 +21,7 @@ class MockProvider(IaProvider):
             "nombre_cientifico": "Monstera deliciosa",
             "confianza": 92.5,
             "cuidados": _CUIDADOS_DEMO,
+            "apariencia": {"forma": "monstera", "color_hoja": "#2f7d4a", "tiene_flor": False, "tiene_fruto": False},
         }
         return normalizar_identificacion(data, json.dumps(data, ensure_ascii=False))
 

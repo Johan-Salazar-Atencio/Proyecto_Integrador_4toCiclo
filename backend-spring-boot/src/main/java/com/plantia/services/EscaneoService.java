@@ -104,7 +104,8 @@ public class EscaneoService {
                 catalogo != null
                         ? catalogoService.cuidados(catalogo.getIdCatalogo())
                         : List.<CuidadoSeccionDto>of(),
-                identificado // nuevo campo: true solo si la IA devolvió nombre científico
+                identificado, // nuevo campo: true solo si la IA devolvió nombre científico
+                identificado ? ia.apariencia() : null
         );
     }
 

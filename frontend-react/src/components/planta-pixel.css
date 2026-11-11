@@ -3,7 +3,7 @@
 /* Balanceo suave anclado en la base del tallo */
 .planta-pixel-viva .planta-pixel-tallo {
   transform-box: view-box;
-  transform-origin: 50% 82%;
+  transform-origin: 50% 84%;
   animation: planta-pixel-balanceo 3.2s ease-in-out infinite;
 }
 

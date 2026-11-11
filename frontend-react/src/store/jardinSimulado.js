@@ -73,6 +73,8 @@ export function digitalizar(escaneo) {
     lightPercent: 70,
     lastWatered: 'Recién digitalizada',
     imageUrl: escaneo.imagenUrl || null,
+    // Rasgos visuales que dio la IA (forma, colores, flor/fruto); null = dibujo por defecto
+    apariencia: escaneo.apariencia || null,
     crecimiento: 0,
     actualizado: Date.now(),
   }

@@ -5,7 +5,7 @@ import { obtenerPlantaActiva, urlImagen } from '../../../services/home'
 import { ACCIONES, aplicarAjustes, aplicarCuidado, plantaActiva } from '../../../store/jardinSimulado'
 import PlantaPixel from '../../../components/PlantaPixel'
 import { consejo, estadoAnimo, nivelBarra } from './animo'
-import { ETAPAS, ETAPA_MARCHITA, etapaDe } from './etapas'
+import { ETAPA_MARCHITA, etapaDe, etapasDe } from './etapas'
 import './jardin.css'
 
 const ESTADISTICAS = [
@@ -87,7 +87,7 @@ export default function Jardin() {
     <div className="jardin">
       <section className={`jardin-marco aparece ${marchita ? 'jardin-marco-marchita' : ''}`}>
         <div key={salto} className={`jardin-planta ${salto ? 'jardin-salta' : ''}`}>
-          <PlantaPixel etapa={etapa.indice} titulo={`${planta.name}: ${etapa.nombre}`} />
+          <PlantaPixel etapa={etapa.indice} apariencia={planta.apariencia} titulo={`${planta.name}: ${etapa.nombre}`} />
         </div>
         <span className={`jardin-animo ${animo.clase}`}>{animo.cara} {animo.texto}</span>
         <div className="jardin-etapa">
@@ -100,7 +100,7 @@ export default function Jardin() {
                 : '¡Llegó a su máximo esplendor!'}
           </small>
           <ol className="jardin-etapas" aria-label="Etapas de crecimiento">
-            {ETAPAS.map((e, i) => (
+            {etapasDe(planta).map((e, i) => (
               <li
                 key={e.nombre}
                 title={e.nombre}
