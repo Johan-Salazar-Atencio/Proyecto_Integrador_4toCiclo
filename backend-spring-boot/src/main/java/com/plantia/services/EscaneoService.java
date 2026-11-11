@@ -3,6 +3,7 @@ package com.plantia.services;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -19,6 +20,7 @@ import com.plantia.dto.RecentScanDto;
 import com.plantia.dto.ScanResultDto;
 import com.plantia.models.EscaneoHistorial;
 import com.plantia.models.PlantaCatalogo;
+import com.plantia.repositories.CatalogosPorId;
 import com.plantia.repositories.EscaneoHistorialRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
 import com.plantia.util.JsonRawUtil;
@@ -134,15 +136,16 @@ public class EscaneoService {
 
     @Transactional(readOnly = true)
     public List<RecentScanDto> recientes(Integer userId) {
-        return escaneoRepo.findTop20ByIdUsuarioOrderByFechaEscaneoDesc(userId).stream()
+        List<EscaneoHistorial> escaneos = escaneoRepo.findTop20ByIdUsuarioOrderByFechaEscaneoDesc(userId);
+        Map<Integer, PlantaCatalogo> catalogos = CatalogosPorId.de(catalogoRepo, escaneos, EscaneoHistorial::getIdCatalogo);
+        return escaneos.stream()
                 .map(e -> {
                     String nombre = "Planta desconocida";
                     String color = "#F59E0B";
                     Integer confNum = 0;
                     if (e.getIdCatalogo() != null) {
-                        nombre = catalogoRepo.findById(e.getIdCatalogo())
-                                .map(PlantaCatalogo::getNombreComun)
-                                .orElse("Planta");
+                        PlantaCatalogo cat = catalogos.get(e.getIdCatalogo());
+                        nombre = cat != null ? cat.getNombreComun() : "Planta";
                         color = "#10B981";
                         if (e.getConfianzaIa() != null) {
                             confNum = e.getConfianzaIa().intValue();

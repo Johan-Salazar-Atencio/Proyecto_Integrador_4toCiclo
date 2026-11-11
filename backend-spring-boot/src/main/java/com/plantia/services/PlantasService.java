@@ -3,6 +3,7 @@ package com.plantia.services;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,7 @@ import com.plantia.dto.PlantSummaryDto;
 import com.plantia.models.EscaneoHistorial;
 import com.plantia.models.PlantaUsuario;
 import com.plantia.models.PlantaCatalogo;
+import com.plantia.repositories.CatalogosPorId;
 import com.plantia.repositories.EscaneoHistorialRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
 import com.plantia.repositories.PlantaUsuarioRepository;
@@ -79,8 +81,10 @@ public class PlantasService {
 
     @Transactional(readOnly = true)
     public List<PlantSummaryDto> listar(Integer userId) {
-        return plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId).stream()
-                .map(this::map)
+        List<PlantaUsuario> plantas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId);
+        Map<Integer, PlantaCatalogo> catalogos = CatalogosPorId.de(catalogoRepo, plantas, PlantaUsuario::getIdCatalogo);
+        return plantas.stream()
+                .map(p -> map(p, catalogos.get(p.getIdCatalogo())))
                 .toList();
     }
 
@@ -135,9 +139,10 @@ public class PlantasService {
     }
 
     private PlantSummaryDto map(PlantaUsuario p) {
-        PlantaCatalogo cat = p.getIdCatalogo() != null
-                ? catalogoRepo.findById(p.getIdCatalogo()).orElse(null)
-                : null;
+        return map(p, p.getIdCatalogo() != null ? catalogoRepo.findById(p.getIdCatalogo()).orElse(null) : null);
+    }
+
+    private PlantSummaryDto map(PlantaUsuario p, PlantaCatalogo cat) {
 
         String nombre = p.getApodo() != null && !p.getApodo().isBlank()
                 ? p.getApodo()

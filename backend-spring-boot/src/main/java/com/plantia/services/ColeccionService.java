@@ -2,6 +2,7 @@ package com.plantia.services;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import com.plantia.dto.ColeccionDetalleDto;
 import com.plantia.dto.ColeccionItemDto;
 import com.plantia.models.ColeccionUsuario;
 import com.plantia.models.PlantaCatalogo;
+import com.plantia.repositories.CatalogosPorId;
 import com.plantia.repositories.ColeccionUsuarioRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
 
@@ -31,8 +33,10 @@ public class ColeccionService {
 
     @Transactional(readOnly = true)
     public List<ColeccionItemDto> listar(Integer userId) {
-        return coleccionRepo.findByIdUsuarioOrderByUltimaVezDesc(userId).stream()
-                .map(this::map)
+        List<ColeccionUsuario> filas = coleccionRepo.findByIdUsuarioOrderByUltimaVezDesc(userId);
+        Map<Integer, PlantaCatalogo> catalogos = CatalogosPorId.de(catalogoRepo, filas, ColeccionUsuario::getIdCatalogo);
+        return filas.stream()
+                .map(c -> map(c, catalogos.get(c.getIdCatalogo())))
                 .toList();
     }
 
@@ -75,9 +79,10 @@ public class ColeccionService {
     }
 
     private ColeccionItemDto map(ColeccionUsuario c) {
-        PlantaCatalogo cat = c.getIdCatalogo() != null
-                ? catalogoRepo.findById(c.getIdCatalogo()).orElse(null)
-                : null;
+        return map(c, c.getIdCatalogo() != null ? catalogoRepo.findById(c.getIdCatalogo()).orElse(null) : null);
+    }
+
+    private ColeccionItemDto map(ColeccionUsuario c, PlantaCatalogo cat) {
         return new ColeccionItemDto(
                 c.getIdColeccion(),
                 c.getIdCatalogo(),
