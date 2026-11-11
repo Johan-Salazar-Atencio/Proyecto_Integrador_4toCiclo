@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Boton from '../../../components/Boton'
 import { RUTAS } from '../../../routes/rutas'
+import { agregarColeccion } from '../../../services/coleccion'
 import { urlImagen } from '../../../services/home'
 import { digitalizar } from '../../../store/jardinSimulado'
 import { estiloDe, etiquetaPrecision, identificacionFallida, tarjetasCuidado, textoDiagnostico } from './mapeo'
@@ -14,7 +15,8 @@ const LARGO_DIAGNOSTICO = 180
 // una planta de la coleccion; en ese caso `mostrarGuardar` es false porque ya esta guardada.
 export default function FichaPlanta({ resultado, mostrarGuardar = true, mostrarAcciones = true }) {
   const irA = useNavigate()
-  const [largo, setLargo] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [errorGuardar, setErrorGuardar] = useState('')
 
   const fallida = identificacionFallida(resultado)
   const cuidados = tarjetasCuidado(resultado)
@@ -26,6 +28,20 @@ export default function FichaPlanta({ resultado, mostrarGuardar = true, mostrarA
   const alDigitalizar = () => {
     digitalizar(resultado)
     irA(RUTAS.JARDIN)
+  }
+
+  const alGuardar = async () => {
+    if (guardando) return
+    setGuardando(true)
+    setErrorGuardar('')
+    try {
+      await agregarColeccion(resultado.idEscaneo)
+      irA(RUTAS.COLECCION)
+    } catch (e) {
+      setErrorGuardar(e?.message || 'No se pudo guardar en la colección.')
+    } finally {
+      setGuardando(false)
+    }
   }
 
   return (
@@ -105,7 +121,17 @@ export default function FichaPlanta({ resultado, mostrarGuardar = true, mostrarA
           {mostrarAcciones && (
             <div className={`ficha-acciones ${mostrarGuardar ? '' : 'ficha-acciones-sola'}`}>
               <Boton onClick={alDigitalizar}>🪴 Digitalizar</Boton>
-              {mostrarGuardar && <Link to={RUTAS.COLECCION} className="boton boton-suave">💾 Guardar</Link>}
+              {mostrarGuardar && (
+                <Boton onClick={alGuardar} disabled={guardando}>
+                  {guardando ? 'Guardando…' : '💾 Guardar en colección'}
+                </Boton>
+              )}
+              {mostrarGuardar && (
+                <button className="boton boton-suave" onClick={() => irA(RUTAS.ESCANEAR)} disabled={guardando}>
+                  Cancelar
+                </button>
+              )}
+              {errorGuardar && <div className="ficha-error" role="alert">{errorGuardar}</div>}
             </div>
           )}
         </>

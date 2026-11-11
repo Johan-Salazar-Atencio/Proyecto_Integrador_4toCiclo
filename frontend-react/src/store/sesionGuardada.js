@@ -29,3 +29,7 @@ export function borrarSesion() {
 export function obtenerUsuarioId() {
   return leerSesion()?.id ?? USUARIO_POR_DEFECTO
 }
+
+export function obtenerToken() {
+  return leerSesion()?.sessionToken ?? ''
+}

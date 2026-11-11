@@ -14,5 +14,6 @@ data class AuthLoginRequestDto(
 data class AuthUsuarioResponseDto(
     val id: Int,
     val nombre: String,
-    val email: String
+    val email: String,
+    val sessionToken: String? = null
 )

@@ -13,4 +13,5 @@ urlpatterns = [
     path("api/health", health),
     path("api/ia/", include("ia_engine.urls")),
     path("api/catalog/", include("catalog.urls")),
+    path("api/admin/", include("catalog.admin_urls")),
 ]

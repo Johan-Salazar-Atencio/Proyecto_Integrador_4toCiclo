@@ -146,6 +146,7 @@ WEBUI_API_KEY = os.getenv("WEBUI_API_KEY", "")
 WEBUI_MODEL = os.getenv("WEBUI_MODEL", "Qwen/Qwen3.6-35B-A3B-FP8")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+GEMINI_FALLBACK_MODELS = os.getenv("GEMINI_FALLBACK_MODELS", "")
 LOCAL_IA_URL = os.getenv("LOCAL_IA_URL", "http://localhost:11434")
 LOCAL_IA_MODEL = os.getenv("LOCAL_IA_MODEL", "llava")
 

@@ -40,9 +40,10 @@ class WebuiProvider(IaProvider):
         self.client = OpenAI(
             api_key=api_key,
             base_url=base_url,
-            # El servidor institucional es local: si no responde en 25 s es que
-            # esta caido, y hay que pasar deprisa al siguiente motor (Gemini).
-            timeout=25.0,
+            # El servidor institucional es local: si no responde en 3 s es que
+            # esta fuera de alcance de la red, y hay que pasar deprisa al
+            # siguiente motor (Gemini).
+            timeout=3.0,
             max_retries=0,
         )
         self.model = settings.WEBUI_MODEL

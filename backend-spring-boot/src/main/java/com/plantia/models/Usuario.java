@@ -30,6 +30,9 @@ public class Usuario {
     @Column(name = "rol")
     private String rol;
 
+    @Column(name = "session_token")
+    private String sessionToken;
+
     @Column(name = "nivel")
     private Integer nivel;
 
@@ -61,6 +64,8 @@ public class Usuario {
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public String getRol() { return rol; }
     public void setRol(String rol) { this.rol = rol; }
+    public String getSessionToken() { return sessionToken; }
+    public void setSessionToken(String sessionToken) { this.sessionToken = sessionToken; }
     public Integer getNivel() { return nivel; }
     public void setNivel(Integer nivel) { this.nivel = nivel; }
     public Integer getExperienciaXp() { return experienciaXp; }

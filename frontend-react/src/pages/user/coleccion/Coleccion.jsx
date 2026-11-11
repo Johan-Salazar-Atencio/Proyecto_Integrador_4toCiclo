@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { RUTAS } from '../../../routes/rutas'
 import { listarColeccion } from '../../../services/coleccion'
 import { urlImagen } from '../../../services/home'
@@ -37,6 +38,16 @@ export default function Coleccion() {
 
   const lista = pestana === 'escaneadas' ? escaneadas : digitales
 
+  // Virtualizacion de la lista de escaneadas (web). Antes se renderizaban
+  // todos los items con .map(); ahora solo los visibles + buffer.
+  const parentRef = useRef(null)
+  const rowVirtualizer = useVirtualizer({
+    count: pestana === 'escaneadas' ? escaneadas.length : 0,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 110,
+    overscan: 4,
+  })
+
   return (
     <div className="coleccion">
       <header className="coleccion-cabecera aparece">
@@ -70,21 +81,45 @@ export default function Coleccion() {
             <Link to={RUTAS.ESCANEAR} className="boton boton-principal">📷 Escanear</Link>
           </div>
         ) : (
-          <div className="coleccion-grilla">
-            {lista.map((p, i) => (
-              pestana === 'escaneadas' ? (
-                <Link key={p.id} to={`${RUTAS.COLECCION}/${p.id}`} className="planta-card aparece" style={{ animationDelay: `${i * 0.05}s` }}>
-                  <Foto url={p.fotoUrl} nombre={p.nombreComun} />
-                  <div className="planta-card-datos">
-                    <b>{p.nombreComun}</b>
-                    <small>{p.nombreCientifico}</small>
-                    <div className="planta-card-chips">
-                      {p.vecesVista > 1 && <span>×{p.vecesVista}</span>}
-                      {p.esToxicaMascotas && <span className="chip-alerta">⚠️ Tóxica</span>}
-                    </div>
-                  </div>
-                </Link>
-              ) : (
+          pestana === 'escaneadas' ? (
+            <div
+              ref={parentRef}
+              className="coleccion-virtual"
+              style={{ height: 520, overflow: 'auto' }}
+            >
+              <div style={{ height: rowVirtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
+                {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                  const p = escaneadas[virtualItem.index]
+                  return (
+                    <Link
+                      key={p.id}
+                      to={`${RUTAS.COLECCION}/${p.id}`}
+                      className="planta-card aparece"
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                    >
+                      <Foto url={p.fotoUrl} nombre={p.nombreComun} />
+                      <div className="planta-card-datos">
+                        <b>{p.nombreComun}</b>
+                        <small>{p.nombreCientifico}</small>
+                        <div className="planta-card-chips">
+                          {p.vecesVista > 1 && <span>×{p.vecesVista}</span>}
+                          {p.esToxicaMascotas && <span className="chip-alerta">⚠️ Tóxica</span>}
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="coleccion-grilla">
+              {digitales.map((p, i) => (
                 <button key={p.name} className="planta-card aparece" style={{ animationDelay: `${i * 0.05}s` }} onClick={() => abrirDigital(p)}>
                   <Foto url={urlImagen(p.imageUrl)} nombre={p.name} />
                   <div className="planta-card-datos">
@@ -95,13 +130,13 @@ export default function Coleccion() {
                     </div>
                   </div>
                 </button>
-              )
-            ))}
-            <Link to={RUTAS.ESCANEAR} className="planta-card planta-card-mas aparece">
-              <span>🔍</span>
-              <b>¡Descubre más plantas!</b>
-            </Link>
-          </div>
+              ))}
+              <Link to={RUTAS.ESCANEAR} className="planta-card planta-card-mas aparece">
+                <span>🔍</span>
+                <b>¡Descubre más plantas!</b>
+              </Link>
+            </div>
+          )
         )
       )}
     </div>

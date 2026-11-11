@@ -61,6 +61,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +81,7 @@ import androidx.compose.ui.unit.sp
 import android.app.Activity
 import androidx.core.view.WindowCompat
 import coil.compose.AsyncImage
+import com.plantia.data.CollectionRepository
 import com.plantia.data.MockGardenData
 import com.plantia.data.MockPlantData
 import com.plantia.data.ScanResultStore
@@ -193,6 +196,14 @@ fun PlantDetailContent(
     modifier: Modifier = Modifier,
     mostrarGuardar: Boolean = true
 ) {
+    val scope = rememberCoroutineScope()
+    val guardarEnColeccion = {
+        scope.launch {
+            try { CollectionRepository.agregar(resultado.idEscaneo) } catch (_: Exception) { }
+            onSave()
+        }
+        Unit
+    }
     val fallida = resultado.identificacionFallida()
 
     // Esta pantalla es clara: iconos oscuros en la barra de estado (se restauran al salir).
@@ -235,7 +246,7 @@ fun PlantDetailContent(
                     puedeGuardar = true,
                     mostrarGuardar = mostrarGuardar,
                     onDigitalize = onDigitalize,
-                    onSave = onSave
+                    onSave = guardarEnColeccion
                 )
             }
         }

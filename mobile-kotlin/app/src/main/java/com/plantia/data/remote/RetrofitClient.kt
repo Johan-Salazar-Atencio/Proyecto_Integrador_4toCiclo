@@ -49,6 +49,7 @@ object RetrofitClient {
             val original = chain.request()
             val request = original.newBuilder()
                 .header("X-User-Id", Sesion.userId.value.toString())
+                .header("X-Session-Token", Sesion.token.value)
                 .build()
             chain.proceed(request)
         }
