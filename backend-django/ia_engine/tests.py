@@ -99,12 +99,12 @@ class CadenaRespaldoTests(SimpleTestCase):
         self.factory._caidos.update(self._caidos)
 
     def test_cadena_auto_prioriza_webui_sobre_gemini(self):
-        with self.settings(WEBUI_API_KEY="k", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+        with self.settings(WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
             cadena = [p.name for p in self.factory.get_provider_chain("auto")]
         self.assertEqual(cadena[:2], ["webui", "gemini"])
 
     def test_cadena_explicita_agrega_respaldo(self):
-        with self.settings(WEBUI_API_KEY="k", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+        with self.settings(WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
             cadena = [p.name for p in self.factory.get_provider_chain("webui")]
         self.assertEqual(cadena[0], "webui")
         self.assertIn("gemini", cadena)
@@ -115,7 +115,7 @@ class CadenaRespaldoTests(SimpleTestCase):
         self.assertEqual(cadena, ["mock"])
 
     def test_motor_caido_se_salta_durante_el_cooldown(self):
-        with self.settings(WEBUI_API_KEY="k", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+        with self.settings(WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
             self.factory.marcar_caido("webui")
             cadena = [p.name for p in self.factory.get_provider_chain("auto")]
         self.assertNotIn("webui", cadena)
