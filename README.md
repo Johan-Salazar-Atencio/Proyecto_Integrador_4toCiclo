@@ -25,7 +25,7 @@ App integral de cuidado de plantas: app móvil nativa (Kotlin), web de usuario +
 | Panel admin — lectura (catálogo, eventos, dashboard) | Django `/api/catalog/…` vía proxy Vite | Real |
 | Panel admin — escritura (login admin, guardar/publicar especie, lanzar evento) | *(pendiente — `TODO(django)`)* | Simulado en navegador |
 
-La autenticación móvil usa el header `X-User-Id` (igual en web y móvil). El motor IA vive en Django (`POST /api/ia/identificar`), Spring lo consume de forma transparente.
+La autenticación usa `X-User-Id` + `X-Session-Token` (igual en web y móvil): el token se obtiene con `POST /api/v1/auth/login`, caduca a los 30 días y en la BD solo se guarda su hash. El panel admin de Django usa `X-Admin-Id` + `X-Admin-Token`. El motor IA vive en Django (`POST /api/ia/identificar`) y solo lo puede usar Spring (ver `IA_CLAVE_INTERNA`).
 
 ## Cómo correr cada pieza
 
@@ -41,6 +41,7 @@ mvn spring-boot:run        # puerto 8080
 ```
 - Saludo: `GET /api/health` → `{"status":"ok"}`
 - Contrato de la app verificado por `ContratoMovilTest` (DTOs = modelos del móvil)
+- Variables opcionales: `SQL_LOG=true` (muestra el SQL), `LOG_LEVEL=DEBUG`, `IA_CLAVE_INTERNA` (misma clave que en Django si corren en máquinas distintas)
 - Debe escuchar en `0.0.0.0` para el túnel adb del móvil
 
 ### 3. Django — motor IA + servicios admin
