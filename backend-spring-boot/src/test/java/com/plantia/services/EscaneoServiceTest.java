@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.plantia.dto.IaResultDto;
@@ -41,7 +40,7 @@ class EscaneoServiceTest {
             @Override public String save(MultipartFile f) { return "http://x/files/scan.jpg"; }
             @Override public void delete(String url) { eventos.add("borrar " + url); }
         };
-        ia = new IaClient(RestClient.builder(), "http://ia", "auto", 1) {
+        ia = new IaClient() {
             @Override public IaResultDto identificar(MultipartFile f) {
                 eventos.add("ia");
                 return new IaResultDto("Desconocido", "Desconocido", 0.0, List.of(), "{}");

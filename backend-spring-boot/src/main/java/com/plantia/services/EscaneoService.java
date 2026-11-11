@@ -151,7 +151,8 @@ public class EscaneoService {
                             confNum = e.getConfianzaIa().intValue();
                         }
                     }
-                    String confianza = confNum != null
+                    // confNum nunca es null: el texto depende de si hubo especie (antes siempre "Confianza 0%")
+                    String confianza = e.getIdCatalogo() != null
                             ? "Confianza " + confNum + "%"
                             : "Sin identificar";
                     return new RecentScanDto(String.valueOf(e.getIdEscaneo()), nombre, confianza, confNum, color);

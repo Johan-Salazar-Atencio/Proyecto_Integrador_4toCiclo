@@ -50,8 +50,8 @@ public class AuthService {
         if (password.length() < 8) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña debe tener al menos 8 caracteres");
         }
-        // Nueva validación: BCrypt limita a 72 bytes, rechazamos >72 con 400
-        if (password.length() > 72) {
+        // BCrypt solo usa los primeros 72 BYTES: con tildes o emojis 72 caracteres pasan de 72 bytes
+        if (password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña no puede tener más de 72 caracteres");
         }
 
