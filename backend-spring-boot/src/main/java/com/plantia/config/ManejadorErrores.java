@@ -4,8 +4,12 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -43,9 +47,24 @@ public class ManejadorErrores {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(Map.of("error", "La imagen supera los 15 MB"));
     }
 
-    /** Cualquier otro error: se registra completo y al cliente solo le llega un mensaje generico. */
+    /** Cuerpo ilegible (JSON mal formado) o parametro con tipo equivocado ("abc" donde va un id). */
+    @ExceptionHandler({HttpMessageNotReadableException.class, TypeMismatchException.class})
+    ResponseEntity<Map<String, String>> peticionMalFormada(Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("error", "Peticion mal formada"));
+    }
+
+    /**
+     * Cualquier otro error. Las excepciones propias de Spring MVC (metodo no permitido,
+     * ruta inexistente, tipo de contenido no soportado...) ya traen su codigo 4xx: se
+     * respeta. El resto se registra completo y al cliente solo le llega un mensaje generico.
+     */
     @ExceptionHandler(Exception.class)
     ResponseEntity<Map<String, String>> inesperado(Exception e) {
+        if (e instanceof ErrorResponse er && er.getStatusCode().is4xxClientError()) {
+            HttpStatusCode codigo = er.getStatusCode();
+            String mensaje = er.getBody().getDetail() != null ? er.getBody().getDetail() : "Error " + codigo.value();
+            return ResponseEntity.status(codigo).body(Map.of("error", mensaje));
+        }
         log.error("Error no controlado", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Error interno del servidor"));
     }
