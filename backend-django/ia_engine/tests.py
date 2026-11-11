@@ -1,5 +1,5 @@
 """Pruebas del motor de IA. No requieren base de datos (SimpleTestCase)."""
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 from ia_engine.providers import base
 from ia_engine.providers.factory import get_provider
@@ -128,3 +128,29 @@ class CadenaRespaldoTests(SimpleTestCase):
             self.factory.es_indisponibilidad(requests.ConnectionError("sin red"))
         )
         self.assertFalse(self.factory.es_indisponibilidad(ValueError("json malo")))
+
+
+class PermisoMotorIaTests(SimpleTestCase):
+    """El motor de IA solo atiende a Spring: con clave, o desde la propia maquina."""
+
+    def _permitido(self, remote_addr, clave_header=None):
+        from rest_framework.test import APIRequestFactory
+
+        from .permisos import SoloClienteInterno
+
+        extra = {"REMOTE_ADDR": remote_addr}
+        if clave_header is not None:
+            extra["HTTP_X_IA_CLAVE"] = clave_header
+        request = APIRequestFactory().post("/api/ia/identificar", **extra)
+        return SoloClienteInterno().has_permission(request, None)
+
+    @override_settings(IA_CLAVE_INTERNA="")
+    def test_sin_clave_solo_desde_la_maquina(self):
+        self.assertTrue(self._permitido("127.0.0.1"))
+        self.assertFalse(self._permitido("192.168.1.50"))
+
+    @override_settings(IA_CLAVE_INTERNA="secreta")
+    def test_con_clave_hay_que_enviarla(self):
+        self.assertTrue(self._permitido("192.168.1.50", "secreta"))
+        self.assertFalse(self._permitido("192.168.1.50", "otra"))
+        self.assertFalse(self._permitido("127.0.0.1"))
