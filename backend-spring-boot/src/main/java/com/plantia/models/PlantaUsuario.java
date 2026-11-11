@@ -60,6 +60,21 @@ public class PlantaUsuario {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /** Cuidados utiles acumulados: define la etapa del jardin (ver PlantasService). */
+    @Column(name = "crecimiento")
+    private Integer crecimiento = 0;
+
+    /** JSON con la apariencia que dio la IA (forma, colores); null = dibujo por defecto. */
+    @Column(name = "apariencia")
+    private String apariencia;
+
+    @Column(name = "foto_url")
+    private String fotoUrl;
+
+    /** La planta que se muestra en "Mi jardin". */
+    @Column(name = "es_activa")
+    private Boolean esActiva = false;
+
     public Integer getIdPlantaUsuario() { return idPlantaUsuario; }
     public void setIdPlantaUsuario(Integer idPlantaUsuario) { this.idPlantaUsuario = idPlantaUsuario; }
     public Integer getIdUsuario() { return idUsuario; }
@@ -90,4 +105,13 @@ public class PlantaUsuario {
     public void setFechaPlantado(LocalDateTime fechaPlantado) { this.fechaPlantado = fechaPlantado; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public Integer getCrecimiento() { return crecimiento; }
+    public void setCrecimiento(Integer crecimiento) { this.crecimiento = crecimiento; }
+    public String getApariencia() { return apariencia; }
+    public void setApariencia(String apariencia) { this.apariencia = apariencia; }
+    public String getFotoUrl() { return fotoUrl; }
+    public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }
+    public Boolean getEsActiva() { return esActiva; }
+    public void setEsActiva(Boolean esActiva) { this.esActiva = esActiva; }
 }

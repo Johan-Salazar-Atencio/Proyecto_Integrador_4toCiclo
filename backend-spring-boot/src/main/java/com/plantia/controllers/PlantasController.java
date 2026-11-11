@@ -26,17 +26,34 @@ public class PlantasController {
         this.plantasService = plantasService;
     }
 
-    /** Crea una planta digital desde un escaneo. */
+    /**
+     * Digitaliza una planta en "Mi jardin" y la deja como activa.
+     * Body: { "idEscaneo": n } o { "idCatalogo": n }, y opcional "apariencia": {...} (de la IA).
+     */
     @PostMapping
     public ResponseEntity<PlantSummaryDto> crear(
             @RequestHeader("X-User-Id") Integer userId,
-            @RequestBody Map<String, Integer> body) {
-        Integer idEscaneo = body.get("idEscaneo");
-        if (idEscaneo == null) {
+            @RequestBody Map<String, Object> body) {
+        Integer idEscaneo = entero(body.get("idEscaneo"));
+        Integer idCatalogo = entero(body.get("idCatalogo"));
+        if (idEscaneo == null && idCatalogo == null) {
             return ResponseEntity.badRequest().build();
         }
-        PlantSummaryDto creado = plantasService.crearDesdeEscaneo(userId, idEscaneo);
-        return ResponseEntity.ok(creado);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> apariencia = body.get("apariencia") instanceof Map<?, ?> m ? (Map<String, Object>) m : null;
+        return ResponseEntity.ok(plantasService.digitalizar(userId, idEscaneo, idCatalogo, apariencia));
+    }
+
+    /** Elige la planta que se muestra en "Mi jardin". */
+    @PostMapping("/{id}/seleccionar")
+    public PlantSummaryDto seleccionar(
+            @RequestHeader("X-User-Id") Integer userId,
+            @PathVariable("id") Integer idPlantaUsuario) {
+        return plantasService.seleccionar(userId, idPlantaUsuario);
+    }
+
+    private static Integer entero(Object valor) {
+        return valor instanceof Number n ? n.intValue() : null;
     }
 
     /** Lista todas las plantas digitales del usuario. */
