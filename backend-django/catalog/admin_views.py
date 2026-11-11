@@ -1,9 +1,13 @@
 """Endpoints de administracion (escritura) consumidos por el panel React.
 
-Autenticacion ligera: el cliente envia `X-Admin-Id` con el id del usuario
-administrador; se verifica que exista y tenga rol ADMIN. No es un esquema
-de tokens (pendiente), pero cierra el acceso anonimo a las escrituras.
+Autenticacion: el login devuelve un token de sesion que se guarda en
+`usuarios.session_token` (la misma columna que usa Spring). Cada peticion de
+escritura debe traer `X-Admin-Id` y `X-Admin-Token`; se comprueba que el token
+coincida y que el usuario tenga rol ADMIN.
 """
+import hmac
+import secrets
+
 import bcrypt
 from django.utils import timezone
 from rest_framework import status
@@ -13,41 +17,56 @@ from rest_framework.views import APIView
 
 from .models import EventoDesastre, PlantaCatalogo, Usuario
 
+# Hash BCrypt valido para comparar cuando el correo no existe: asi el tiempo de
+# respuesta no revela si esta registrado (mismo criterio que AuthService de Spring).
+_HASH_FICTICIO = b"$2a$10$n7uGz2GzFEIhdSm3KDEOYO0ZMzGL132epZ61oqWefVWQYQIufMQVy"
+_CREDENCIALES_INVALIDAS = {"error": "Credenciales invalidas"}
+
 
 def _admin_desde_request(request):
-    raw = request.headers.get("X-Admin-Id") or request.data.get("admin_id")
+    """Devuelve el Usuario ADMIN si X-Admin-Id y X-Admin-Token son validos; si no, None."""
+    raw_id = request.headers.get("X-Admin-Id")
+    token = request.headers.get("X-Admin-Token") or ""
     try:
-        uid = int(raw)
+        uid = int(raw_id)
     except (TypeError, ValueError):
         return None
     try:
         u = Usuario.objects.get(pk=uid)
     except Usuario.DoesNotExist:
         return None
-    return u if u.rol == "ADMIN" else None
+    guardado = u.session_token or ""
+    if u.rol != "ADMIN" or not guardado or not hmac.compare_digest(guardado, token):
+        return None
+    return u
+
+
+def _password_valida(password, password_hash):
+    try:
+        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
 
 
 class AdminLoginView(APIView):
-    """POST {email, password} -> {id, nombre, email, rol} si es ADMIN."""
+    """POST {email, password} -> {id, nombre, email, rol, token} si es ADMIN."""
 
     def post(self, request):
         email = (request.data.get("email") or "").strip().lower()
         password = request.data.get("password") or ""
         if not email or not password:
             return Response({"error": "Faltan credenciales"}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            u = Usuario.objects.get(email=email)
-        except Usuario.DoesNotExist:
-            return Response({"error": "Credenciales invalidas"}, status=status.HTTP_401_UNAUTHORIZED)
-        if u.rol != "ADMIN":
-            return Response({"error": "El usuario no es administrador"}, status=status.HTTP_403_FORBIDDEN)
-        try:
-            ok = bcrypt.checkpw(password.encode("utf-8"), u.password_hash.encode("utf-8"))
-        except (ValueError, TypeError):
-            ok = False
-        if not ok:
-            return Response({"error": "Credenciales invalidas"}, status=status.HTTP_401_UNAUTHORIZED)
-        return Response({"id": u.id_usuario, "nombre": u.nombre, "email": u.email, "rol": u.rol})
+        u = Usuario.objects.filter(email=email).first()
+        if u is None:
+            _password_valida(password, _HASH_FICTICIO.decode())
+            return Response(_CREDENCIALES_INVALIDAS, status=status.HTTP_401_UNAUTHORIZED)
+        # Mismo mensaje para "no es admin" y "clave incorrecta": no se revela que el correo existe
+        if not _password_valida(password, u.password_hash) or u.rol != "ADMIN":
+            return Response(_CREDENCIALES_INVALIDAS, status=status.HTTP_401_UNAUTHORIZED)
+        u.session_token = secrets.token_hex(16)
+        u.save(update_fields=["session_token"])
+        return Response({"id": u.id_usuario, "nombre": u.nombre, "email": u.email, "rol": u.rol,
+                         "token": u.session_token})
 
 
 class AdminCatalogoUpdateView(APIView):
@@ -64,7 +83,7 @@ class AdminCatalogoUpdateView(APIView):
     def patch(self, request, pk):
         admin = _admin_desde_request(request)
         if admin is None:
-            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
         try:
             planta = PlantaCatalogo.objects.get(pk=pk)
         except PlantaCatalogo.DoesNotExist:
@@ -83,7 +102,7 @@ class AdminEventoCreateView(APIView):
     def post(self, request):
         admin = _admin_desde_request(request)
         if admin is None:
-            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
         try:
             evento = EventoDesastre.objects.create(
@@ -107,7 +126,7 @@ class AdminEventoFinalizarView(APIView):
     def patch(self, request, pk):
         admin = _admin_desde_request(request)
         if admin is None:
-            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
         try:
             evento = EventoDesastre.objects.get(pk=pk)
         except EventoDesastre.DoesNotExist:
@@ -124,7 +143,7 @@ class AdminStatsView(APIView):
     def get(self, request):
         admin = _admin_desde_request(request)
         if admin is None:
-            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
         from django.db.models import Count
         return Response({
             "especies": PlantaCatalogo.objects.count(),
