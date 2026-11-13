@@ -46,7 +46,9 @@ class ContratoMovilTest {
         assertThat(claves(new PlantSummaryDto("Monstera", "Monstera deliciosa", 80, 60, 90, "Hace 2 dias", null)))
                 .containsExactlyInAnyOrder(
                         "name", "species", "healthPercent", "humidityPercent",
-                        "lightPercent", "lastWatered", "imageUrl");
+                        "lightPercent", "lastWatered", "imageUrl",
+                        // Extras del jardin web (el movil los ignora)
+                        "id", "crecimiento", "apariencia", "fotoUrl", "activa");
     }
 
     @Test
@@ -81,6 +83,7 @@ class ContratoMovilTest {
         assertThat(claves(scan))
                 .containsExactlyInAnyOrder(
                         "idEscaneo", "idCatalogo", "nombreComun", "nombreCientifico",
-                        "confianza", "imagenUrl", "nuevoEnColeccion", "cuidados", "identificado");
+                        "confianza", "imagenUrl", "nuevoEnColeccion", "cuidados", "identificado",
+                        "apariencia");
     }
 }

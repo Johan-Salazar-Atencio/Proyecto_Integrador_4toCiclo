@@ -22,7 +22,7 @@ public class EventoController {
     /** Alimenta WeatherAlertCard. 204 si no hay desastre activo para la region. */
     @GetMapping("/activo")
     public ResponseEntity<WeatherAlertDto> activo(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId) {
+            @RequestHeader("X-User-Id") Integer userId) {
         return eventoService.activo(userId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());

@@ -1,11 +1,12 @@
 """Pruebas del motor de IA. No requieren base de datos (SimpleTestCase)."""
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 from ia_engine.providers import base
 from ia_engine.providers.factory import get_provider
 from ia_engine.providers.mock_provider import MockProvider
 
-CONTRATO_IDENT = {"nombreComun", "nombreCientifico", "confianza", "cuidados", "datosRaw"}
+# apariencia: rasgos visuales para el jardin pixel art (None si la IA no los da)
+CONTRATO_IDENT = {"nombreComun", "nombreCientifico", "confianza", "cuidados", "datosRaw", "apariencia"}
 
 
 class PromptTests(SimpleTestCase):
@@ -98,12 +99,12 @@ class CadenaRespaldoTests(SimpleTestCase):
         self.factory._caidos.update(self._caidos)
 
     def test_cadena_auto_prioriza_webui_sobre_gemini(self):
-        with self.settings(WEBUI_API_KEY="k", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+        with self.settings(WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
             cadena = [p.name for p in self.factory.get_provider_chain("auto")]
         self.assertEqual(cadena[:2], ["webui", "gemini"])
 
     def test_cadena_explicita_agrega_respaldo(self):
-        with self.settings(WEBUI_API_KEY="k", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+        with self.settings(WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
             cadena = [p.name for p in self.factory.get_provider_chain("webui")]
         self.assertEqual(cadena[0], "webui")
         self.assertIn("gemini", cadena)
@@ -114,7 +115,7 @@ class CadenaRespaldoTests(SimpleTestCase):
         self.assertEqual(cadena, ["mock"])
 
     def test_motor_caido_se_salta_durante_el_cooldown(self):
-        with self.settings(WEBUI_API_KEY="k", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+        with self.settings(WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
             self.factory.marcar_caido("webui")
             cadena = [p.name for p in self.factory.get_provider_chain("auto")]
         self.assertNotIn("webui", cadena)
@@ -127,3 +128,29 @@ class CadenaRespaldoTests(SimpleTestCase):
             self.factory.es_indisponibilidad(requests.ConnectionError("sin red"))
         )
         self.assertFalse(self.factory.es_indisponibilidad(ValueError("json malo")))
+
+
+class PermisoMotorIaTests(SimpleTestCase):
+    """El motor de IA solo atiende a Spring: con clave, o desde la propia maquina."""
+
+    def _permitido(self, remote_addr, clave_header=None):
+        from rest_framework.test import APIRequestFactory
+
+        from .permisos import SoloClienteInterno
+
+        extra = {"REMOTE_ADDR": remote_addr}
+        if clave_header is not None:
+            extra["HTTP_X_IA_CLAVE"] = clave_header
+        request = APIRequestFactory().post("/api/ia/identificar", **extra)
+        return SoloClienteInterno().has_permission(request, None)
+
+    @override_settings(IA_CLAVE_INTERNA="")
+    def test_sin_clave_solo_desde_la_maquina(self):
+        self.assertTrue(self._permitido("127.0.0.1"))
+        self.assertFalse(self._permitido("192.168.1.50"))
+
+    @override_settings(IA_CLAVE_INTERNA="secreta")
+    def test_con_clave_hay_que_enviarla(self):
+        self.assertTrue(self._permitido("192.168.1.50", "secreta"))
+        self.assertFalse(self._permitido("192.168.1.50", "otra"))
+        self.assertFalse(self._permitido("127.0.0.1"))

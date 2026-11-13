@@ -2,6 +2,7 @@ package com.plantia.services;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import com.plantia.dto.ColeccionDetalleDto;
 import com.plantia.dto.ColeccionItemDto;
 import com.plantia.models.ColeccionUsuario;
 import com.plantia.models.PlantaCatalogo;
+import com.plantia.repositories.CatalogosPorId;
 import com.plantia.repositories.ColeccionUsuarioRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
 
@@ -31,14 +33,19 @@ public class ColeccionService {
 
     @Transactional(readOnly = true)
     public List<ColeccionItemDto> listar(Integer userId) {
-        return coleccionRepo.findByIdUsuarioOrderByUltimaVezDesc(userId).stream()
-                .map(this::map)
+        List<ColeccionUsuario> filas = coleccionRepo.findByIdUsuarioOrderByUltimaVezDesc(userId);
+        Map<Integer, PlantaCatalogo> catalogos = CatalogosPorId.de(catalogoRepo, filas, ColeccionUsuario::getIdCatalogo);
+        return filas.stream()
+                .map(c -> map(c, catalogos.get(c.getIdCatalogo())))
                 .toList();
     }
 
+    /** Detalle de un registro de la coleccion; vacio si no existe o es de otro usuario. */
     @Transactional(readOnly = true)
-    public Optional<ColeccionDetalleDto> detalle(Integer idColeccion) {
-        return coleccionRepo.findById(idColeccion).map(c -> {
+    public Optional<ColeccionDetalleDto> detalle(Integer userId, Integer idColeccion) {
+        return coleccionRepo.findById(idColeccion)
+                .filter(c -> userId.equals(c.getIdUsuario()))
+                .map(c -> {
             var cuidados = c.getIdCatalogo() != null
                     ? catalogoService.cuidados(c.getIdCatalogo())
                     : List.<com.plantia.dto.CuidadoSeccionDto>of();
@@ -72,9 +79,10 @@ public class ColeccionService {
     }
 
     private ColeccionItemDto map(ColeccionUsuario c) {
-        PlantaCatalogo cat = c.getIdCatalogo() != null
-                ? catalogoRepo.findById(c.getIdCatalogo()).orElse(null)
-                : null;
+        return map(c, c.getIdCatalogo() != null ? catalogoRepo.findById(c.getIdCatalogo()).orElse(null) : null);
+    }
+
+    private ColeccionItemDto map(ColeccionUsuario c, PlantaCatalogo cat) {
         return new ColeccionItemDto(
                 c.getIdColeccion(),
                 c.getIdCatalogo(),

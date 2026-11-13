@@ -1,4 +1,4 @@
-import { obtenerAdminId } from './auth'
+import { cabecerasAdmin } from './auth'
 
 // Eventos climaticos (tabla eventos_desastre).
 // Lectura:  GET /django/api/catalog/eventos/  (real)
@@ -35,12 +35,11 @@ export async function listarEventos() {
 // REAL: crea el evento en la BD (estado ACTIVO). Spring lo muestra al movil/web usuario
 // automaticamente via /api/v1/eventos/activo.
 export async function crearEvento({ tipo, region, severidad, mensaje, horas, minutos }) {
-  const adminId = obtenerAdminId()
   const inicio = new Date()
   const fin = new Date(inicio.getTime() + (horas * 60 + minutos) * 60000)
   const respuesta = await fetch('/django/api/admin/eventos/', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Admin-Id': String(adminId ?? '') },
+    headers: { 'Content-Type': 'application/json', ...cabecerasAdmin() },
     body: JSON.stringify({
       tipo_evento: tipo,
       region,
@@ -59,10 +58,9 @@ export async function crearEvento({ tipo, region, severidad, mensaje, horas, min
 
 // REAL: marca el evento como FINALIZADO en la BD.
 export async function cancelarEvento(id) {
-  const adminId = obtenerAdminId()
   const respuesta = await fetch(`/django/api/admin/eventos/${id}/`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'X-Admin-Id': String(adminId ?? '') },
+    headers: { 'Content-Type': 'application/json', ...cabecerasAdmin() },
     body: JSON.stringify({ estado: 'FINALIZADO' }),
   })
   if (!respuesta.ok) {

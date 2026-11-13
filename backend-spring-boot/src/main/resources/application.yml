@@ -14,8 +14,9 @@ spring:
     open-in-view: false
     properties:
       hibernate:
-        format_sql: true
-    show-sql: true
+        format_sql: ${SQL_LOG:false}
+    # SQL en consola solo si se pide (SQL_LOG=true): por defecto llena el log y lo ralentiza
+    show-sql: ${SQL_LOG:false}
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -39,4 +40,5 @@ app:
 
 logging:
   level:
-    com.plantia: DEBUG
+    # DEBUG solo para depurar (LOG_LEVEL=DEBUG)
+    com.plantia: ${LOG_LEVEL:INFO}

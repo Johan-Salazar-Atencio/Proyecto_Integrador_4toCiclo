@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -26,11 +27,18 @@ public class IaClient {
     private final RestClient restClient;
     private final String provider;
 
+    @Autowired // hay un segundo constructor (para tests): sin esto Spring usaria el vacio
     public IaClient(RestClient.Builder builder,
                     @Value("${app.ia.base-url:http://localhost:8000}") String baseUrl,
                     @Value("${app.ia.provider:auto}") String provider) {
         this.restClient = builder.baseUrl(baseUrl).build();
         this.provider = provider;
+    }
+
+    /** Solo para dobles de prueba que sobrescriben identificar() (no usa la red). */
+    protected IaClient() {
+        this.restClient = null;
+        this.provider = "auto";
     }
 
     public IaResultDto identificar(MultipartFile foto) {
@@ -41,7 +49,7 @@ public class IaClient {
             throw new IllegalStateException("No se pudo leer la imagen para la IA", e);
         }
 
-        String filename = foto.getOriginalFilename() != null ? foto.getOriginalFilename() : "scan.jpg";
+        String filename = nombreSeguro(foto.getOriginalFilename());
         String contentType = foto.getContentType() != null ? foto.getContentType() : "application/octet-stream";
         String boundary = "----PlantiaBoundary" + UUID.randomUUID().toString().replace("-", "");
 
@@ -55,6 +63,21 @@ public class IaClient {
                 .body(body)
                 .retrieve()
                 .body(IaResultDto.class);
+    }
+
+    /**
+     * El nombre del archivo lo elige el cliente y va dentro de la cabecera multipart:
+     * sin comillas, barras invertidas ni saltos de linea no puede inyectar cabeceras.
+     */
+    static String nombreSeguro(String original) {
+        if (original == null || original.isBlank()) {
+            return "scan.jpg";
+        }
+        StringBuilder limpio = new StringBuilder(original.length());
+        for (char c : original.toCharArray()) {
+            limpio.append(c == '"' || c == '\\' || Character.isISOControl(c) ? '_' : c);
+        }
+        return limpio.toString();
     }
 
     private static byte[] construirMultipart(String boundary, byte[] imagen,

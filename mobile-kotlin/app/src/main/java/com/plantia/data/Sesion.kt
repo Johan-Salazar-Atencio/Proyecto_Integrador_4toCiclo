@@ -19,8 +19,6 @@ object Sesion {
     private const val KEY_USER_ID = "user_id"
     private const val KEY_TOKEN = "session_token"
     const val USUARIO_POR_DEFECTO = 1
-    // Token por defecto del usuario 1 (seed). Solo desarrollo; login real lo reemplaza.
-    const val TOKEN_POR_DEFECTO = "dev-default-token-user-1"
 
     private var prefs: SharedPreferences? = null
 
@@ -39,10 +37,8 @@ object Sesion {
         val storage = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         prefs = storage
         _userId.value = storage.getInt(KEY_USER_ID, USUARIO_POR_DEFECTO)
-        _token.value = storage.getString(KEY_TOKEN, TOKEN_POR_DEFECTO) ?: TOKEN_POR_DEFECTO
-        if (_userId.value == USUARIO_POR_DEFECTO && _token.value.isBlank()) {
-            _token.value = TOKEN_POR_DEFECTO
-        }
+        // Sin token guardado no hay sesion: el backend responde 401 hasta que se inicie sesion
+        _token.value = storage.getString(KEY_TOKEN, "") ?: ""
     }
 
     fun setUserId(id: Int) {

@@ -3,12 +3,15 @@ package com.plantia.services;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.plantia.dto.CuidadoSeccionDto;
@@ -17,6 +20,7 @@ import com.plantia.dto.RecentScanDto;
 import com.plantia.dto.ScanResultDto;
 import com.plantia.models.EscaneoHistorial;
 import com.plantia.models.PlantaCatalogo;
+import com.plantia.repositories.CatalogosPorId;
 import com.plantia.repositories.EscaneoHistorialRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
 import com.plantia.util.JsonRawUtil;
@@ -31,28 +35,44 @@ public class EscaneoService {
     private final StorageService storage;
     private final IaClient iaClient;
     private final CatalogoService catalogoService;
+    private final TransactionTemplate transaccion;
 
     public EscaneoService(EscaneoHistorialRepository escaneoRepo,
                           PlantaCatalogoRepository catalogoRepo,
                           StorageService storage,
                           IaClient iaClient,
-                          CatalogoService catalogoService) {
+                          CatalogoService catalogoService,
+                          PlatformTransactionManager transactionManager) {
         this.escaneoRepo = escaneoRepo;
         this.catalogoRepo = catalogoRepo;
         this.storage = storage;
         this.iaClient = iaClient;
         this.catalogoService = catalogoService;
+        this.transaccion = new TransactionTemplate(transactionManager);
     }
 
     /**
      * Flujo completo de escaneo:
      * 1) guarda la foto  2) identifica con IA  3) upsert catalogo/cuidados
      * 4) registra escaneo  5) NO más auto-insert a coleccion (se usa POST /api/v1/coleccion)
+     *
+     * Sin @Transactional a proposito: la llamada a la IA tarda hasta 60 s y, dentro de
+     * una transaccion, retendria una conexion del pool todo ese tiempo (con ~10 escaneos
+     * a la vez se agotaba el pool y se colgaba toda la API). Solo los pasos 3-4 van en
+     * una transaccion corta; si fallan, se borra la foto ya guardada.
      */
-    @Transactional
     public ScanResultDto escanear(Integer userId, MultipartFile foto) {
         String imagenUrl = storage.save(foto);
+        try {
+            IaResultDto ia = identificar(foto); // fuera de la transaccion
+            return transaccion.execute(estado -> registrar(userId, imagenUrl, ia));
+        } catch (RuntimeException e) {
+            storage.delete(imagenUrl);
+            throw e;
+        }
+    }
 
+    private IaResultDto identificar(MultipartFile foto) {
         IaResultDto ia;
         try {
             ia = iaClient.identificar(foto);
@@ -60,7 +80,10 @@ public class EscaneoService {
             log.warn("Motor IA no disponible: {}", e.getMessage());
             ia = IaClient.fallback();
         }
+        return ia;
+    }
 
+    private ScanResultDto registrar(Integer userId, String imagenUrl, IaResultDto ia) {
         // Identificado solo si la IA devolvio un nombre cientifico real con
         // confianza > 0. El motor responde "Desconocido"/"No identificable"/
         // "No identificado" (confianza 0) cuando la foto no sirve; ese
@@ -113,21 +136,23 @@ public class EscaneoService {
 
     @Transactional(readOnly = true)
     public List<RecentScanDto> recientes(Integer userId) {
-        return escaneoRepo.findTop20ByIdUsuarioOrderByFechaEscaneoDesc(userId).stream()
+        List<EscaneoHistorial> escaneos = escaneoRepo.findTop20ByIdUsuarioOrderByFechaEscaneoDesc(userId);
+        Map<Integer, PlantaCatalogo> catalogos = CatalogosPorId.de(catalogoRepo, escaneos, EscaneoHistorial::getIdCatalogo);
+        return escaneos.stream()
                 .map(e -> {
                     String nombre = "Planta desconocida";
                     String color = "#F59E0B";
                     Integer confNum = 0;
                     if (e.getIdCatalogo() != null) {
-                        nombre = catalogoRepo.findById(e.getIdCatalogo())
-                                .map(PlantaCatalogo::getNombreComun)
-                                .orElse("Planta");
+                        PlantaCatalogo cat = catalogos.get(e.getIdCatalogo());
+                        nombre = cat != null ? cat.getNombreComun() : "Planta";
                         color = "#10B981";
                         if (e.getConfianzaIa() != null) {
                             confNum = e.getConfianzaIa().intValue();
                         }
                     }
-                    String confianza = confNum != null
+                    // confNum nunca es null: el texto depende de si hubo especie (antes siempre "Confianza 0%")
+                    String confianza = e.getIdCatalogo() != null
                             ? "Confianza " + confNum + "%"
                             : "Sin identificar";
                     return new RecentScanDto(String.valueOf(e.getIdEscaneo()), nombre, confianza, confNum, color);

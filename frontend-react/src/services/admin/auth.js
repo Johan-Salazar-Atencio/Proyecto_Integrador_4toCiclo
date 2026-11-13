@@ -1,8 +1,8 @@
 // Acceso del administrador contra Django (endpoint real).
 //
 // POST /django/api/admin/login { email, password }
-//   -> 200 { id, nombre, email, rol: "ADMIN" }
-//   -> 401 credenciales invalidas, 403 si el usuario no es ADMIN
+//   -> 200 { id, nombre, email, rol: "ADMIN", token }
+//   -> 401 credenciales invalidas o usuario sin rol ADMIN (mismo mensaje a proposito)
 //
 // La sesion se guarda en sessionStorage (se borra al cerrar el navegador).
 
@@ -22,6 +22,12 @@ export function borrarAdmin() {
 
 export function obtenerAdminId() {
   return leerAdmin()?.id ?? null
+}
+
+// Cabeceras que Django exige en los endpoints de escritura del panel
+export function cabecerasAdmin() {
+  const admin = leerAdmin()
+  return admin ? { 'X-Admin-Id': String(admin.id), 'X-Admin-Token': admin.token || '' } : {}
 }
 
 export async function iniciarSesionAdmin(email, password) {

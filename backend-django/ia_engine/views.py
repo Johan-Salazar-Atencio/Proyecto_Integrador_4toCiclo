@@ -6,6 +6,8 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .permisos import SoloClienteInterno
+
 from .providers.factory import es_indisponibilidad, get_provider_chain, marcar_caido
 from .services import persistir_catalogo, reemplazar_cuidados
 
@@ -35,7 +37,14 @@ def _intentar(cadena, operacion):
     return None, None, "; ".join(errores)
 
 
-class IdentificarView(APIView):
+class _VistaIa(APIView):
+    """Base de los endpoints de IA: solo Spring (cliente interno) y con limite de uso."""
+
+    permission_classes = [SoloClienteInterno]
+    throttle_scope = "ia"
+
+
+class IdentificarView(_VistaIa):
     """POST multipart: campo `imagen`. Devuelve el contrato normalizado."""
 
     parser_classes = [MultiPartParser, FormParser]
@@ -74,7 +83,7 @@ class IdentificarView(APIView):
         return Response(resultado)
 
 
-class CuidadosView(APIView):
+class CuidadosView(_VistaIa):
     """POST JSON: {nombre, cientifico, persistir} -> ficha de cuidados por IA."""
 
     def post(self, request):
