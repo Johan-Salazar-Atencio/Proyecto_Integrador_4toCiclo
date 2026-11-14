@@ -90,7 +90,7 @@ private fun DrawScope.drawTallo(cx: Float, baseY: Float, h: Float) {
         moveTo(cx, baseY)
         quadraticBezierTo(cx - 2f, baseY - 60f, cx, baseY - 120f)
     }
-    drawPath(path, color = Color(0xFF33691E), style = androidx.compose.ui.graphics.Stroke(width = 6f))
+    drawPath(path, color = Color(0xFF33691E), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6f))
 }
 
 private fun DrawScope.drawHojaIzquierda(cx: Float, baseY: Float, w: Float, h: Float) {
