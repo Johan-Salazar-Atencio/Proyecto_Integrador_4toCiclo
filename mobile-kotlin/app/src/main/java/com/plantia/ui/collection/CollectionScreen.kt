@@ -288,10 +288,6 @@ private fun EstadoMensaje(
     }
 }
 
-// ---------------------------------------------------------------------------
-// Previews (datos de ejemplo SOLO para Previews; la pantalla real arranca vacia)
-// ---------------------------------------------------------------------------
-
 private val ejemploEscaneadas = listOf(
     ColeccionItemDto(1, 1, "Monstera", "Monstera deliciosa", null, 4, null, null, true),
     ColeccionItemDto(2, 2, "Fresa", "Fragaria ananassa", null, 1, null, null, false),

@@ -71,7 +71,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         popEnterTransition = reEntra,
         popExitTransition = reSale
     ) {
-        // ─── Entrada ───────────────────────────────────────────────────────────
+        // Entrada
         composable(Routes.WELCOME) {
             WelcomeScreen(
                 onCrearCuenta = { navController.navigate(Routes.auth(registro = true)) },
@@ -96,7 +96,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             TermsScreen(onBack = { navController.popBackStack() })
         }
 
-        // ─── App ───────────────────────────────────────────────────────────────
+        // App
         composable(Routes.HOME) {
             HomeScreen(
                 onNavigateToScan = { navController.navigate(Routes.SCAN) },
@@ -107,7 +107,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-        // ─── Scan flow ─────────────────────────────────────────────────────────
+        // Escaneo
         composable(Routes.SCAN) {
             ScanScreen(
                 onNavigateToHome = { navController.popBackStack() },
@@ -125,7 +125,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-        // ─── Plant details (from scan) ─────────────────────────────────────────
+        // Ficha de la planta escaneada
         composable(
             route = Routes.PLANT_DETAIL,
             arguments = listOf(navArgument(Routes.ARG_PLANT_ID) { type = NavType.StringType })
@@ -144,7 +144,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-        // ─── Garden ────────────────────────────────────────────────────────────
+        // Jardin
         composable(Routes.VIRTUAL_GARDEN) {
             VirtualGardenScreen(
                 onBack = { navController.popBackStack() },
@@ -152,7 +152,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-        // ─── Coleccion ─────────────────────────────────────────────────────────
+        // Coleccion
         composable(Routes.COLLECTION) {
             CollectionScreen(
                 onBack = { navController.popBackStack() },
@@ -176,7 +176,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-        // ─── Catalogo ──────────────────────────────────────────────────────────
+        // Catalogo
         composable(Routes.CATALOGO) {
             val catalogoViewModel: CatalogoViewModel = viewModel(factory = CatalogoViewModel.Factory)
             CatalogoScreen(
@@ -213,7 +213,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-        // ─── Perfil ────────────────────────────────────────────────────────────
+        // Perfil
         composable(Routes.PERFIL) {
             val perfilViewModel: PerfilViewModel = viewModel(factory = PerfilViewModel.Factory)
             val baseUrl by perfilViewModel.baseUrl.collectAsState()

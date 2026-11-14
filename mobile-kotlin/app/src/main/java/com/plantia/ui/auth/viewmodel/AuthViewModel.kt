@@ -72,7 +72,7 @@ class AuthViewModel(private val repositorio: AuthRepository) : ViewModel() {
         if (estado is AuthEstado.Error) estado = AuthEstado.Reposo
     }
 
-    // ---- Errores por campo: solo se muestran cuando el usuario ya escribio algo ----
+    // Errores por campo: solo se muestran cuando el usuario ya escribio algo.
 
     val errorNombre: String?
         get() = if (nombre.isNotEmpty() && !esNombreValido(nombre)) "Escribe tu nombre de jardinero" else null

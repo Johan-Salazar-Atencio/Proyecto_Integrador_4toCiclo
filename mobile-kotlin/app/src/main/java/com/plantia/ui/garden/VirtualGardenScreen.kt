@@ -71,10 +71,7 @@ import com.plantia.ui.theme.TextSecondary
 import com.plantia.util.IconosOscurosEnBarraDeEstado
 import kotlinx.coroutines.launch
 
-// ---------------------------------------------------------------------------
-// Logica de presentacion (derivada de los porcentajes; el backend no manda animo ni consejos)
-// ---------------------------------------------------------------------------
-
+// El backend no manda animo ni consejos: se derivan de los porcentajes.
 internal fun estadoAnimo(planta: PlantSummary): String = when {
     planta.healthPercent >= 70 -> "Feliz"
     planta.healthPercent >= 40 -> "Regular"
@@ -90,10 +87,6 @@ internal fun consejo(planta: PlantSummary): String {
     ).minBy { it.first }
     return if (minimo >= 70) "${planta.name} está en excelente estado. ¡Sigue así!" else mensaje
 }
-
-// ---------------------------------------------------------------------------
-// Pantalla
-// ---------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -223,10 +216,6 @@ internal fun JardinContenido(planta: PlantSummary, onCuidar: (AccionCuidado) -> 
     }
 }
 
-// ---------------------------------------------------------------------------
-// Tarjetas
-// ---------------------------------------------------------------------------
-
 @Composable
 private fun TarjetaBlanca(modifier: Modifier = Modifier, contenido: @Composable () -> Unit) {
     Card(
@@ -306,10 +295,6 @@ private fun TarjetaConsejo(texto: String) {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Estados sin planta / error
-// ---------------------------------------------------------------------------
-
 @Composable
 private fun EstadoMensaje(
     emoji: String,
@@ -341,10 +326,6 @@ private fun EstadoMensaje(
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// Previews
-// ---------------------------------------------------------------------------
 
 @Preview(name = "Portrait", showBackground = true, widthDp = 393, heightDp = 851)
 @Composable

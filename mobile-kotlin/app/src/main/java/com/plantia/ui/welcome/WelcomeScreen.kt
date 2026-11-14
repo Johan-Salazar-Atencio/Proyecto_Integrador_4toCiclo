@@ -306,10 +306,6 @@ private fun Etiqueta(icono: ImageVector, texto: String, modifier: Modifier = Mod
     }
 }
 
-// ---------------------------------------------------------------------------
-// Previews
-// ---------------------------------------------------------------------------
-
 @Preview(name = "Portrait", showBackground = true, widthDp = 393, heightDp = 851)
 @Composable
 private fun PreviewPortrait() {

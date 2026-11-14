@@ -6,12 +6,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Sesion de la app.
- *
- * El backend todavia no tiene login: el usuario se identifica con el header
- * `X-User-Id`. Aqui se guarda ese id de forma persistente para que no viva
- * hardcodeado en cada pantalla, y para que mas adelante se pueda cambiar por
- * un token real sin tocar las llamadas.
+ * Sesion de la app: id del usuario (`X-User-Id`) y token (`X-Session-Token`), guardados en
+ * SharedPreferences. `RetrofitClient` los agrega a todas las peticiones.
  */
 object Sesion {
 
@@ -25,7 +21,7 @@ object Sesion {
     private val _userId = MutableStateFlow(USUARIO_POR_DEFECTO)
     private val _token = MutableStateFlow("")
 
-    /** Id del usuario actual. Cambiarlo recarga las pantallassuscritas. */
+    /** Id del usuario actual. Cambiarlo recarga las pantallas suscritas. */
     val userId: StateFlow<Int> = _userId
 
     /** Token de sesion del usuario actual (se envia en X-Session-Token). */

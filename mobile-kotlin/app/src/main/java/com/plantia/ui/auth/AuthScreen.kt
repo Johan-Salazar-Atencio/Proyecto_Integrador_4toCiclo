@@ -488,10 +488,6 @@ private fun BotonPrincipal(texto: String, habilitado: Boolean, cargando: Boolean
     }
 }
 
-// ---------------------------------------------------------------------------
-// Previews
-// ---------------------------------------------------------------------------
-
 @Preview(name = "Login", showBackground = true, widthDp = 393, heightDp = 851)
 @Composable
 private fun PreviewLogin() {

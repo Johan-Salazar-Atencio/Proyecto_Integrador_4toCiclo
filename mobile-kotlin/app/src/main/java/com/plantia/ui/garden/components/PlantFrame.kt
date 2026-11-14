@@ -78,7 +78,7 @@ fun PlantFrame(
                             CircularProgressIndicator(color = GreenPrimary, modifier = Modifier.size(32.dp))
                         }
                     },
-                    // El backend aun no sirve los sprites: se muestra un dibujo en su lugar.
+                    // Si la imagen no carga se dibuja una planta de respaldo.
                     error = { PlantaDeRespaldo() }
                 )
             }

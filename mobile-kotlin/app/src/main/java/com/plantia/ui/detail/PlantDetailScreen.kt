@@ -117,10 +117,6 @@ private val RojoCalor = Color(0xFFEF4444)
 private val RojoCalorLight: Color
     @Composable get() = RojoClaro
 
-// ---------------------------------------------------------------------------
-// Mapeo DTO -> vista (funciones puras)
-// ---------------------------------------------------------------------------
-
 /**
  * Spring responde "Planta desconocida" cuando el motor IA no responde; Gemini, por su parte,
  * puede contestar "No identificado (imagen sin planta)" con confianza 0.
@@ -163,10 +159,6 @@ private fun estiloDe(tipo: String?): EstiloCuidado = when (tipo?.uppercase()) {
     "ABONO" -> EstiloCuidado(Icons.Filled.Eco, GreenDark, GreenLight)
     else -> EstiloCuidado(Icons.Filled.Info, TextSecondary, BackgroundLight)
 }
-
-// ---------------------------------------------------------------------------
-// Pantalla
-// ---------------------------------------------------------------------------
 
 @Composable
 fun PlantDetailScreen(
@@ -295,10 +287,6 @@ fun PlantDetailContent(
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// Secciones
-// ---------------------------------------------------------------------------
 
 private fun etiquetaTipo(tipo: String?): String = when (tipo?.uppercase()) {
     "RIEGO" -> "Riego"
@@ -680,10 +668,6 @@ private fun BarraAcciones(
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// Previews
-// ---------------------------------------------------------------------------
 
 @Preview(name = "Portrait", showBackground = true, widthDp = 393, heightDp = 851)
 @Composable

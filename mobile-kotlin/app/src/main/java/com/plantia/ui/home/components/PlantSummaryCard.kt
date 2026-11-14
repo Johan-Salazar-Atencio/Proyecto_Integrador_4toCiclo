@@ -118,8 +118,7 @@ fun PlantSummaryCard(
                     .background(GreenLight.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center
             ) {
-                // Sin libreria de imagenes todavia: se muestra el nombre real
-                // de la planta en vez de un texto fijo.
+                // En lugar de la imagen se muestra el nombre de la planta.
                 Text(
                     text = plant.name,
                     style = MaterialTheme.typography.headlineMedium,
