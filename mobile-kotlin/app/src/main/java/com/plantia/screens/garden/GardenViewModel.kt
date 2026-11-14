@@ -5,10 +5,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.plantia.data.AccionCuidado
 import com.plantia.data.GardenRepository
 import com.plantia.data.PlantaActivaResultado
 import com.plantia.data.PlantaResultado
+import com.plantia.di.AppContainer
 import com.plantia.model.PlantSummary
 import kotlinx.coroutines.launch
 
@@ -19,7 +22,7 @@ sealed interface GardenUiState {
     data class Error(val mensaje: String) : GardenUiState
 }
 
-class GardenViewModel : ViewModel() {
+class GardenViewModel(private val garden: GardenRepository) : ViewModel() {
 
     var uiState: GardenUiState by mutableStateOf(GardenUiState.Loading)
         private set
@@ -33,7 +36,7 @@ class GardenViewModel : ViewModel() {
     fun cargar() {
         uiState = GardenUiState.Loading
         viewModelScope.launch {
-            uiState = when (val r = GardenRepository.plantaActiva()) {
+            uiState = when (val r = garden.plantaActiva()) {
                 is PlantaActivaResultado.ConPlanta -> GardenUiState.Success(r.planta)
                 PlantaActivaResultado.SinPlanta -> GardenUiState.SinPlanta
                 is PlantaActivaResultado.Fallo -> GardenUiState.Error(r.mensaje)
@@ -51,7 +54,7 @@ class GardenViewModel : ViewModel() {
 
         cuidando = true
         viewModelScope.launch {
-            when (val r = GardenRepository.cuidar(id, accion)) {
+            when (val r = garden.cuidar(id, accion)) {
                 is PlantaResultado.Con -> {
                     uiState = GardenUiState.Success(r.planta)
                     alTerminar(mensajeDeExito(actual, r.planta, accion))
@@ -75,4 +78,8 @@ class GardenViewModel : ViewModel() {
             AccionCuidado.SOL -> "${antes.name} tomo sol: +${despues.lightPercent - antes.lightPercent}% de luz"
             AccionCuidado.ABONAR -> "Abonaste a ${antes.name}: +${despues.healthPercent - antes.healthPercent}% de salud"
         }
+
+    companion object {
+        val Factory = viewModelFactory { initializer { GardenViewModel(AppContainer.garden) } }
+    }
 }

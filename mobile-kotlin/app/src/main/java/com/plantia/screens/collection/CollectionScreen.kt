@@ -41,9 +41,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import android.widget.Toast
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -53,7 +51,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -65,6 +62,7 @@ import com.plantia.model.PlantSummary
 import com.plantia.screens.collection.components.TarjetaDescubrirMas
 import com.plantia.screens.collection.components.TarjetaDigital
 import com.plantia.screens.collection.components.TarjetaEscaneada
+import com.plantia.ui.components.AvisoToast
 import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.DividerColor
 import com.plantia.ui.theme.GreenDark
@@ -85,18 +83,12 @@ fun CollectionScreen(
     onPlantaEscaneada: (ColeccionItemDto) -> Unit = {},
     onPlantaDigital: (PlantSummary) -> Unit = {},
     onScan: () -> Unit = {},
-    viewModel: CollectionViewModel = viewModel()
+    viewModel: CollectionViewModel = viewModel(factory = CollectionViewModel.Factory)
 ) {
     IconosOscurosEnBarraDeEstado()
 
     var pestana by rememberSaveable { mutableIntStateOf(PESTANA_ESCANEADAS) }
-    val context = LocalContext.current
-    viewModel.aviso?.let { mensaje ->
-        LaunchedEffect(mensaje) {
-            Toast.makeText(context, mensaje, Toast.LENGTH_SHORT).show()
-            viewModel.avisoMostrado()
-        }
-    }
+    AvisoToast(viewModel.aviso, viewModel::avisoMostrado)
 
     Scaffold(
         containerColor = BackgroundLight,

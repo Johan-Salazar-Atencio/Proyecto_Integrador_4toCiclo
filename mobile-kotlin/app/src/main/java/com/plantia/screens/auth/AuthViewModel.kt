@@ -5,9 +5,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.plantia.data.ApiAuthRepository
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.plantia.data.AuthRepository
 import com.plantia.data.AuthResultado
+import com.plantia.di.AppContainer
 import kotlinx.coroutines.launch
 
 enum class ModoAuth { LOGIN, REGISTRO }
@@ -23,9 +25,7 @@ sealed interface AuthEstado {
  * Estado del formulario de acceso. Sobrevive al ir a "Terminos" y volver, asi no se pierde
  * lo escrito.
  */
-class AuthViewModel : ViewModel() {
-
-    private val repositorio: AuthRepository = ApiAuthRepository()
+class AuthViewModel(private val repositorio: AuthRepository) : ViewModel() {
 
     var modo by mutableStateOf(ModoAuth.LOGIN)
         private set
@@ -114,5 +114,9 @@ class AuthViewModel : ViewModel() {
         estado = AuthEstado.Reposo
         password = ""
         confirmar = ""
+    }
+
+    companion object {
+        val Factory = viewModelFactory { initializer { AuthViewModel(AppContainer.auth) } }
     }
 }

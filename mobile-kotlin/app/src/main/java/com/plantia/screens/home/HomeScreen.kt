@@ -49,8 +49,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.plantia.data.CollectionRepository
-import com.plantia.data.ColeccionResultado
 import com.plantia.screens.home.components.DailyMissionCard
 import com.plantia.screens.home.components.PlantSummaryCard
 import com.plantia.screens.home.components.QuickAccessGrid
@@ -88,35 +86,12 @@ fun HomeScreen(
     )
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    // Cantidad real de plantas de la colección (mock fallback); se recarga cada vez que se vuelve al inicio.
-    var totalColeccion by remember { mutableStateOf<Int?>(null) }
-    LaunchedEffect(Unit) {
-        totalColeccion = (CollectionRepository.listar() as? ColeccionResultado.Con)?.plantas?.size
-    }
-
-    val homeViewModel: HomeViewModel = viewModel()
+    val homeViewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
     val state = homeViewModel.uiState
 
-    // El Jardin ya no va como acceso rapido: se entra desde la tarjeta de la planta o desde la Coleccion.
-    val accesosSinJardin = state.accesos.filterNot { it.id == "garden" || it.id == "jardin" }
-    val accesosRapidos = if (totalColeccion != null) {
-        accesosSinJardin.map { item ->
-            if (item.id != "collection") {
-                item
-            } else {
-                item.copy(
-                    subtitle = when (val n = totalColeccion) {
-                        null -> "Tus plantas"
-                        0 -> "Aun sin plantas"
-                        1 -> "1 planta descubierta"
-                        else -> "$n plantas descubiertas"
-                    }
-                )
-            }
-        }
-    } else {
-        accesosSinJardin
-    }
+    // El total de la coleccion cambia al escanear o guardar: se actualiza cada vez que se vuelve al inicio.
+    LaunchedEffect(Unit) { homeViewModel.refrescarColeccion() }
+    val accesosRapidos = state.accesos
 
     Scaffold(
         topBar = {

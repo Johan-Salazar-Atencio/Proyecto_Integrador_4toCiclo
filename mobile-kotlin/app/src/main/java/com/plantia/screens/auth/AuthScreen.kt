@@ -113,7 +113,7 @@ fun AuthScreen(
     onBack: () -> Unit = {},
     onTerminos: () -> Unit = {},
     onAutenticado: () -> Unit = {},
-    viewModel: AuthViewModel = viewModel()
+    viewModel: AuthViewModel = viewModel(factory = AuthViewModel.Factory)
 ) {
     IconosOscurosEnBarraDeEstado()
 

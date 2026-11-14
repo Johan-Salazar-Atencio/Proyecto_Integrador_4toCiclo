@@ -47,7 +47,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.data.ImagenLocal
-import com.plantia.data.ScanResultStore
 import com.plantia.screens.scan.components.CameraPreview
 import com.plantia.screens.scan.components.FlashToggleButton
 import com.plantia.screens.scan.components.PlantResultCard
@@ -70,7 +69,7 @@ fun ScanScreen(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val context = LocalContext.current
-    val scanViewModel: ScanViewModel = viewModel()
+    val scanViewModel: ScanViewModel = viewModel(factory = ScanViewModel.Factory)
 
     var lastCapturedFile by remember { mutableStateOf<File?>(null) }
     var showToast by remember { mutableStateOf(false) }
@@ -103,7 +102,7 @@ fun ScanScreen(
         }
         Log.d("ScanScreen", "Imagen de galeria: ${preparada.archivo.absolutePath}")
         lastCapturedFile = preparada.archivo
-        scanViewModel.escanear(preparada.archivo, preparada.mimeType)
+        scanViewModel.escanear(preparada.archivo)
     }
 
     // Verificar permiso al iniciar
@@ -382,7 +381,6 @@ fun ScanScreen(
         // un instante y luego se abre el detalle.
         LaunchedEffect(scanState) {
             if (scanState is ScanUiState.Success) {
-                ScanResultStore.ultimo = scanState.result
                 kotlinx.coroutines.delay(900)
                 scanViewModel.reiniciar()
                 onScanSuccess()

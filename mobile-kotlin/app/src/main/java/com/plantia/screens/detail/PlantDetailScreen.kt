@@ -82,11 +82,11 @@ import androidx.compose.ui.unit.sp
 import android.app.Activity
 import androidx.core.view.WindowCompat
 import coil.compose.AsyncImage
-import com.plantia.data.CollectionRepository
 import com.plantia.data.MockPlantData
-import com.plantia.data.ScanResultStore
 import com.plantia.data.remote.CuidadoSeccionDto
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.data.remote.ScanResultDto
+import com.plantia.ui.components.AvisoToast
 import com.plantia.ui.theme.AmberAlert
 import com.plantia.ui.theme.AmberLight
 import com.plantia.ui.theme.BackgroundLight
@@ -170,22 +170,23 @@ fun PlantDetailScreen(
     plantId: String?,
     onBack: () -> Unit = {},
     onDigitalize: () -> Unit = {},
-    onSave: () -> Unit = {}
+    onSave: () -> Unit = {},
+    viewModel: PlantDetailViewModel = viewModel(factory = PlantDetailViewModel.Factory)
 ) {
-    // Ultimo escaneo real. Si no hay (p. ej. Android cerro la app y la reabrio en esta
-    // pantalla) se vuelve atras: antes se mostraba una Monstera inventada como si fuera real.
-    val resultado = remember(plantId) { ScanResultStore.ultimo }
-    if (resultado == null) {
-        LaunchedEffect(Unit) { onBack() }
-        return
+    LaunchedEffect(plantId) { viewModel.mostrarUltimoEscaneo() }
+    AvisoToast(viewModel.aviso, viewModel::avisoMostrado)
+
+    when (val estado = viewModel.uiState) {
+        // Sin escaneo en memoria (p. ej. Android cerro la app y la reabrio aqui) se vuelve atras.
+        DetalleUiState.SinResultado -> LaunchedEffect(Unit) { onBack() }
+        is DetalleUiState.Listo -> PlantDetailContent(
+            resultado = estado.resultado,
+            onBack = onBack,
+            onDigitalize = { viewModel.digitalizar(onDigitalize) },
+            onSave = { viewModel.guardar(onSave) }
+        )
+        DetalleUiState.Cargando, is DetalleUiState.Fallo -> Unit
     }
-    val digitalizar = rememberDigitalizador(onDigitalize)
-    PlantDetailContent(
-        resultado = resultado,
-        onBack = onBack,
-        onDigitalize = { digitalizar(resultado) },
-        onSave = onSave
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -198,14 +199,6 @@ fun PlantDetailContent(
     modifier: Modifier = Modifier,
     mostrarGuardar: Boolean = true
 ) {
-    val scope = rememberCoroutineScope()
-    val guardarEnColeccion = {
-        scope.launch {
-            try { CollectionRepository.agregar(resultado.idEscaneo) } catch (_: Exception) { }
-            onSave()
-        }
-        Unit
-    }
     val fallida = resultado.identificacionFallida()
 
     // Esta pantalla es clara: iconos oscuros en la barra de estado (se restauran al salir).
@@ -248,7 +241,7 @@ fun PlantDetailContent(
                     puedeGuardar = true,
                     mostrarGuardar = mostrarGuardar,
                     onDigitalize = onDigitalize,
-                    onSave = guardarEnColeccion
+                    onSave = onSave
                 )
             }
         }

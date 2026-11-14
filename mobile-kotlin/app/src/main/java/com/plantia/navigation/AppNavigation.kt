@@ -19,11 +19,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.plantia.data.ConexionConfig
-import com.plantia.data.TemaConfig
-import com.plantia.data.ScanResultStore
-import com.plantia.data.Sesion
-import com.plantia.data.remote.RetrofitClient
 import com.plantia.screens.auth.AuthScreen
 import com.plantia.screens.catalog.CatalogoScreen
 import com.plantia.screens.catalog.viewmodel.CatalogoViewModel
@@ -123,7 +118,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         }
 
         composable(Routes.HISTORIAL) {
-            val historialViewModel: HistorialViewModel = viewModel()
+            val historialViewModel: HistorialViewModel = viewModel(factory = HistorialViewModel.Factory)
             HistorialScreen(
                 escaneos = historialViewModel.escaneos,
                 cargando = historialViewModel.cargando,
@@ -184,7 +179,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
         // ─── Catalogo ──────────────────────────────────────────────────────────
         composable(Routes.CATALOGO) {
-            val catalogoViewModel: CatalogoViewModel = viewModel()
+            val catalogoViewModel: CatalogoViewModel = viewModel(factory = CatalogoViewModel.Factory)
             CatalogoScreen(
                 items = catalogoViewModel.items,
                 consulta = catalogoViewModel.consulta,
@@ -203,7 +198,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             arguments = listOf(navArgument(Routes.ARG_CATALOGO_ID) { type = NavType.IntType })
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getInt(Routes.ARG_CATALOGO_ID) ?: 0
-            val cuidadosViewModel: CuidadosCatalogoViewModel = viewModel()
+            val cuidadosViewModel: CuidadosCatalogoViewModel = viewModel(factory = CuidadosCatalogoViewModel.Factory)
             androidx.compose.runtime.LaunchedEffect(id) {
                 cuidadosViewModel.cargar(id)
             }
@@ -221,10 +216,10 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
         // ─── Perfil ────────────────────────────────────────────────────────────
         composable(Routes.PERFIL) {
-            val perfilViewModel: PerfilViewModel = viewModel()
-            val baseUrl by RetrofitClient.baseUrl.collectAsState()
-            val hostManual by ConexionConfig.host.collectAsState()
-            val modoTema by TemaConfig.modo.collectAsState()
+            val perfilViewModel: PerfilViewModel = viewModel(factory = PerfilViewModel.Factory)
+            val baseUrl by perfilViewModel.baseUrl.collectAsState()
+            val hostManual by perfilViewModel.hostManual.collectAsState()
+            val modoTema by perfilViewModel.modoTema.collectAsState()
             PerfilScreen(
                 usuario = perfilViewModel.usuario,
                 cargando = perfilViewModel.cargando,
@@ -234,19 +229,13 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 modoTema = modoTema,
                 baseUrlActual = baseUrl,
                 hostManualActual = hostManual.orEmpty(),
-                onCambiarTema = { TemaConfig.setModo(it) },
-                onGuardarHost = { host ->
-                    ConexionConfig.setHost(host)
-                    RetrofitClient.reconectar()
-                    perfilViewModel.recargar()
-                },
+                onCambiarTema = perfilViewModel::cambiarTema,
+                onGuardarHost = perfilViewModel::guardarHost,
                 onReintentar = { perfilViewModel.recargar() },
                 onVerHistorial = { navController.navigate(Routes.HISTORIAL) },
                 onVerTerminos = { navController.navigate(Routes.TERMINOS) },
                 onCerrarSesion = {
-                    Sesion.setUserId(Sesion.USUARIO_POR_DEFECTO)
-                    Sesion.setToken(null)
-                    ScanResultStore.ultimo = null
+                    perfilViewModel.cerrarSesion()
                     navController.navigate(Routes.WELCOME) { popUpTo(Routes.HOME) { inclusive = true } }
                 },
                 onVolver = { navController.popBackStack() }

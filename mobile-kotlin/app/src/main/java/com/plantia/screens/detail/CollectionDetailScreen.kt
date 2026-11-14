@@ -13,10 +13,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,19 +21,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.plantia.data.DetalleColeccionResultado
-import com.plantia.data.CollectionRepository
-import com.plantia.data.remote.ScanResultDto
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.plantia.ui.components.AvisoToast
 import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
-
-private sealed interface EstadoDetalle {
-    data object Cargando : EstadoDetalle
-    data class Listo(val planta: ScanResultDto) : EstadoDetalle
-    data class Fallo(val mensaje: String) : EstadoDetalle
-}
 
 /**
  * Ficha de una planta ya guardada en la coleccion: mismos cuidados reales que devuelve el
@@ -47,35 +36,28 @@ private sealed interface EstadoDetalle {
 fun CollectionDetailScreen(
     coleccionId: Int,
     onBack: () -> Unit = {},
-    onDigitalize: () -> Unit = {}
+    onDigitalize: () -> Unit = {},
+    viewModel: PlantDetailViewModel = viewModel(factory = PlantDetailViewModel.Factory)
 ) {
-    val digitalizar = rememberDigitalizador(onDigitalize)
-    var intento by remember { mutableStateOf(0) }
-    var estado by remember { mutableStateOf<EstadoDetalle>(EstadoDetalle.Cargando) }
+    LaunchedEffect(coleccionId) { viewModel.cargarDeColeccion(coleccionId) }
+    AvisoToast(viewModel.aviso, viewModel::avisoMostrado)
 
-    LaunchedEffect(coleccionId, intento) {
-        estado = EstadoDetalle.Cargando
-        estado = when (val r = CollectionRepository.detalle(coleccionId)) {
-            is DetalleColeccionResultado.Con -> EstadoDetalle.Listo(r.planta)
-            is DetalleColeccionResultado.Fallo -> EstadoDetalle.Fallo(r.mensaje)
-        }
-    }
-
-    when (val e = estado) {
-        EstadoDetalle.Cargando -> Box(Modifier.fillMaxSize().padding(0.dp), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = GreenPrimary)
-        }
-        is EstadoDetalle.Fallo -> Column(
+    when (val estado = viewModel.uiState) {
+        DetalleUiState.Cargando, DetalleUiState.SinResultado ->
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = GreenPrimary)
+            }
+        is DetalleUiState.Fallo -> Column(
             modifier = Modifier.fillMaxSize().padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text("No se pudo cargar la planta", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary, textAlign = TextAlign.Center)
             Spacer(Modifier.height(6.dp))
-            Text(e.mensaje, fontSize = 14.sp, color = TextSecondary, textAlign = TextAlign.Center)
+            Text(estado.mensaje, fontSize = 14.sp, color = TextSecondary, textAlign = TextAlign.Center)
             Spacer(Modifier.height(20.dp))
             Button(
-                onClick = { intento++ },
+                onClick = { viewModel.cargarDeColeccion(coleccionId) },
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
             ) { Text("Reintentar") }
@@ -86,10 +68,10 @@ fun CollectionDetailScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = BackgroundLight, contentColor = TextPrimary)
             ) { Text("Volver") }
         }
-        is EstadoDetalle.Listo -> PlantDetailContent(
-            resultado = e.planta,
+        is DetalleUiState.Listo -> PlantDetailContent(
+            resultado = estado.resultado,
             onBack = onBack,
-            onDigitalize = { digitalizar(e.planta) },
+            onDigitalize = { viewModel.digitalizar(onDigitalize) },
             onSave = {},
             mostrarGuardar = false
         )

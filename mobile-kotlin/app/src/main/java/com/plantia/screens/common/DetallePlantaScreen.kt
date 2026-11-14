@@ -38,7 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.plantia.data.remote.RetrofitClient
+import com.plantia.data.normalizarUrlLocal
 import com.plantia.model.Cuidado
 import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.GreenPrimary
@@ -131,7 +131,7 @@ fun DetallePlantaScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 val foto = remember(imagenUrl) {
-                                    RetrofitClient.urlAbsoluta(imagenUrl)
+                                    normalizarUrlLocal(imagenUrl)
                                 }
                                 if (foto != null) {
                                     AsyncImage(

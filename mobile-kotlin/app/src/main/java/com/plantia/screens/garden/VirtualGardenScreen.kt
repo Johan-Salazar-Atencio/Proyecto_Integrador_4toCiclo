@@ -98,7 +98,7 @@ internal fun consejo(planta: PlantSummary): String {
 fun VirtualGardenScreen(
     onBack: () -> Unit = {},
     onScan: () -> Unit = {},
-    viewModel: GardenViewModel = viewModel()
+    viewModel: GardenViewModel = viewModel(factory = GardenViewModel.Factory)
 ) {
     IconosOscurosEnBarraDeEstado()
 

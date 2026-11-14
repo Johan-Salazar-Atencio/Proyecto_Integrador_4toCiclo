@@ -5,17 +5,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.plantia.data.remote.RetrofitClient
-import com.plantia.data.toDomain
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.plantia.data.CatalogoRepository
+import com.plantia.di.AppContainer
 import com.plantia.model.CatalogoItem
 import com.plantia.model.Cuidado
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /** Catalogo general de plantas, con busqueda y filtro de toxicidad. */
-class CatalogoViewModel : ViewModel() {
+class CatalogoViewModel(private val catalogo: CatalogoRepository) : ViewModel() {
 
     var items: List<CatalogoItem> by mutableStateOf(emptyList())
         private set
@@ -42,7 +43,7 @@ class CatalogoViewModel : ViewModel() {
         consulta = valor
         // Se espera a que el usuario termine de escribir.
         busquedaJob?.cancel()
-        busquedaJob = viewModelScope.launch(Dispatchers.IO) {
+        busquedaJob = viewModelScope.launch {
             delay(350)
             cargar()
         }
@@ -54,26 +55,23 @@ class CatalogoViewModel : ViewModel() {
     }
 
     fun cargar() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             cargando = true
             error = null
-            runCatching {
-                RetrofitClient.api.catalogo(
-                    q = consulta.trim().ifBlank { null },
-                    toxica = if (soloToxicas) true else null
-                ).body().orEmpty()
-            }.onSuccess { lista ->
-                items = lista.map { it.toDomain() }
-            }.onFailure {
-                error = "No se pudo cargar el catalogo"
-            }
+            runCatching { catalogo.buscar(consulta, soloToxicas) }
+                .onSuccess { items = it }
+                .onFailure { error = "No se pudo cargar el catalogo" }
             cargando = false
         }
+    }
+
+    companion object {
+        val Factory = viewModelFactory { initializer { CatalogoViewModel(AppContainer.catalogo) } }
     }
 }
 
 /** Detalle de una planta del catalogo: sus cuidados. */
-class CuidadosCatalogoViewModel : ViewModel() {
+class CuidadosCatalogoViewModel(private val catalogo: CatalogoRepository) : ViewModel() {
 
     var planta: CatalogoItem? by mutableStateOf(null)
         private set
@@ -88,24 +86,21 @@ class CuidadosCatalogoViewModel : ViewModel() {
         private set
 
     fun cargar(idCatalogo: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             cargando = true
             error = null
-            runCatching {
-                val catalogo = RetrofitClient.api.catalogo().body().orEmpty()
-                val planta = catalogo.firstOrNull { it.id == idCatalogo }
-                val cuidados = RetrofitClient.api.cuidadosCatalogo(idCatalogo).body().orEmpty()
-                planta to cuidados
-            }.onSuccess { (plantaDto, cuidadosDto) ->
-                // Ojo: dentro de `launch` el `this` es el CoroutineScope, por eso
-                // se usan los nombres de la clase sin prefijar.
-                planta = plantaDto?.toDomain()
-                cuidados = cuidadosDto.map { it.toDomain() }
-                if (plantaDto == null) error = "No se encontro la planta"
-            }.onFailure {
-                error = "No se pudieron cargar los cuidados"
-            }
+            runCatching { catalogo.ficha(idCatalogo) }
+                .onSuccess { ficha ->
+                    planta = ficha.planta
+                    cuidados = ficha.cuidados
+                    if (ficha.planta == null) error = "No se encontro la planta"
+                }
+                .onFailure { error = "No se pudieron cargar los cuidados" }
             cargando = false
         }
+    }
+
+    companion object {
+        val Factory = viewModelFactory { initializer { CuidadosCatalogoViewModel(AppContainer.catalogo) } }
     }
 }

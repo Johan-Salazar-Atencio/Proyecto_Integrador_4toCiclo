@@ -5,14 +5,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.plantia.data.remote.RetrofitClient
-import com.plantia.data.toDomain
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.plantia.data.ScanRepository
+import com.plantia.di.AppContainer
 import com.plantia.model.RecentScan
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /** Historial de escaneos del usuario (pantalla de historial). */
-class HistorialViewModel : ViewModel() {
+class HistorialViewModel(private val scan: ScanRepository) : ViewModel() {
 
     var escaneos: List<RecentScan> by mutableStateOf(emptyList())
         private set
@@ -28,18 +29,17 @@ class HistorialViewModel : ViewModel() {
     }
 
     fun cargar() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             cargando = true
             error = null
-            runCatching {
-                RetrofitClient.api.escaneosRecientes().body().orEmpty()
-            }.onSuccess { lista ->
-                escaneos = lista.map { it.toDomain() }
-            }.onFailure {
-                error = "No se pudo cargar el historial"
-            }
+            runCatching { scan.recientes() }
+                .onSuccess { escaneos = it }
+                .onFailure { error = "No se pudo cargar el historial" }
             cargando = false
         }
     }
 
+    companion object {
+        val Factory = viewModelFactory { initializer { HistorialViewModel(AppContainer.scan) } }
+    }
 }

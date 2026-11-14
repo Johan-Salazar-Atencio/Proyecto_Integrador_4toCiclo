@@ -5,18 +5,31 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.plantia.data.CollectionRepository
+import com.plantia.data.ConexionConfig
+import com.plantia.data.ModoTema
 import com.plantia.data.ColeccionResultado
 import com.plantia.data.GardenRepository
 import com.plantia.data.PlantasResultado
+import com.plantia.data.ScanRepository
+import com.plantia.data.Sesion
+import com.plantia.data.TemaConfig
 import com.plantia.data.remote.RetrofitClient
-import com.plantia.data.toDomain
+import com.plantia.data.UsuarioRepository
+import com.plantia.di.AppContainer
 import com.plantia.model.UserSummary
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /** Perfil del usuario (GET /api/v1/usuarios/me). */
-class PerfilViewModel : ViewModel() {
+class PerfilViewModel(
+    private val usuarios: UsuarioRepository,
+    private val collection: CollectionRepository,
+    private val garden: GardenRepository,
+    private val scan: ScanRepository
+) : ViewModel() {
 
     var usuario: UserSummary? by mutableStateOf(null)
         private set
@@ -31,6 +44,14 @@ class PerfilViewModel : ViewModel() {
     var escaneadas: Int? by mutableStateOf(null)
         private set
 
+    /** Servidor al que esta conectada la app ahora mismo. */
+    val baseUrl: StateFlow<String?> = RetrofitClient.baseUrl
+
+    /** Servidor escrito a mano en Ajustes (null si se usa el automatico). */
+    val hostManual: StateFlow<String?> = ConexionConfig.host
+
+    val modoTema: StateFlow<ModoTema> = TemaConfig.modo
+
     /** Plantas digitales del jardin (null si aun no se sabe o no se pudo leer). */
     var digitales: Int? by mutableStateOf(null)
         private set
@@ -41,27 +62,56 @@ class PerfilViewModel : ViewModel() {
 
     fun recargar() = cargar()
 
+    fun cambiarTema(modo: ModoTema) = TemaConfig.setModo(modo)
+
+    /** Guarda el servidor, vuelve a elegir el host y recarga el perfil con esa conexion. */
+    fun guardarHost(host: String?) {
+        ConexionConfig.setHost(host)
+        RetrofitClient.reconectar()
+        cargar()
+    }
+
+    /** Deja la sesion como al inicio y descarta el ultimo escaneo en memoria. */
+    fun cerrarSesion() {
+        Sesion.setUserId(Sesion.USUARIO_POR_DEFECTO)
+        Sesion.setToken(null)
+        scan.limpiarUltimo()
+    }
+
     private fun cargar() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             cargando = true
             error = null
             runCatching {
-                RetrofitClient.api.usuarioMe().body()
-            }.onSuccess { dto ->
-                if (dto == null) {
+                usuarios.perfil()
+            }.onSuccess { perfil ->
+                if (perfil == null) {
                     // El backend devuelve 404 si el id no existe: se limpia el
                     // usuario para que se vea el error en vez de un dato viejo.
                     usuario = null
                     error = "No existe un usuario con ese id"
                 } else {
-                    usuario = dto.toDomain()
+                    usuario = perfil
                 }
             }.onFailure {
                 error = "No se pudo cargar el perfil"
             }
-            escaneadas = (CollectionRepository.listar() as? ColeccionResultado.Con)?.plantas?.size
-            digitales = (GardenRepository.listar() as? PlantasResultado.Con)?.plantas?.size
+            escaneadas = (collection.listar() as? ColeccionResultado.Con)?.plantas?.size
+            digitales = (garden.listar() as? PlantasResultado.Con)?.plantas?.size
             cargando = false
+        }
+    }
+
+    companion object {
+        val Factory = viewModelFactory {
+            initializer {
+                PerfilViewModel(
+                    AppContainer.usuario,
+                    AppContainer.collection,
+                    AppContainer.garden,
+                    AppContainer.scan
+                )
+            }
         }
     }
 }
