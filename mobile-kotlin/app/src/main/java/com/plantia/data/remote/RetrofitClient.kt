@@ -1,11 +1,10 @@
 package com.plantia.data.remote
 
-import androidx.compose.runtime.mutableStateOf
 import android.os.Looper
+import androidx.compose.runtime.mutableStateOf
 import com.plantia.BuildConfig
-import com.plantia.data.ConexionConfig
-import com.plantia.data.Sesion
-import java.util.concurrent.TimeUnit
+import com.plantia.data.local.ConexionConfig
+import com.plantia.data.local.Sesion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +14,7 @@ import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 

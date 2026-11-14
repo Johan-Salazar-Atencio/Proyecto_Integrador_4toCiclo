@@ -13,13 +13,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import com.plantia.data.ConexionConfig
-import com.plantia.data.DescubridorMdns
-import com.plantia.data.ModoTema
-import com.plantia.data.Sesion
-import com.plantia.data.TemaConfig
+import com.plantia.data.local.ConexionConfig
+import com.plantia.data.local.ModoTema
+import com.plantia.data.local.Sesion
+import com.plantia.data.local.TemaConfig
+import com.plantia.data.network.DescubridorMdns
 import com.plantia.data.remote.RetrofitClient
-import com.plantia.navigation.AppNavigation
+import com.plantia.ui.navigation.AppNavigation
 import com.plantia.ui.theme.MobilekotlinTheme
 
 class MainActivity : ComponentActivity() {

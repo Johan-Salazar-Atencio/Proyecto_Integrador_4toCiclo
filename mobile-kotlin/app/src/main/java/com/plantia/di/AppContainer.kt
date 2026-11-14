@@ -1,19 +1,19 @@
 package com.plantia.di
 
-import com.plantia.data.ApiAuthRepository
-import com.plantia.data.AuthRepository
-import com.plantia.data.CatalogoRepository
-import com.plantia.data.CollectionRepository
-import com.plantia.data.GardenRepository
-import com.plantia.data.HomeRepository
-import com.plantia.data.RemoteCatalogoRepository
-import com.plantia.data.RemoteCollectionRepository
-import com.plantia.data.RemoteGardenRepository
-import com.plantia.data.RemoteHomeRepository
-import com.plantia.data.RemoteScanRepository
-import com.plantia.data.RemoteUsuarioRepository
-import com.plantia.data.ScanRepository
-import com.plantia.data.UsuarioRepository
+import com.plantia.data.repository.ApiAuthRepository
+import com.plantia.data.repository.AuthRepository
+import com.plantia.data.repository.CatalogoRepository
+import com.plantia.data.repository.CollectionRepository
+import com.plantia.data.repository.GardenRepository
+import com.plantia.data.repository.HomeRepository
+import com.plantia.data.repository.RemoteCatalogoRepository
+import com.plantia.data.repository.RemoteCollectionRepository
+import com.plantia.data.repository.RemoteGardenRepository
+import com.plantia.data.repository.RemoteHomeRepository
+import com.plantia.data.repository.RemoteScanRepository
+import com.plantia.data.repository.RemoteUsuarioRepository
+import com.plantia.data.repository.ScanRepository
+import com.plantia.data.repository.UsuarioRepository
 
 /**
  * Punto unico donde se crean los repositorios: cada uno existe una sola vez en toda la app.

@@ -1,5 +1,19 @@
 package com.plantia.data.remote
 
+import com.plantia.data.remote.dto.AuthLoginRequestDto
+import com.plantia.data.remote.dto.AuthRegistroRequestDto
+import com.plantia.data.remote.dto.AuthUsuarioResponseDto
+import com.plantia.data.remote.dto.CatalogoItemDto
+import com.plantia.data.remote.dto.ColeccionDetalleDto
+import com.plantia.data.remote.dto.ColeccionItemDto
+import com.plantia.data.remote.dto.CuidadoSeccionDto
+import com.plantia.data.remote.dto.DailyMissionDto
+import com.plantia.data.remote.dto.PlantSummaryDto
+import com.plantia.data.remote.dto.QuickAccessDto
+import com.plantia.data.remote.dto.RecentScanDto
+import com.plantia.data.remote.dto.ScanResultDto
+import com.plantia.data.remote.dto.UserSummaryDto
+import com.plantia.data.remote.dto.WeatherAlertDto
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -115,43 +129,3 @@ interface PlantiaApi {
     @POST("api/v1/auth/login")
     suspend fun login(@Body request: AuthLoginRequestDto): AuthUsuarioResponseDto
 }
-
-/** GET /api/v1/escaneos/recientes */
-data class RecentScanDto(
-    val id: String = "",
-    val plantName: String = "",
-    val confidence: String = "",
-    val statusColor: String = "#10B981"
-)
-
-/** GET /api/v1/catalogo */
-data class CatalogoItemDto(
-    val id: Int = 0,
-    val nombreComun: String = "",
-    val nombreCientifico: String = "",
-    val frecuenciaRiegoDias: Int = 0,
-    val frecuenciaSolHoras: Int = 0,
-    val temperaturaMinC: Int? = null,
-    val temperaturaMaxC: Int? = null,
-    val esToxicaMascotas: Boolean = false,
-    val spriteBaseUrl: String = ""
-)
-
-/** GET /api/v1/coleccion */
-data class ColeccionItemDto(
-    val id: Int = 0,
-    val idCatalogo: Int? = null,
-    val nombreComun: String = "",
-    val nombreCientifico: String = "",
-    val fotoUrl: String? = null,
-    val vecesVista: Int = 0,
-    val primeraVez: String? = null,
-    val ultimaVez: String? = null,
-    val esToxicaMascotas: Boolean = false
-)
-
-/** GET /api/v1/coleccion/{id} */
-data class ColeccionDetalleDto(
-    val item: ColeccionItemDto = ColeccionItemDto(),
-    val cuidados: List<CuidadoSeccionDto> = emptyList()
-)
