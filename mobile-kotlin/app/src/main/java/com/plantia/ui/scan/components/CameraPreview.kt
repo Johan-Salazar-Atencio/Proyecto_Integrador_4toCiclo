@@ -7,9 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
-import android.os.Build
 import android.util.Log
-import android.view.Display
 import android.view.ViewGroup.LayoutParams
 import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult

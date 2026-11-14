@@ -1,7 +1,6 @@
 package com.plantia.data.remote
 
 import android.os.Looper
-import androidx.compose.runtime.mutableStateOf
 import com.plantia.BuildConfig
 import com.plantia.data.local.ConexionConfig
 import com.plantia.data.local.Sesion
