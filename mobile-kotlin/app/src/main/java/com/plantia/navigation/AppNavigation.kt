@@ -21,7 +21,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.plantia.data.ConexionConfig
 import com.plantia.data.TemaConfig
-import com.plantia.data.MockGardenData
 import com.plantia.data.ScanResultStore
 import com.plantia.data.Sesion
 import com.plantia.data.remote.RetrofitClient
@@ -164,11 +163,8 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             CollectionScreen(
                 onBack = { navController.popBackStack() },
                 onPlantaEscaneada = { planta -> navController.navigate(Routes.collectionDetail(planta.id)) },
-                // Planta digital: se vuelve la activa y se abre el jardin con ella.
-                onPlantaDigital = { planta ->
-                    MockGardenData.activar(planta.name)
-                    navController.navigate(Routes.VIRTUAL_GARDEN)
-                },
+                // La pantalla ya dejo elegida la planta; aqui solo se abre el jardin.
+                onPlantaDigital = { navController.navigate(Routes.VIRTUAL_GARDEN) },
                 onScan = { navController.navigate(Routes.SCAN) }
             )
         }
@@ -234,7 +230,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 cargando = perfilViewModel.cargando,
                 error = perfilViewModel.error,
                 escaneadas = perfilViewModel.escaneadas,
-                digitales = MockGardenData.plantasDigitales.size,
+                digitales = perfilViewModel.digitales,
                 modoTema = modoTema,
                 baseUrlActual = baseUrl,
                 hostManualActual = hostManual.orEmpty(),
@@ -248,9 +244,8 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onVerHistorial = { navController.navigate(Routes.HISTORIAL) },
                 onVerTerminos = { navController.navigate(Routes.TERMINOS) },
                 onCerrarSesion = {
-                    // Vuelve al usuario por defecto y borra lo simulado en memoria de esta sesion.
                     Sesion.setUserId(Sesion.USUARIO_POR_DEFECTO)
-                    MockGardenData.reiniciar()
+                    Sesion.setToken(null)
                     ScanResultStore.ultimo = null
                     navController.navigate(Routes.WELCOME) { popUpTo(Routes.HOME) { inclusive = true } }
                 },

@@ -81,7 +81,9 @@ fun PlantSummaryDto.toDomain(): PlantSummary = PlantSummary(
     humidityPercent = humidityPercent.coerceIn(0, 100),
     lightPercent = lightPercent.coerceIn(0, 100),
     lastWatered = lastWatered,
-    imageUrl = imageUrl
+    imageUrl = imageUrl,
+    id = id,
+    activa = activa
 )
 
 fun DailyMissionDto.toDomain(): DailyMission = DailyMission(

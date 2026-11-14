@@ -2,6 +2,7 @@ package com.plantia.data
 
 import com.plantia.data.remote.CuidadoSeccionDto
 import com.plantia.data.remote.ScanResultDto
+import com.plantia.model.PlantSummary
 
 /** Datos de ejemplo para las Previews de la ficha de planta. */
 object MockPlantData {
@@ -23,6 +24,19 @@ object MockPlantData {
             CuidadoSeccionDto(5, "TOXICIDAD", "Toxica para mascotas", "Contiene oxalato de calcio; puede irritar a perros y gatos.", 4, true)
         )
     )
+
+    /** Planta digital de ejemplo para la Preview del jardin. */
+    val plantaSimulada = PlantSummary(
+        name = "Monstera",
+        species = "Monstera deliciosa",
+        healthPercent = 80,
+        humidityPercent = 60,
+        lightPercent = 90,
+        lastWatered = "Hace 2 dias"
+    )
+
+    /** Planta con valores bajos para ver los colores de alerta. */
+    val plantaSedienta = plantaSimulada.copy(healthPercent = 35, humidityPercent = 15, lightPercent = 55)
 
     /** Escaneo que la IA no pudo identificar. */
     val scanResultFallo = ScanResultDto(

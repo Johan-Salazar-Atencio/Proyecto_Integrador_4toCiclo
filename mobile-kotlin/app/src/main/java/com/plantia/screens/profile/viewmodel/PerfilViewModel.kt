@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.plantia.data.CollectionRepository
 import com.plantia.data.ColeccionResultado
+import com.plantia.data.GardenRepository
+import com.plantia.data.PlantasResultado
 import com.plantia.data.remote.RetrofitClient
 import com.plantia.data.toDomain
 import com.plantia.model.UserSummary
@@ -27,6 +29,10 @@ class PerfilViewModel : ViewModel() {
 
     /** Plantas escaneadas en la coleccion (null si aun no se sabe o no se pudo leer). */
     var escaneadas: Int? by mutableStateOf(null)
+        private set
+
+    /** Plantas digitales del jardin (null si aun no se sabe o no se pudo leer). */
+    var digitales: Int? by mutableStateOf(null)
         private set
 
     init {
@@ -54,6 +60,7 @@ class PerfilViewModel : ViewModel() {
                 error = "No se pudo cargar el perfil"
             }
             escaneadas = (CollectionRepository.listar() as? ColeccionResultado.Con)?.plantas?.size
+            digitales = (GardenRepository.listar() as? PlantasResultado.Con)?.plantas?.size
             cargando = false
         }
     }

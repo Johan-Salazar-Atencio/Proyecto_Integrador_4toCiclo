@@ -87,7 +87,7 @@ fun PerfilScreen(
     cargando: Boolean,
     error: String?,
     escaneadas: Int?,
-    digitales: Int,
+    digitales: Int?,
     modoTema: ModoTema,
     baseUrlActual: String?,
     hostManualActual: String,
@@ -255,10 +255,10 @@ private fun Etiqueta(texto: String, fondo: androidx.compose.ui.graphics.Color, c
 }
 
 @Composable
-private fun FilaEstadisticas(escaneadas: Int?, digitales: Int) {
+private fun FilaEstadisticas(escaneadas: Int?, digitales: Int?) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Estadistica(Icons.Filled.Collections, escaneadas?.toString() ?: "–", "Escaneadas", Modifier.weight(1f))
-        Estadistica(Icons.Filled.Yard, digitales.toString(), "Digitales", Modifier.weight(1f))
+        Estadistica(Icons.Filled.Yard, digitales?.toString() ?: "–", "Digitales", Modifier.weight(1f))
     }
 }
 

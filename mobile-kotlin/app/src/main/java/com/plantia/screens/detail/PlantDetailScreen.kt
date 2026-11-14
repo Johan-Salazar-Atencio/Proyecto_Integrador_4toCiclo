@@ -83,7 +83,6 @@ import android.app.Activity
 import androidx.core.view.WindowCompat
 import coil.compose.AsyncImage
 import com.plantia.data.CollectionRepository
-import com.plantia.data.MockGardenData
 import com.plantia.data.MockPlantData
 import com.plantia.data.ScanResultStore
 import com.plantia.data.remote.CuidadoSeccionDto
@@ -180,14 +179,11 @@ fun PlantDetailScreen(
         LaunchedEffect(Unit) { onBack() }
         return
     }
+    val digitalizar = rememberDigitalizador(onDigitalize)
     PlantDetailContent(
         resultado = resultado,
         onBack = onBack,
-        onDigitalize = {
-            // Simulado: la planta escaneada pasa a ser la mascota del jardin.
-            MockGardenData.digitalizar(resultado)
-            onDigitalize()
-        },
+        onDigitalize = { digitalizar(resultado) },
         onSave = onSave
     )
 }

@@ -7,5 +7,9 @@ data class PlantSummary(
     val humidityPercent: Int,
     val lightPercent: Int,
     val lastWatered: String,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    /** Id de la planta digital en el backend; null en datos de ejemplo. */
+    val id: Int? = null,
+    /** Planta que se muestra en el jardin. */
+    val activa: Boolean = false
 )

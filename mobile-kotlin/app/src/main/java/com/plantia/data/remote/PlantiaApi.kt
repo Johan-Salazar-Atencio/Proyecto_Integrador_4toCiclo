@@ -55,6 +55,25 @@ interface PlantiaApi {
     @GET("api/v1/misiones/diaria")
     suspend fun misionDiaria(): Response<DailyMissionDto>
 
+    /** Todas las plantas digitales del usuario. */
+    @GET("api/v1/plantas")
+    suspend fun plantas(): Response<List<PlantSummaryDto>>
+
+    /** Digitaliza una planta y la deja activa. Body: { "idEscaneo": n } o { "idCatalogo": n } */
+    @POST("api/v1/plantas")
+    suspend fun digitalizar(@Body body: Map<String, Int>): Response<PlantSummaryDto>
+
+    /** Elige la planta que se muestra en el jardin. */
+    @POST("api/v1/plantas/{id}/seleccionar")
+    suspend fun seleccionarPlanta(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Aplica un cuidado. Body: { "accion": "REGAR" | "SOL" | "ABONAR" } */
+    @POST("api/v1/plantas/{id}/cuidados")
+    suspend fun cuidarPlanta(
+        @Path("id") idPlanta: Int,
+        @Body body: Map<String, String>
+    ): Response<PlantSummaryDto>
+
     // Catalogo
 
     /** Catalogo de plantas, con busqueda y filtro de toxicidad. */

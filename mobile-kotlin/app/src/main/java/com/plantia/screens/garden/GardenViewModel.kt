@@ -7,8 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.plantia.data.AccionCuidado
 import com.plantia.data.GardenRepository
-import com.plantia.data.MockGardenData
 import com.plantia.data.PlantaActivaResultado
+import com.plantia.data.PlantaResultado
 import com.plantia.model.PlantSummary
 import kotlinx.coroutines.launch
 
@@ -23,6 +23,8 @@ class GardenViewModel : ViewModel() {
 
     var uiState: GardenUiState by mutableStateOf(GardenUiState.Loading)
         private set
+
+    private var cuidando = false
 
     init {
         cargar()
@@ -39,11 +41,38 @@ class GardenViewModel : ViewModel() {
         }
     }
 
-    /** Aplica un cuidado (simulado por ahora) y devuelve el mensaje para el usuario. */
-    fun cuidar(accion: AccionCuidado): String {
-        val actual = (uiState as? GardenUiState.Success)?.planta ?: return ""
-        val resultado = MockGardenData.aplicarCuidado(actual, accion)
-        uiState = GardenUiState.Success(resultado.planta)
-        return resultado.mensaje
+    /** Aplica un cuidado en el backend y entrega el mensaje para el usuario. */
+    fun cuidar(accion: AccionCuidado, alTerminar: (String) -> Unit) {
+        val actual = (uiState as? GardenUiState.Success)?.planta ?: return
+        val id = actual.id ?: return
+        if (cuidando) return
+
+        valorCompleto(actual, accion)?.let { return alTerminar(it) }
+
+        cuidando = true
+        viewModelScope.launch {
+            when (val r = GardenRepository.cuidar(id, accion)) {
+                is PlantaResultado.Con -> {
+                    uiState = GardenUiState.Success(r.planta)
+                    alTerminar(mensajeDeExito(actual, r.planta, accion))
+                }
+                is PlantaResultado.Fallo -> alTerminar("No se pudo aplicar el cuidado: ${r.mensaje}")
+            }
+            cuidando = false
+        }
     }
+
+    /** Aviso si esa necesidad ya esta al 100 % (no hace falta llamar al servidor). */
+    private fun valorCompleto(p: PlantSummary, accion: AccionCuidado): String? = when (accion) {
+        AccionCuidado.REGAR -> "${p.name} ya tiene toda el agua que necesita".takeIf { p.humidityPercent >= 100 }
+        AccionCuidado.SOL -> "${p.name} ya recibio toda la luz que necesita".takeIf { p.lightPercent >= 100 }
+        AccionCuidado.ABONAR -> "${p.name} ya esta en plena salud".takeIf { p.healthPercent >= 100 }
+    }
+
+    private fun mensajeDeExito(antes: PlantSummary, despues: PlantSummary, accion: AccionCuidado): String =
+        when (accion) {
+            AccionCuidado.REGAR -> "Regaste a ${antes.name}: +${despues.humidityPercent - antes.humidityPercent}% de agua"
+            AccionCuidado.SOL -> "${antes.name} tomo sol: +${despues.lightPercent - antes.lightPercent}% de luz"
+            AccionCuidado.ABONAR -> "Abonaste a ${antes.name}: +${despues.healthPercent - antes.healthPercent}% de salud"
+        }
 }

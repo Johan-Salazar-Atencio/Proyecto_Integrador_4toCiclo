@@ -51,7 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.data.AccionCuidado
-import com.plantia.data.MockGardenData
+import com.plantia.data.MockPlantData
 import com.plantia.model.PlantSummary
 import com.plantia.screens.garden.components.AnimatedStatBar
 import com.plantia.screens.garden.components.CareActionButton
@@ -147,8 +147,7 @@ fun VirtualGardenScreen(
                 is GardenUiState.Success -> JardinContenido(
                     planta = estado.planta,
                     onCuidar = { accion ->
-                        val mensaje = viewModel.cuidar(accion)
-                        if (mensaje.isNotEmpty()) {
+                        viewModel.cuidar(accion) { mensaje ->
                             scope.launch {
                                 snackbar.currentSnackbarData?.dismiss()
                                 snackbar.showSnackbar(mensaje)
@@ -349,7 +348,7 @@ private fun EstadoMensaje(
 @Composable
 private fun PreviewPortrait() {
     MobilekotlinTheme(dynamicColor = false) {
-        Box(Modifier.fillMaxSize()) { JardinContenido(MockGardenData.plantaSimulada) {} }
+        Box(Modifier.fillMaxSize()) { JardinContenido(MockPlantData.plantaSimulada) {} }
     }
 }
 
@@ -357,7 +356,7 @@ private fun PreviewPortrait() {
 @Composable
 private fun PreviewSedienta() {
     MobilekotlinTheme(dynamicColor = false) {
-        Box(Modifier.fillMaxSize()) { JardinContenido(MockGardenData.plantaSedienta) {} }
+        Box(Modifier.fillMaxSize()) { JardinContenido(MockPlantData.plantaSedienta) {} }
     }
 }
 
@@ -365,6 +364,6 @@ private fun PreviewSedienta() {
 @Composable
 private fun PreviewLandscape() {
     MobilekotlinTheme(dynamicColor = false) {
-        Box(Modifier.fillMaxSize()) { JardinContenido(MockGardenData.plantaSimulada) {} }
+        Box(Modifier.fillMaxSize()) { JardinContenido(MockPlantData.plantaSimulada) {} }
     }
 }

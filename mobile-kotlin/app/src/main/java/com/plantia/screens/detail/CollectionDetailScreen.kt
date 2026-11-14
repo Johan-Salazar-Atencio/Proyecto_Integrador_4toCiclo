@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.plantia.data.DetalleColeccionResultado
 import com.plantia.data.CollectionRepository
-import com.plantia.data.MockGardenData
 import com.plantia.data.remote.ScanResultDto
 import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.GreenPrimary
@@ -50,6 +49,7 @@ fun CollectionDetailScreen(
     onBack: () -> Unit = {},
     onDigitalize: () -> Unit = {}
 ) {
+    val digitalizar = rememberDigitalizador(onDigitalize)
     var intento by remember { mutableStateOf(0) }
     var estado by remember { mutableStateOf<EstadoDetalle>(EstadoDetalle.Cargando) }
 
@@ -89,11 +89,7 @@ fun CollectionDetailScreen(
         is EstadoDetalle.Listo -> PlantDetailContent(
             resultado = e.planta,
             onBack = onBack,
-            onDigitalize = {
-                // Simulado: la planta guardada pasa a ser una planta digital activa.
-                MockGardenData.digitalizar(e.planta)
-                onDigitalize()
-            },
+            onDigitalize = { digitalizar(e.planta) },
             onSave = {},
             mostrarGuardar = false
         )

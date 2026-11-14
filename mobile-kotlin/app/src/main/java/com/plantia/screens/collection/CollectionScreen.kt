@@ -41,7 +41,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -51,13 +53,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.plantia.data.MockGardenData
 import com.plantia.data.remote.ColeccionItemDto
 import com.plantia.model.PlantSummary
 import com.plantia.screens.collection.components.TarjetaDescubrirMas
@@ -88,9 +90,13 @@ fun CollectionScreen(
     IconosOscurosEnBarraDeEstado()
 
     var pestana by rememberSaveable { mutableIntStateOf(PESTANA_ESCANEADAS) }
-    // Plantas digitales (simuladas en memoria) y cual esta activa en el jardin.
-    val digitales = remember { MockGardenData.plantasDigitales }
-    val nombreActiva = remember { MockGardenData.nombreDeLaActiva }
+    val context = LocalContext.current
+    viewModel.aviso?.let { mensaje ->
+        LaunchedEffect(mensaje) {
+            Toast.makeText(context, mensaje, Toast.LENGTH_SHORT).show()
+            viewModel.avisoMostrado()
+        }
+    }
 
     Scaffold(
         containerColor = BackgroundLight,
@@ -128,12 +134,11 @@ fun CollectionScreen(
                 )
                 is CollectionUiState.Success -> ContenidoColeccion(
                     escaneadas = estado.escaneadas,
-                    digitales = digitales,
-                    nombreActiva = nombreActiva,
+                    digitales = estado.digitales,
                     pestana = pestana,
                     onPestana = { pestana = it },
                     onPlantaEscaneada = onPlantaEscaneada,
-                    onPlantaDigital = onPlantaDigital,
+                    onPlantaDigital = { planta -> viewModel.seleccionar(planta) { onPlantaDigital(planta) } },
                     onScan = onScan
                 )
             }
@@ -146,7 +151,6 @@ fun CollectionScreen(
 internal fun ContenidoColeccion(
     escaneadas: List<ColeccionItemDto>,
     digitales: List<PlantSummary>,
-    nombreActiva: String?,
     pestana: Int,
     onPestana: (Int) -> Unit,
     onPlantaEscaneada: (ColeccionItemDto) -> Unit,
@@ -205,8 +209,8 @@ internal fun ContenidoColeccion(
             }
             item(span = { GridItemSpan(maxLineSpan) }) { TarjetaDescubrirMas(onClick = onScan) }
         } else {
-            items(digitales, key = { "d${it.name}" }) { planta ->
-                TarjetaDigital(planta, activa = planta.name == nombreActiva, onClick = { onPlantaDigital(planta) })
+            items(digitales, key = { "d${it.id ?: it.name}" }) { planta ->
+                TarjetaDigital(planta, activa = planta.activa, onClick = { onPlantaDigital(planta) })
             }
         }
     }
@@ -305,7 +309,7 @@ private val ejemploEscaneadas = listOf(
 @Composable
 private fun PreviewConPlantas() {
     MobilekotlinTheme(dynamicColor = false) {
-        ContenidoColeccion(ejemploEscaneadas, emptyList(), null, PESTANA_ESCANEADAS, {}, {}, {}, {})
+        ContenidoColeccion(ejemploEscaneadas, emptyList(), PESTANA_ESCANEADAS, {}, {}, {}, {})
     }
 }
 
@@ -313,7 +317,7 @@ private fun PreviewConPlantas() {
 @Composable
 private fun PreviewVacia() {
     MobilekotlinTheme(dynamicColor = false) {
-        ContenidoColeccion(emptyList(), emptyList(), null, PESTANA_ESCANEADAS, {}, {}, {}, {})
+        ContenidoColeccion(emptyList(), emptyList(), PESTANA_ESCANEADAS, {}, {}, {}, {})
     }
 }
 
@@ -321,6 +325,6 @@ private fun PreviewVacia() {
 @Composable
 private fun PreviewLandscape() {
     MobilekotlinTheme(dynamicColor = false) {
-        ContenidoColeccion(ejemploEscaneadas, emptyList(), null, PESTANA_ESCANEADAS, {}, {}, {}, {})
+        ContenidoColeccion(ejemploEscaneadas, emptyList(), PESTANA_ESCANEADAS, {}, {}, {}, {})
     }
 }

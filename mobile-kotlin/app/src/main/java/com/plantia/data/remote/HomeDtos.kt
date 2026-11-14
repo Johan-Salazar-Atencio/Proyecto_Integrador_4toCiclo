@@ -41,7 +41,7 @@ data class WeatherAlertDto(
     val actionText: String = ""
 )
 
-/** GET /api/v1/plantas/activa (204 si el usuario no tiene plantas) */
+/** GET /api/v1/plantas/activa (204 si no tiene plantas), GET /api/v1/plantas y acciones sobre una planta. */
 data class PlantSummaryDto(
     val name: String = "",
     val species: String = "",
@@ -49,7 +49,10 @@ data class PlantSummaryDto(
     val humidityPercent: Int = 0,
     val lightPercent: Int = 0,
     val lastWatered: String = "",
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val id: Int? = null,
+    val fotoUrl: String? = null,
+    val activa: Boolean = false
 )
 
 /** GET /api/v1/misiones/diaria (204 si no hay misiones activas) */
