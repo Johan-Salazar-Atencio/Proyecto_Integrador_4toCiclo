@@ -1,5 +1,6 @@
 package com.plantia.models;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -68,6 +69,14 @@ public class PlantaUsuario {
     @Column(name = "crecimiento")
     private Integer crecimiento = 0;
 
+    /** Dias con al menos un cuidado util: define la fase (ver CrecimientoPlanta). */
+    @Column(name = "dias_cuidados")
+    private Integer diasCuidados = 0;
+
+    /** Ultimo dia que conto para el crecimiento; evita contar dos veces el mismo dia. */
+    @Column(name = "ultimo_dia_cuidado")
+    private LocalDate ultimoDiaCuidado;
+
     /** JSON con la apariencia que dio la IA (forma, colores); null = dibujo por defecto. */
     @Column(name = "apariencia")
     private String apariencia;
@@ -114,6 +123,10 @@ public class PlantaUsuario {
 
     public Integer getCrecimiento() { return crecimiento; }
     public void setCrecimiento(Integer crecimiento) { this.crecimiento = crecimiento; }
+    public Integer getDiasCuidados() { return diasCuidados; }
+    public void setDiasCuidados(Integer diasCuidados) { this.diasCuidados = diasCuidados; }
+    public LocalDate getUltimoDiaCuidado() { return ultimoDiaCuidado; }
+    public void setUltimoDiaCuidado(LocalDate ultimoDiaCuidado) { this.ultimoDiaCuidado = ultimoDiaCuidado; }
     public String getApariencia() { return apariencia; }
     public void setApariencia(String apariencia) { this.apariencia = apariencia; }
     public String getFotoUrl() { return fotoUrl; }

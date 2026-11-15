@@ -122,14 +122,67 @@ class PlantasServiceTest {
     }
 
     @Test
-    void cuidarUtilHaceCrecerYCambiaLaEtapa() {
+    void variosCuidadosEnUnDiaCuentanUnSoloDia() {
         for (int i = 0; i < 2; i++) {
             service.cuidar(DUENO, 10, "ABONAR");
         }
         var dto = service.cuidar(DUENO, 10, "SOL");
+        var planta = plantaRepo.findById(10).get();
         assertThat(dto.crecimiento()).isEqualTo(3);
-        assertThat(PlantasService.etapaSegun(3)).isEqualTo("BROTE");
-        assertThat(PlantasService.etapaSegun(9)).isEqualTo("ADULTA");
+        assertThat(planta.getDiasCuidados()).isEqualTo(1);
+        assertThat(planta.getEtapaCrecimiento()).isEqualTo("SEMILLA");
+    }
+
+    @Test
+    void laDuracionDependeDeLaForma() {
+        assertThat(CrecimientoPlanta.diasTotales("cactus")).isEqualTo(5);
+        assertThat(CrecimientoPlanta.diasTotales("monstera")).isEqualTo(7);
+        assertThat(CrecimientoPlanta.diasTotales("arbol")).isEqualTo(12);
+        assertThat(CrecimientoPlanta.diasTotales((String) null)).isEqualTo(7);
+        assertThat(CrecimientoPlanta.diasTotales("rara")).isEqualTo(7);
+    }
+
+    @Test
+    void lasFasesEmpiezanAl35PorCientoYTerminanAl100() {
+        // 5 dias: crecimiento desde el dia 2; 7 dias: desde el 3; 12 dias: desde el 5
+        assertThat(CrecimientoPlanta.faseSegun(1, 5)).isEqualTo("SEMILLA");
+        assertThat(CrecimientoPlanta.faseSegun(2, 5)).isEqualTo("BROTE");
+        assertThat(CrecimientoPlanta.faseSegun(5, 5)).isEqualTo("ADULTA");
+        assertThat(CrecimientoPlanta.faseSegun(2, 7)).isEqualTo("SEMILLA");
+        assertThat(CrecimientoPlanta.faseSegun(3, 7)).isEqualTo("BROTE");
+        assertThat(CrecimientoPlanta.faseSegun(4, 12)).isEqualTo("SEMILLA");
+        assertThat(CrecimientoPlanta.faseSegun(5, 12)).isEqualTo("BROTE");
+        assertThat(CrecimientoPlanta.faseSegun(12, 12)).isEqualTo("ADULTA");
+    }
+
+    @Test
+    void saltarseUnDiaPausaLaPlantaSinRetroceder() {
+        var p = new PlantaUsuario();
+        p.setEtapaCrecimiento("SEMILLA");
+        var lunes = java.time.LocalDate.of(2026, 11, 16);
+        PlantasService.contarDia(p, lunes, 7);
+        PlantasService.contarDia(p, lunes, 7); // mismo dia: no suma
+        PlantasService.contarDia(p, lunes.plusDays(3), 7); // se salto dos dias: suma solo uno
+        assertThat(p.getDiasCuidados()).isEqualTo(2);
+        assertThat(p.getEtapaCrecimiento()).isEqualTo("SEMILLA");
+        PlantasService.contarDia(p, lunes.plusDays(4), 7);
+        assertThat(p.getDiasCuidados()).isEqualTo(3);
+        assertThat(p.getEtapaCrecimiento()).isEqualTo("BROTE");
+    }
+
+    @Test
+    void losDiasNoPasanDelTotalYLaFaseNoRetrocede() {
+        var p = new PlantaUsuario();
+        p.setEtapaCrecimiento("ADULTA");
+        p.setDiasCuidados(5);
+        PlantasService.contarDia(p, java.time.LocalDate.of(2026, 11, 16), 5);
+        assertThat(p.getDiasCuidados()).isEqualTo(5);
+        // Planta antigua ya ADULTA con pocos dias: conserva la fase
+        var vieja = new PlantaUsuario();
+        vieja.setEtapaCrecimiento("ADULTA");
+        vieja.setDiasCuidados(4);
+        PlantasService.contarDia(vieja, java.time.LocalDate.of(2026, 11, 16), 12);
+        assertThat(vieja.getEtapaCrecimiento()).isEqualTo("ADULTA");
     }
 
     // --- Refugio ---

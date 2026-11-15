@@ -1,6 +1,7 @@
 package com.plantia.services;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -54,9 +55,6 @@ public class PlantasService {
     private static final int DESGASTE_AGUA_HORA = 4;
     private static final int DESGASTE_LUZ_HORA = 3;
     private static final int DESGASTE_SALUD_HORA = 2;
-    /** Cuidados acumulados para ser BROTE y ADULTA (mismos umbrales que jardin/etapas.js). */
-    private static final int CRECIMIENTO_BROTE = 2;
-    private static final int CRECIMIENTO_ADULTA = 9;
 
     /** Planta de "Mi jardin": la elegida como activa o, si no hay, la ultima plantada. */
     @Transactional
@@ -114,6 +112,8 @@ public class PlantasService {
         planta.setHidratacionPorcentaje(60);
         planta.setSolPorcentaje(70);
         planta.setCrecimiento(0);
+        planta.setDiasCuidados(0);
+        planta.setUltimoDiaCuidado(null);
         planta.setEtapaCrecimiento("SEMILLA");
         planta.setModoTiempo("REAL");
         planta.setEstaRefugiada(false);
@@ -188,7 +188,7 @@ public class PlantasService {
         }
         if (util && valor(p.getSaludPorcentaje()) >= SALUD_MARCHITA) {
             p.setCrecimiento(valor(p.getCrecimiento()) + 1);
-            p.setEtapaCrecimiento(etapaSegun(p.getCrecimiento()));
+            contarDia(p, ahora.toLocalDate(), CrecimientoPlanta.diasTotales(deJson(p.getApariencia())));
         }
         plantaRepo.save(p);
         PlantSummaryDto dto = map(p);
@@ -276,11 +276,19 @@ public class PlantasService {
         return p;
     }
 
-    static String etapaSegun(int crecimiento) {
-        if (crecimiento >= CRECIMIENTO_ADULTA) {
-            return "ADULTA";
+    /**
+     * Cuenta el dia de hoy para el crecimiento (una sola vez por dia, hasta los dias totales)
+     * y sube la fase si corresponde. La planta no retrocede de fase.
+     */
+    static void contarDia(PlantaUsuario p, LocalDate hoy, int diasTotales) {
+        if (!hoy.equals(p.getUltimoDiaCuidado())) {
+            p.setDiasCuidados(Math.min(diasTotales, valor(p.getDiasCuidados()) + 1));
+            p.setUltimoDiaCuidado(hoy);
         }
-        return crecimiento >= CRECIMIENTO_BROTE ? "BROTE" : "SEMILLA";
+        String fase = CrecimientoPlanta.faseSegun(valor(p.getDiasCuidados()), diasTotales);
+        if (CrecimientoPlanta.rango(fase) > CrecimientoPlanta.rango(p.getEtapaCrecimiento())) {
+            p.setEtapaCrecimiento(fase);
+        }
     }
 
     private static int tope(int n) {
