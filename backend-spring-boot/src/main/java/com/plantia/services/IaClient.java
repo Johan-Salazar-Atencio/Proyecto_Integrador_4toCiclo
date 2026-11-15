@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class IaClient {
     private final RestClient restClient;
     private final String provider;
 
+    @Autowired // hay un segundo constructor (para tests): sin esto Spring usaria el vacio
     public IaClient(RestClient.Builder builder,
                     @Value("${app.ia.base-url:http://localhost:8000}") String baseUrl,
                     @Value("${app.ia.provider:auto}") String provider) {
