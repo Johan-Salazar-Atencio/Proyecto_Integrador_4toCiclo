@@ -23,10 +23,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
+import com.plantia.data.model.Apariencia
 import com.plantia.ui.escena.Escena
 import com.plantia.ui.escena.EscenaPixel
+import com.plantia.ui.escena.PlantaPixel
+import com.plantia.ui.escena.rememberSprites
 import com.plantia.ui.theme.GreenDark
-import com.plantia.ui.theme.GreenLight
 import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.LocalTemaOscuro
 import com.plantia.ui.theme.SurfaceWhite
@@ -57,14 +59,32 @@ fun PlantFrame(
     modifier: Modifier = Modifier,
     fondo: Brush = GardenBackgrounds.Neutro,
     /** Escena en pixel art (fondo animado y desastre); sin ella se usa el fondo de color. */
-    escena: Escena? = null
+    escena: Escena? = null,
+    /** Datos para dibujar la planta en pixel art sobre la tierra; sin sprites se usa la imagen. */
+    apariencia: Apariencia? = null,
+    diasCuidados: Int = 0,
+    diasTotales: Int = 0,
+    marchita: Boolean = false
 ) {
+    val sprites = rememberSprites()
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(28.dp))
             .background(fondo)
     ) {
-        val planta: @Composable BoxScope.() -> Unit = {
+        val planta: @Composable BoxScope.() -> Unit = if (sprites != null) {
+            {
+                PlantaPixel(
+                    sprites = sprites,
+                    apariencia = apariencia,
+                    diasCuidados = diasCuidados,
+                    diasTotales = diasTotales,
+                    marchita = marchita,
+                    descripcion = nombre,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        } else {{
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -89,7 +109,7 @@ fun PlantFrame(
                     )
                 }
             }
-        }
+        }}
         if (escena != null) EscenaPixel(escena, Modifier.fillMaxSize(), planta) else planta()
 
         // Nombre + estado de animo
@@ -128,13 +148,5 @@ fun PlantFrame(
 
 @Composable
 private fun PlantaDeRespaldo() {
-    Box(
-        modifier = Modifier
-            .size(150.dp)
-            .clip(CircleShape)
-            .background(GreenLight),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "🪴", fontSize = 84.sp, color = GreenDark)
-    }
+    Text(text = "🪴", fontSize = 84.sp, color = GreenDark)
 }

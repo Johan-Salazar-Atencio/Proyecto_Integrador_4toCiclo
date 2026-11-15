@@ -16,6 +16,7 @@ import com.plantia.data.remote.dto.CatalogoItemDto
 import com.plantia.data.remote.dto.ColeccionItemDto
 import com.plantia.data.remote.dto.CuidadoSeccionDto
 import com.plantia.data.remote.dto.DailyMissionDto
+import com.plantia.data.model.Apariencia
 import com.plantia.data.remote.dto.PlantSummaryDto
 import com.plantia.data.remote.dto.QuickAccessDto
 import com.plantia.data.remote.dto.RegionDto
@@ -91,7 +92,12 @@ fun PlantSummaryDto.toDomain(): PlantSummary = PlantSummary(
     imageUrl = imageUrl,
     id = id,
     activa = activa,
-    refugiada = refugiada
+    refugiada = refugiada,
+    apariencia = apariencia?.let {
+        Apariencia(it.forma, it.colorHoja, it.tieneFlor, it.colorFlor, it.tieneFruto, it.colorFruto)
+    },
+    diasCuidados = diasCuidados.coerceAtLeast(0),
+    diasTotales = diasTotales.coerceAtLeast(0)
 )
 
 fun DailyMissionDto.toDomain(): DailyMission = DailyMission(

@@ -58,7 +58,19 @@ data class PlantSummaryDto(
     val id: Int? = null,
     val fotoUrl: String? = null,
     val activa: Boolean = false,
-    val refugiada: Boolean = false
+    val refugiada: Boolean = false,
+    val apariencia: AparienciaDto? = null,
+    val diasCuidados: Int = 0,
+    val diasTotales: Int = 0
+)
+
+data class AparienciaDto(
+    val forma: String? = null,
+    val colorHoja: String? = null,
+    val tieneFlor: Boolean? = null,
+    val colorFlor: String? = null,
+    val tieneFruto: Boolean? = null,
+    val colorFruto: String? = null
 )
 
 /** GET /api/v1/misiones/diaria (204 si no hay misiones activas) */

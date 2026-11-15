@@ -181,6 +181,10 @@ internal fun JardinContenido(planta: PlantSummary, escena: Escena? = null, onCui
                     animo = estadoAnimo(planta),
                     imageUrl = planta.imageUrl,
                     escena = escena,
+                    apariencia = planta.apariencia,
+                    diasCuidados = planta.diasCuidados,
+                    diasTotales = planta.diasTotales,
+                    marchita = planta.healthPercent < 30,
                     modifier = Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true)
                 )
             }
@@ -211,6 +215,10 @@ internal fun JardinContenido(planta: PlantSummary, escena: Escena? = null, onCui
                 animo = estadoAnimo(planta),
                 imageUrl = planta.imageUrl,
                 escena = escena,
+                apariencia = planta.apariencia,
+                diasCuidados = planta.diasCuidados,
+                diasTotales = planta.diasTotales,
+                marchita = planta.healthPercent < 30,
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f)
             )
             TarjetaVital(planta)
