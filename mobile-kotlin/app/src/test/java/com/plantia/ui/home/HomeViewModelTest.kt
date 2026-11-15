@@ -8,6 +8,7 @@ import com.plantia.fakes.FakeGardenRepository
 import com.plantia.fakes.FakeHomeRepository
 import com.plantia.fakes.MainDispatcherRule
 import com.plantia.fakes.alerta
+import com.plantia.fakes.mision
 import com.plantia.fakes.planta
 import com.plantia.fakes.usuarioEjemplo
 import com.plantia.ui.home.viewmodel.HomeViewModel
@@ -200,5 +201,36 @@ class HomeViewModelTest {
 
         assertNull(vm.aviso)
         assertEquals(300, vm.uiState.usuario?.experience)
+    }
+
+    @Test
+    fun el_home_muestra_todas_las_misiones_del_dia() = runTest {
+        home.datos = home.datos.copy(misiones = listOf(mision("mission_1"), mision("mission_4")))
+
+        val vm = viewModel()
+
+        assertEquals(listOf("mission_1", "mission_4"), vm.uiState.misiones.map { it.id })
+    }
+
+    @Test
+    fun el_refresco_en_vivo_actualiza_el_avance_de_las_misiones() = runTest {
+        home.datos = home.datos.copy(misiones = listOf(mision(progreso = 0)))
+        val vm = viewModel()
+
+        home.misionesResultado = listOf(mision(progreso = 2))
+        vm.actualizarEnVivo()
+
+        assertEquals(true, vm.uiState.misiones.single().isCompleted)
+    }
+
+    @Test
+    fun si_no_se_pueden_consultar_las_misiones_se_conservan_las_que_ya_se_ven() = runTest {
+        home.datos = home.datos.copy(misiones = listOf(mision(progreso = 1)))
+        val vm = viewModel()
+
+        home.misionesResultado = null
+        vm.actualizarEnVivo()
+
+        assertEquals(1, vm.uiState.misiones.single().currentCount)
     }
 }

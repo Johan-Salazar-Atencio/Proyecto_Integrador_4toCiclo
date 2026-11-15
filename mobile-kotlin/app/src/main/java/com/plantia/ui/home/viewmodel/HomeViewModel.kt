@@ -32,7 +32,7 @@ data class HomeUiState(
     val planta: PlantSummary? = null,
     val accesosServidor: List<QuickAccessItem> = emptyList(),
     val totalColeccion: Int? = null,
-    val mision: DailyMission? = null,
+    val misiones: List<DailyMission> = emptyList(),
     val error: String? = null
 ) {
     /** Accesos rapidos sin el Jardin (se entra desde la tarjeta de la planta) y con el total de la coleccion. */
@@ -141,6 +141,7 @@ class HomeViewModel(
         val alerta = home.alerta()
         val usuario = home.usuario()
         val planta = garden.plantaActiva()
+        val misiones = home.misiones()
 
         var nuevo = uiState
         nuevo = when (alerta) {
@@ -148,6 +149,7 @@ class HomeViewModel(
             AlertaResultado.Sin -> nuevo.copy(alerta = null)
             AlertaResultado.Fallo -> nuevo
         }
+        if (misiones != null) nuevo = nuevo.copy(misiones = misiones)
         if (usuario != null) {
             // Un nivel mas que antes: el XP llego de un escaneo, un cuidado o un desastre superado
             val nivelAntes = nuevo.usuario?.level
@@ -191,7 +193,7 @@ class HomeViewModel(
                 planta = datos.planta,
                 accesosServidor = datos.accesos,
                 totalColeccion = totalColeccion(),
-                mision = datos.mision,
+                misiones = datos.misiones,
                 error = when {
                     datos.sinConexion -> "No se pudo conectar con el servidor"
                     datos.fallidas > 0 -> "Algunas secciones no se pudieron cargar"

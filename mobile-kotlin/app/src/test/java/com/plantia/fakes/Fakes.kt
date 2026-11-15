@@ -2,6 +2,7 @@ package com.plantia.fakes
 
 import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.AlertSeverity
+import com.plantia.data.model.DailyMission
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.UserSummary
 import com.plantia.data.model.WeatherAlert
@@ -60,10 +61,11 @@ fun alerta() = WeatherAlert(
 class FakeHomeRepository : HomeRepository {
     var datos = HomeDatos(
         usuario = usuarioEjemplo(), alerta = null, planta = planta(), accesos = emptyList(),
-        mision = null, fallidas = 0, sinConexion = false
+        misiones = emptyList(), fallidas = 0, sinConexion = false
     )
     var alertaResultado: AlertaResultado = AlertaResultado.Sin
     var usuarioResultado: UserSummary? = usuarioEjemplo()
+    var misionesResultado: List<DailyMission>? = null
     var consultasAlerta = 0
 
     override suspend fun cargar() = datos
@@ -74,6 +76,8 @@ class FakeHomeRepository : HomeRepository {
     }
 
     override suspend fun usuario() = usuarioResultado
+
+    override suspend fun misiones() = misionesResultado
 }
 
 /** Jardin falso: devuelve lo que se configure y recuerda las llamadas. */
@@ -152,3 +156,13 @@ class FakeScanRepository : ScanRepository {
         ultimo.value = valor
     }
 }
+
+fun mision(id: String = "mission_1", progreso: Int = 0, meta: Int = 2) = DailyMission(
+    id = id,
+    title = "Riego Consciente",
+    reward = "+20 XP · +50 gotas de rocio",
+    progress = progreso.toFloat() / meta,
+    currentCount = progreso,
+    targetCount = meta,
+    isCompleted = progreso >= meta
+)

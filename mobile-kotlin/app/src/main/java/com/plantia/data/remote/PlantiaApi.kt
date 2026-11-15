@@ -7,7 +7,9 @@ import com.plantia.data.remote.dto.CatalogoItemDto
 import com.plantia.data.remote.dto.ColeccionDetalleDto
 import com.plantia.data.remote.dto.ColeccionItemDto
 import com.plantia.data.remote.dto.CuidadoSeccionDto
+import com.plantia.data.remote.dto.CambiarRegionRequest
 import com.plantia.data.remote.dto.DailyMissionDto
+import com.plantia.data.remote.dto.RegionDto
 import com.plantia.data.remote.dto.PlantSummaryDto
 import com.plantia.data.remote.dto.QuickAccessDto
 import com.plantia.data.remote.dto.RecentScanDto
@@ -18,6 +20,7 @@ import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PUT
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
@@ -68,6 +71,18 @@ interface PlantiaApi {
     /** Mision del dia (204 si no hay misiones activas). */
     @GET("api/v1/misiones/diaria")
     suspend fun misionDiaria(): Response<DailyMissionDto>
+
+    /** Todas las misiones activas de hoy, con el avance del usuario (las define el admin). */
+    @GET("api/v1/misiones")
+    suspend fun misiones(): Response<List<DailyMissionDto>>
+
+    /** Regiones que se pueden elegir en el perfil. */
+    @GET("api/v1/regiones")
+    suspend fun regiones(): Response<List<RegionDto>>
+
+    /** Cambia la region del usuario y devuelve su resumen. */
+    @PUT("api/v1/usuarios/me")
+    suspend fun cambiarRegion(@Body cuerpo: CambiarRegionRequest): Response<UserSummaryDto>
 
     /** Todas las plantas digitales del usuario. */
     @GET("api/v1/plantas")

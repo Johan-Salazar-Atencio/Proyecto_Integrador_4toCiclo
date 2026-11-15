@@ -11,6 +11,7 @@ import com.plantia.data.local.ConexionConfig
 import com.plantia.data.local.ModoTema
 import com.plantia.data.local.Sesion
 import com.plantia.data.local.TemaConfig
+import com.plantia.data.model.Region
 import com.plantia.data.model.UserSummary
 import com.plantia.data.remote.RetrofitClient
 import com.plantia.data.repository.ColeccionResultado
@@ -52,6 +53,16 @@ class PerfilViewModel(
 
     val modoTema: StateFlow<ModoTema> = TemaConfig.modo
 
+    /** Regiones que se pueden elegir (vacia si no se pudieron leer). */
+    var regiones: List<Region> by mutableStateOf(emptyList())
+        private set
+
+    var cambiandoRegion: Boolean by mutableStateOf(false)
+        private set
+
+    var errorRegion: String? by mutableStateOf(null)
+        private set
+
     /** Plantas digitales del jardin (null si aun no se sabe o no se pudo leer). */
     var digitales: Int? by mutableStateOf(null)
         private set
@@ -63,6 +74,18 @@ class PerfilViewModel(
     fun recargar() = cargar()
 
     fun cambiarTema(modo: ModoTema) = TemaConfig.setModo(modo)
+
+    /** Cambia la region: decide que desastres le llegan al usuario. */
+    fun cambiarRegion(codigo: String) {
+        if (cambiandoRegion || codigo == usuario?.regionCode) return
+        viewModelScope.launch {
+            cambiandoRegion = true
+            errorRegion = null
+            val actualizado = runCatching { usuarios.cambiarRegion(codigo) }.getOrNull()
+            if (actualizado != null) usuario = actualizado else errorRegion = "No se pudo cambiar la región"
+            cambiandoRegion = false
+        }
+    }
 
     /** Guarda el servidor, vuelve a elegir el host y recarga el perfil con esa conexion. */
     fun guardarHost(host: String?) {
@@ -96,6 +119,7 @@ class PerfilViewModel(
             }.onFailure {
                 error = "No se pudo cargar el perfil"
             }
+            regiones = runCatching { usuarios.regiones() }.getOrNull().orEmpty()
             escaneadas = (collection.listar() as? ColeccionResultado.Con)?.plantas?.size
             digitales = (garden.listar() as? PlantasResultado.Con)?.plantas?.size
             cargando = false

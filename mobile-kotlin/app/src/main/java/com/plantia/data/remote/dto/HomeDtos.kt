@@ -31,7 +31,8 @@ data class UserSummaryDto(
     val experienceToNextLevel: Int = 0,
     val profileImageUrl: String? = null,
     val streakDays: Int = 0,
-    val experienceFromLevel: Int = 0
+    val experienceFromLevel: Int = 0,
+    val regionCode: String = ""
 )
 
 /** GET /api/v1/eventos/activo (204 si no hay desastre activo) */

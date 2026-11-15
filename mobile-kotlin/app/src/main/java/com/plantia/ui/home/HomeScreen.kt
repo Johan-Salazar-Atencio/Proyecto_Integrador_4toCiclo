@@ -284,8 +284,17 @@ fun HomeScreen(
                     )
                 }
 
-                state.mision?.let { mision ->
-                    DailyMissionCard(mission = mision)
+                if (state.misiones.isNotEmpty()) {
+                    Text(
+                        text = "Misiones del día",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                    state.misiones.forEach { mision ->
+                        DailyMissionCard(mission = mision)
+                    }
                 }
             }
 

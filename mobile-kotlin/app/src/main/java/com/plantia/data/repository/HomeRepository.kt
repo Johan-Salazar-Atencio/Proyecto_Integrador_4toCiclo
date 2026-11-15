@@ -3,6 +3,7 @@ package com.plantia.data.repository
 import com.plantia.data.model.DailyMission
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.QuickAccessItem
+import com.plantia.data.model.Region
 import com.plantia.data.model.UserSummary
 import com.plantia.data.model.WeatherAlert
 
@@ -15,7 +16,7 @@ data class HomeDatos(
     val alerta: WeatherAlert?,
     val planta: PlantSummary?,
     val accesos: List<QuickAccessItem>,
-    val mision: DailyMission?,
+    val misiones: List<DailyMission>,
     val fallidas: Int,
     val sinConexion: Boolean
 )
@@ -37,10 +38,19 @@ interface HomeRepository {
 
     /** Solo el perfil (XP, nivel, hojas), o null si no se pudo consultar. */
     suspend fun usuario(): UserSummary?
+
+    /** Solo las misiones de hoy, o null si no se pudieron consultar (asi no se borran las que ya se ven). */
+    suspend fun misiones(): List<DailyMission>?
 }
 
 /** Datos del usuario para la pantalla de perfil. */
 interface UsuarioRepository {
     /** El perfil, o null si el servidor no encuentra al usuario (404). Lanza si no hay conexion. */
     suspend fun perfil(): UserSummary?
+
+    /** Regiones que se pueden elegir, o null si no se pudieron leer. */
+    suspend fun regiones(): List<Region>?
+
+    /** Cambia la region y devuelve el perfil actualizado, o null si el servidor la rechazo. */
+    suspend fun cambiarRegion(codigo: String): UserSummary?
 }

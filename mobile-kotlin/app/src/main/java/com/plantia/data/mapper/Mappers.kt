@@ -8,6 +8,7 @@ import com.plantia.data.model.Cuidado
 import com.plantia.data.model.DailyMission
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.QuickAccessItem
+import com.plantia.data.model.Region
 import com.plantia.data.model.RecentScan
 import com.plantia.data.model.UserSummary
 import com.plantia.data.model.WeatherAlert
@@ -17,6 +18,7 @@ import com.plantia.data.remote.dto.CuidadoSeccionDto
 import com.plantia.data.remote.dto.DailyMissionDto
 import com.plantia.data.remote.dto.PlantSummaryDto
 import com.plantia.data.remote.dto.QuickAccessDto
+import com.plantia.data.remote.dto.RegionDto
 import com.plantia.data.remote.dto.RecentScanDto
 import com.plantia.data.remote.dto.UserSummaryDto
 import com.plantia.data.remote.dto.WeatherAlertDto
@@ -61,7 +63,8 @@ fun UserSummaryDto.toDomain(): UserSummary = UserSummary(
     experienceToNextLevel = experienceToNextLevel,
     profileImageUrl = profileImageUrl,
     streakDays = streakDays,
-    experienceFromLevel = experienceFromLevel
+    experienceFromLevel = experienceFromLevel,
+    regionCode = regionCode
 )
 
 fun WeatherAlertDto.toDomain(): WeatherAlert = WeatherAlert(
@@ -138,3 +141,5 @@ fun CuidadoSeccionDto.toDomain(): Cuidado = Cuidado(
     orden = orden,
     generadoPorIa = generadoPorIa
 )
+
+fun RegionDto.toDomain(): Region = Region(code = code, name = name)

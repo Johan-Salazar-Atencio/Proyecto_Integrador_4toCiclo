@@ -8,6 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -64,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.plantia.BuildConfig
 import com.plantia.data.local.ModoTema
+import com.plantia.data.model.Region
 import com.plantia.data.model.UserSummary
 import com.plantia.ui.theme.AmberAlert
 import com.plantia.ui.theme.AmberLight
@@ -89,8 +92,12 @@ fun PerfilScreen(
     escaneadas: Int?,
     digitales: Int?,
     modoTema: ModoTema,
+    regiones: List<Region>,
+    cambiandoRegion: Boolean,
+    errorRegion: String?,
     baseUrlActual: String?,
     hostManualActual: String,
+    onCambiarRegion: (String) -> Unit,
     onCambiarTema: (ModoTema) -> Unit,
     onGuardarHost: (String?) -> Unit,
     onReintentar: () -> Unit,
@@ -154,6 +161,9 @@ fun PerfilScreen(
                 else -> {
                     TarjetaUsuario(usuario)
                     FilaEstadisticas(escaneadas, digitales)
+                    if (regiones.isNotEmpty()) {
+                        SeccionRegion(regiones, usuario.regionCode, cambiandoRegion, errorRegion, onCambiarRegion)
+                    }
                 }
             }
 
@@ -274,6 +284,55 @@ private fun Estadistica(icono: ImageVector, valor: String, etiqueta: String, mod
             }
             Text(valor, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
             Text(etiqueta, fontSize = 12.sp, color = TextSecondary)
+        }
+    }
+}
+
+/** Region del usuario: decide que desastres le llegan. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SeccionRegion(
+    regiones: List<Region>,
+    actual: String,
+    cambiando: Boolean,
+    error: String?,
+    onCambiar: (String) -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Mi región", fontWeight = FontWeight.Bold, color = TextPrimary)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                regiones.forEach { region ->
+                    val seleccionada = region.code == actual.ifBlank { "GLOBAL" }
+                    FilterChip(
+                        selected = seleccionada,
+                        onClick = { onCambiar(region.code) },
+                        enabled = !cambiando,
+                        label = { Text(region.name) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = GreenPrimary,
+                            selectedLabelColor = MaterialTheme.colorScheme.surface
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = !cambiando,
+                            selected = seleccionada,
+                            borderColor = MaterialTheme.colorScheme.outline,
+                            selectedBorderColor = GreenPrimary
+                        )
+                    )
+                }
+            }
+            Text(
+                error ?: "Recibes las alertas de desastre de tu región.",
+                fontSize = 12.sp,
+                color = if (error != null) RojoTexto else TextSecondary
+            )
         }
     }
 }

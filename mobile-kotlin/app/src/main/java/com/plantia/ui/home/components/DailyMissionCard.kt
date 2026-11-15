@@ -61,14 +61,14 @@ fun DailyMissionCard(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(GreenPrimary),
+                    .background(if (mission.isCompleted) GreenPrimary else GreenPrimary.copy(alpha = 0.25f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "OK",
+                    text = if (mission.isCompleted) "OK" else "${mission.currentCount}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.surface
+                    color = if (mission.isCompleted) MaterialTheme.colorScheme.surface else GreenPrimary
                 )
             }
 
@@ -81,7 +81,7 @@ fun DailyMissionCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Misión del Día: ${mission.title}",
+                        text = mission.title,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = TextPrimary,

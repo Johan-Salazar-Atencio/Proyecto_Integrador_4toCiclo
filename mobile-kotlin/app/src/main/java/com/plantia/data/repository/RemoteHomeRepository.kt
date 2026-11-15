@@ -1,8 +1,11 @@
 package com.plantia.data.repository
 
 import com.plantia.data.mapper.toDomain
+import com.plantia.data.model.DailyMission
+import com.plantia.data.model.Region
 import com.plantia.data.model.UserSummary
 import com.plantia.data.remote.PlantiaApi
+import com.plantia.data.remote.dto.CambiarRegionRequest
 import com.plantia.data.remote.RetrofitClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,15 +22,15 @@ class RemoteHomeRepository(
         val accesos = intentar { servicio.accesos() }
         val alerta = intentar { servicio.eventoActivo() }
         val planta = intentar { servicio.plantaActiva() }
-        val mision = intentar { servicio.misionDiaria() }
+        val misiones = intentar { servicio.misiones() }
 
-        val respuestas = listOf(usuario, accesos, alerta, planta, mision)
+        val respuestas = listOf(usuario, accesos, alerta, planta, misiones)
         HomeDatos(
             usuario = usuario.cuerpo()?.toDomain(),
             alerta = alerta.cuerpo()?.toDomain(),
             planta = planta.cuerpo()?.toDomain(),
             accesos = accesos.cuerpo()?.map { it.toDomain() }.orEmpty(),
-            mision = mision.cuerpo()?.toDomain(),
+            misiones = misiones.cuerpo()?.map { it.toDomain() }.orEmpty(),
             fallidas = respuestas.count { it == null || !it.isSuccessful },
             sinConexion = respuestas.all { it == null }
         )
@@ -41,6 +44,10 @@ class RemoteHomeRepository(
             cuerpo == null -> AlertaResultado.Sin
             else -> AlertaResultado.Con(cuerpo.toDomain())
         }
+    }
+
+    override suspend fun misiones(): List<DailyMission>? = withContext(Dispatchers.IO) {
+        intentar { api().misiones() }.cuerpo()?.map { it.toDomain() }
     }
 
     override suspend fun usuario(): UserSummary? = withContext(Dispatchers.IO) {
@@ -64,5 +71,15 @@ class RemoteUsuarioRepository(
 
     override suspend fun perfil(): UserSummary? = withContext(Dispatchers.IO) {
         api().usuarioMe().body()?.toDomain()
+    }
+
+    override suspend fun regiones(): List<Region>? = withContext(Dispatchers.IO) {
+        val respuesta = runCatching { api().regiones() }.getOrNull()
+        if (respuesta != null && respuesta.isSuccessful) respuesta.body()?.map { it.toDomain() } else null
+    }
+
+    override suspend fun cambiarRegion(codigo: String): UserSummary? = withContext(Dispatchers.IO) {
+        val respuesta = runCatching { api().cambiarRegion(CambiarRegionRequest(codigo)) }.getOrNull()
+        if (respuesta != null && respuesta.isSuccessful) respuesta.body()?.toDomain() else null
     }
 }
