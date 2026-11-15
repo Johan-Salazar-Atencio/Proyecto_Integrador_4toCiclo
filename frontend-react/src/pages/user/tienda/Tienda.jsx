@@ -96,12 +96,13 @@ export default function Tienda() {
                   <img className="tienda-vista" src={urlImagen(f.previewUrl)} alt={`Vista previa de ${f.nombre}`} />
                   <div className="tienda-datos">
                     <b>{f.nombre}</b>
+                    {f.equipado && <span className="tienda-uso">✓ En uso</span>}
                     {momento && <span className="tienda-momento">{momento.icono} {momento.texto}</span>}
                     <small>{f.descripcion}</small>
                   </div>
                   {f.comprado ? (
                     f.equipado ? (
-                      <button className="boton boton-suave" disabled={ocupado} onClick={() => accion(() => desequiparItem(f.id), 'Volviste al fondo de siempre')}>✓ Equipado · Quitar</button>
+                      <button className="boton boton-suave" disabled={ocupado} onClick={() => accion(() => desequiparItem(f.id), 'Volviste al fondo de siempre')}>Quitar fondo</button>
                     ) : (
                       <button className="boton boton-principal" disabled={ocupado} onClick={() => accion(() => equiparItem(f.id), `Ahora usas «${f.nombre}»`)}>Equipar</button>
                     )

@@ -87,7 +87,7 @@ export default function TiendaAdmin() {
                 {items.map((p) => (
                   <tr key={p.id_item} className={p.activo ? '' : 'mision-apagada'}>
                     <td className="tienda-admin-producto">
-                      {p.tipo === 'FONDO' && <img src={urlImagen(p.vista)} alt="" />}
+                      {p.id_fondo && <img src={urlImagen(p.vista)} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} />}
                       <span>
                         <b>{p.nombre}</b>
                         <small className="mision-detalle">
