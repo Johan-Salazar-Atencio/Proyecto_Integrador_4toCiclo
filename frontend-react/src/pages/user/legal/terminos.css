@@ -5,3 +5,8 @@
 .terminos li::marker { font-weight: 800; color: var(--verde-oscuro); }
 .terminos h2 { font-size: 1.05rem; }
 .terminos li p { margin-top: 4px; color: var(--texto-suave); line-height: 1.5; }
+
+@media (max-width: 480px) {
+  .terminos { padding: 12px; }
+  .terminos-tarjeta { padding: 18px; border-radius: 16px; }
+}

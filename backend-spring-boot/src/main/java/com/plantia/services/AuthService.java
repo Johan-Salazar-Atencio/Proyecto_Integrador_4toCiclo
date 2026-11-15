@@ -13,12 +13,16 @@ import com.plantia.dto.auth.AuthRegistroRequest;
 import com.plantia.dto.auth.AuthUsuarioResponse;
 import com.plantia.models.Usuario;
 import com.plantia.repositories.UsuarioRepository;
+import com.plantia.util.TokenSesion;
 
 @Service
 public class AuthService {
 
     private final UsuarioRepository usuarioRepo;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    // Hash BCrypt valido usado para comparar cuando el email no existe, para que
+    // el tiempo de respuesta no revele si el correo esta registrado.
+    private static final String DUMMY_HASH = "$2a$10$n7uGz2GzFEIhdSm3KDEOYO0ZMzGL132epZ61oqWefVWQYQIufMQVy";
 
     public AuthService(UsuarioRepository usuarioRepo) {
         this.usuarioRepo = usuarioRepo;
@@ -36,6 +40,8 @@ public class AuthService {
         }
 
         String nombre = request.nombre() == null ? "" : request.nombre().trim();
+        // Evitar XSS almacenado: se eliminan etiquetas HTML del nombre.
+        nombre = nombre.replaceAll("<[^>]*>", "").trim();
         if (nombre.length() < 2) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre debe tener al menos 2 caracteres");
         }
@@ -44,8 +50,8 @@ public class AuthService {
         if (password.length() < 8) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña debe tener al menos 8 caracteres");
         }
-        // Nueva validación: BCrypt limita a 72 bytes, rechazamos >72 con 400
-        if (password.length() > 72) {
+        // BCrypt solo usa los primeros 72 BYTES: con tildes o emojis 72 caracteres pasan de 72 bytes
+        if (password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña no puede tener más de 72 caracteres");
         }
 
@@ -62,10 +68,12 @@ public class AuthService {
         usuario.setUpdatedAt(LocalDateTime.now());
 
         Usuario guardado = usuarioRepo.save(usuario);
-        return new AuthUsuarioResponse(guardado.getIdUsuario(), guardado.getNombre(), guardado.getEmail(), guardado.getRol());
+        String token = abrirSesion(guardado);
+        usuarioRepo.save(guardado);
+        return new AuthUsuarioResponse(guardado.getIdUsuario(), guardado.getNombre(), guardado.getEmail(), guardado.getRol(), token);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthUsuarioResponse login(AuthLoginRequest request) {
         String emailNormalizado = normalizarEmail(request.email());
         String password = request.password() == null ? "" : request.password();
@@ -75,13 +83,31 @@ public class AuthService {
         }
 
         Usuario usuario = usuarioRepo.findByEmail(emailNormalizado)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos"));
+                .orElse(null);
+
+        if (usuario == null) {
+            // Comparamos contra un hash valido para no revelar (por tiempo) si
+            // el email existe. Siempre lanzamos el mismo error.
+            passwordEncoder.matches(password, DUMMY_HASH);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
+        }
 
         if (!passwordEncoder.matches(password, usuario.getPasswordHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
         }
 
-        return new AuthUsuarioResponse(usuario.getIdUsuario(), usuario.getNombre(), usuario.getEmail(), usuario.getRol());
+        String token = abrirSesion(usuario);
+        usuarioRepo.save(usuario);
+
+        return new AuthUsuarioResponse(usuario.getIdUsuario(), usuario.getNombre(), usuario.getEmail(), usuario.getRol(), token);
+    }
+
+    /** Genera un token nuevo, guarda solo su hash con fecha de caducidad y devuelve el token. */
+    private String abrirSesion(Usuario usuario) {
+        String token = TokenSesion.generar();
+        usuario.setSessionToken(TokenSesion.hash(token));
+        usuario.setSessionExpira(LocalDateTime.now().plus(TokenSesion.DURACION));
+        return token;
     }
 
     private String normalizarEmail(String email) {

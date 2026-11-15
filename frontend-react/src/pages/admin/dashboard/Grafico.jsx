@@ -25,7 +25,7 @@ export default function Grafico({ datos }) {
   }
 
   const punto = activo === null ? null : datos[activo]
-  const etiqueta = (f) => f.toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })
+  const etiqueta = (f) => new Date(f).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })
 
   return (
     <div className="grafico">

@@ -24,9 +24,16 @@ def env_list(name: str, default: str = "") -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-inseguro-cambiar-en-produccion")
-DEBUG = env_bool("DJANGO_DEBUG", True)
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "*") or ["*"]
+# Valores por defecto seguros: para desarrollo se activan en .env (ver .env.example)
+DEBUG = env_bool("DJANGO_DEBUG", False)
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
+if not SECRET_KEY:
+    if not DEBUG:
+        from django.core.exceptions import ImproperlyConfigured
+
+        raise ImproperlyConfigured("Falta DJANGO_SECRET_KEY (o usa DJANGO_DEBUG=true en desarrollo)")
+    SECRET_KEY = "dev-inseguro-solo-desarrollo"
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -132,9 +139,16 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.FormParser",
     ],
     "UNAUTHENTICATED_USER": None,
+    # Limite de uso del motor de IA (cada llamada gasta cuota del proveedor)
+    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.ScopedRateThrottle"],
+    "DEFAULT_THROTTLE_RATES": {"ia": os.getenv("IA_LIMITE", "30/min")},
 }
 
-CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL", True)
+# La web llama a Django a traves del proxy de Vite (mismo origen): CORS no hace falta
+CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL", False)
+
+# Clave compartida con Spring para usar el motor de IA (vacia = solo desde esta maquina)
+IA_CLAVE_INTERNA = os.getenv("IA_CLAVE_INTERNA", "")
 
 # --- Motor de IA (hibrido e intercambiable) ---
 IA_PROVIDER = os.getenv("IA_PROVIDER", "auto")
@@ -146,6 +160,7 @@ WEBUI_API_KEY = os.getenv("WEBUI_API_KEY", "")
 WEBUI_MODEL = os.getenv("WEBUI_MODEL", "Qwen/Qwen3.6-35B-A3B-FP8")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+GEMINI_FALLBACK_MODELS = os.getenv("GEMINI_FALLBACK_MODELS", "")
 LOCAL_IA_URL = os.getenv("LOCAL_IA_URL", "http://localhost:11434")
 LOCAL_IA_MODEL = os.getenv("LOCAL_IA_MODEL", "llava")
 

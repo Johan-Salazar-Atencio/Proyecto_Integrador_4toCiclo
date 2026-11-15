@@ -76,6 +76,12 @@ interface PlantiaApi {
     @GET("api/v1/coleccion")
     suspend fun coleccion(): Response<List<ColeccionItemDto>>
 
+    /** Agrega una planta a la coleccion del usuario (idempotente). Body: { "idEscaneo": <int> } */
+    @POST("api/v1/coleccion")
+    suspend fun agregarColeccion(
+        @Body body: Map<String, Int>
+    ): Response<ColeccionItemDto>
+
     /** Detalle de un item de la coleccion, con sus cuidados. */
     @GET("api/v1/coleccion/{id}")
     suspend fun coleccionDetalle(

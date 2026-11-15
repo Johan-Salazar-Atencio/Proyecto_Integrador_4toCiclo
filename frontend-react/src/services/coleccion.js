@@ -10,7 +10,12 @@ export async function listarColeccion() {
     .map((p) => ({ ...p, fotoUrl: urlImagen(p.fotoUrl) }))
 }
 
-// GET /coleccion/{id} -> { item, cuidados }. Se devuelve con la forma de un escaneo (sin % de IA).
+export async function agregarColeccion(idEscaneo) {
+  return llamar('/coleccion', {
+    metodo: 'POST',
+    cuerpo: { idEscaneo },
+  })
+}
 export async function detalleColeccion(id) {
   const detalle = await llamar(`/coleccion/${id}`)
   if (!detalle?.item) throw new Error('Planta no encontrada')

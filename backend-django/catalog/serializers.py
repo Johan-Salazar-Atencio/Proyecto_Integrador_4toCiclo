@@ -25,6 +25,7 @@ class PlantaCatalogoSerializer(serializers.ModelSerializer):
             "temperatura_max_c",
             "es_toxica_mascotas",
             "sprite_base_url",
+            "publicada",
             "cuidados",
         ]
 

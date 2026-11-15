@@ -6,6 +6,14 @@
 .catalogo-toxicas { height: 46px; padding: 0 18px; background: var(--superficie); border: 1.5px solid var(--linea); border-radius: 999px; color: var(--texto-suave); font-weight: 700; cursor: pointer; transition: background var(--transicion), color var(--transicion), border-color var(--transicion); }
 .catalogo-toxicas.activa { background: var(--ambar-claro); border-color: var(--ambar); color: var(--ambar); }
 
+@media (max-width: 480px) {
+  .catalogo { padding: 0 4px; }
+  .catalogo-filtros input { min-width: 120px; height: 42px; }
+  .catalogo-toxicas { height: 42px; padding: 0 12px; font-size: 0.85rem; }
+  .catalogo-item { padding: 10px 12px; gap: 10px; }
+  .catalogo-icono { width: 40px; height: 40px; font-size: 1.25rem; }
+}
+
 .catalogo-cuenta { color: var(--texto-suave); font-weight: 600; font-size: 0.9rem; }
 .catalogo-lista { display: flex; flex-direction: column; gap: 10px; }
 

@@ -18,6 +18,13 @@
   box-shadow: var(--sombra);
 }
 
+@media (max-width: 480px) {
+  .auth { padding: 12px; }
+  .auth-tarjeta { padding: 20px; border-radius: 18px; gap: 14px; }
+  .auth-tarjeta h1 { font-size: 1.35rem; }
+  .auth-pestanas button { height: 36px; font-size: 0.85rem; }
+}
+
 .auth-volver { font-size: 0.9rem; font-weight: 600; color: var(--texto-suave); }
 .auth-tarjeta h1 { font-size: 1.6rem; }
 

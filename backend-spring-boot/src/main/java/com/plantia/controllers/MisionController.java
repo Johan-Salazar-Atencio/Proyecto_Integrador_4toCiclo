@@ -22,7 +22,7 @@ public class MisionController {
     /** Alimenta DailyMissionCard. 204 si no hay misiones activas. */
     @GetMapping("/diaria")
     public ResponseEntity<DailyMissionDto> diaria(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId) {
+            @RequestHeader("X-User-Id") Integer userId) {
         return misionService.diaria(userId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());

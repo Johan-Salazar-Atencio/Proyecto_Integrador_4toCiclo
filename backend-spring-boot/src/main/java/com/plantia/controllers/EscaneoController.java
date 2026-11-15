@@ -28,14 +28,14 @@ public class EscaneoController {
     /** Alimenta RecentScansRow. */
     @GetMapping("/recientes")
     public List<RecentScanDto> recientes(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId) {
+            @RequestHeader("X-User-Id") Integer userId) {
         return escaneoService.recientes(userId);
     }
 
     /** Integracion del modulo de escaneo: sube la foto, identifica y guarda en coleccion. */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ScanResultDto escanear(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId,
+            @RequestHeader("X-User-Id") Integer userId,
             @RequestPart("foto") MultipartFile foto) {
         return escaneoService.escanear(userId, foto);
     }

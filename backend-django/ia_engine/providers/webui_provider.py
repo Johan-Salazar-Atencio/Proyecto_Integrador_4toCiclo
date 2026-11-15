@@ -8,8 +8,10 @@ El modelo debe ser multimodal: la foto se envia como `image_url` con un data
 URI en base64.
 """
 import base64
+import threading
 import time
 
+import httpx
 from django.conf import settings
 from openai import APIStatusError, OpenAI
 
@@ -23,8 +25,21 @@ from .base import (
 )
 
 # El backend vLLM puede devolver 429/503 si esta saturado; reintentamos.
-_INTENTOS = 3
+# Fuera de la red del instituto el servidor no existe: se detecta al conectar
+# (1 s) y se pasa enseguida al siguiente motor. Dentro, la identificacion real
+# (especie + cuidados + apariencia) tarda ~5 s, asi que la respuesta tiene 15 s.
+_INTENTOS = 2
 _REINTENTABLES = {429, 500, 502, 503, 504}
+_WEBUI_CONECTAR = 1.0  # segundos para establecer la conexion
+_WEBUI_TIMEOUT = 15.0  # segundos para recibir la respuesta
+
+
+def _thread_target(fn, args, result_holder):
+    """Ayuda para ejecutar una funcion en hilo y capturar su resultado."""
+    try:
+        result_holder["value"] = fn(*args)
+    except Exception as exc:  # noqa: BLE001
+        result_holder["error"] = exc
 
 
 class WebuiProvider(IaProvider):
@@ -40,9 +55,7 @@ class WebuiProvider(IaProvider):
         self.client = OpenAI(
             api_key=api_key,
             base_url=base_url,
-            # El servidor institucional es local: si no responde en 25 s es que
-            # esta caido, y hay que pasar deprisa al siguiente motor (Gemini).
-            timeout=25.0,
+            timeout=httpx.Timeout(_WEBUI_TIMEOUT, connect=_WEBUI_CONECTAR),
             max_retries=0,
         )
         self.model = settings.WEBUI_MODEL
@@ -50,19 +63,42 @@ class WebuiProvider(IaProvider):
     def _chat(self, mensajes):
         ultimo_error = None
         for intento in range(_INTENTOS):
-            try:
-                respuesta = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=mensajes,
+            result_holder = {}
+            thread = threading.Thread(
+                target=_thread_target,
+                args=(self._do_chat_wrapper, (mensajes,), result_holder),
+                daemon=True,
+            )
+            thread.start()
+            thread.join(timeout=_WEBUI_TIMEOUT)
+            if thread.is_alive():
+                ultimo_error = TimeoutError(
+                    f"WebUI no respondi{chr(111) if intento % 2 else 'ó'} en "
+                    f"{_WEBUI_TIMEOUT}s (intento {intento + 1})"
                 )
-                return respuesta.choices[0].message.content
-            except APIStatusError as exc:
-                ultimo_error = exc
-                if exc.status_code in _REINTENTABLES and intento < _INTENTOS - 1:
-                    time.sleep(2 * (intento + 1))
+                break
+            if "error" in result_holder:
+                exc = result_holder["error"]
+                if isinstance(exc, APIStatusError) and (
+                    exc.status_code in _REINTENTABLES
+                    and intento < _INTENTOS - 1
+                ):
+                    time.sleep(0.5 * (intento + 1))
                     continue
-                raise
+                raise exc
+            if "value" not in result_holder:
+                ultimo_error = RuntimeError("WebUI retornó sin valor ni error")
+                break
+            return result_holder["value"]
         raise ultimo_error
+
+    def _do_chat_wrapper(self, mensajes):
+        """Envolvente llamada desde hilo para capturar resultado."""
+        respuesta = self.client.chat.completions.create(
+            model=self.model,
+            messages=mensajes,
+        )
+        return respuesta.choices[0].message.content
 
     def identificar(self, image_bytes: bytes, filename: str = "scan.jpg") -> dict:
         mime = "image/png" if filename.lower().endswith(".png") else "image/jpeg"

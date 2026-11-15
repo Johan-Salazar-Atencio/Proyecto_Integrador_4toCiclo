@@ -4,6 +4,7 @@ public record AuthUsuarioResponse(
         Integer id,
         String nombre,
         String email,
-        String rol
+        String rol,
+        String sessionToken
 ) {
 }

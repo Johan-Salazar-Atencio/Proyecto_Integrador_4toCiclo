@@ -12,9 +12,8 @@ sealed interface AuthResultado {
 /**
  * Contrato de acceso (registro e inicio de sesion).
  *
- * Hoy lo implementa [MockAuthRepository] (simulado). Cuando el backend tenga los endpoints,
- * basta crear otra implementacion que llame a la API y cambiarla en `AuthViewModel`:
- * la pantalla no necesita tocarse.
+ * Lo implementa [ApiAuthRepository] contra /api/v1/auth (Spring). La pantalla solo
+ * conoce esta interfaz, asi que se puede cambiar la implementacion en `AuthViewModel`.
  */
 interface AuthRepository {
     suspend fun registrar(nombre: String, email: String, password: String): AuthResultado

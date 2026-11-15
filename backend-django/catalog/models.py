@@ -17,6 +17,9 @@ class Usuario(models.Model):
     monedas = models.IntegerField(default=100)
     racha_dias = models.IntegerField(default=0)
     region = models.CharField(max_length=100, default="GLOBAL")
+    # SHA-256 del token de la sesion activa (Flyway V7/V11; la comparte con Spring)
+    session_token = models.CharField(max_length=64, null=True, blank=True)
+    session_expira = models.DateTimeField(null=True, blank=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -40,6 +43,7 @@ class PlantaCatalogo(models.Model):
     temperatura_max_c = models.IntegerField(default=30)
     es_toxica_mascotas = models.BooleanField(default=False)
     sprite_base_url = models.CharField(max_length=255, default="/assets/plantas/default.png")
+    publicada = models.BooleanField(default=True)
     etapa_semilla_url = models.CharField(max_length=255, null=True, blank=True)
     etapa_brote_url = models.CharField(max_length=255, null=True, blank=True)
     etapa_adulta_url = models.CharField(max_length=255, null=True, blank=True)

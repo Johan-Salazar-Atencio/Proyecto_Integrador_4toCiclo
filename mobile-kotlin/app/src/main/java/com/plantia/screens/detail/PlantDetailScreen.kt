@@ -58,9 +58,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +82,7 @@ import androidx.compose.ui.unit.sp
 import android.app.Activity
 import androidx.core.view.WindowCompat
 import coil.compose.AsyncImage
+import com.plantia.data.CollectionRepository
 import com.plantia.data.MockGardenData
 import com.plantia.data.MockPlantData
 import com.plantia.data.ScanResultStore
@@ -169,8 +173,13 @@ fun PlantDetailScreen(
     onDigitalize: () -> Unit = {},
     onSave: () -> Unit = {}
 ) {
-    // Ultimo escaneo real si existe; si no, datos simulados (Fase 2 sin backend).
-    val resultado = remember(plantId) { ScanResultStore.ultimo ?: MockPlantData.scanResult }
+    // Ultimo escaneo real. Si no hay (p. ej. Android cerro la app y la reabrio en esta
+    // pantalla) se vuelve atras: antes se mostraba una Monstera inventada como si fuera real.
+    val resultado = remember(plantId) { ScanResultStore.ultimo }
+    if (resultado == null) {
+        LaunchedEffect(Unit) { onBack() }
+        return
+    }
     PlantDetailContent(
         resultado = resultado,
         onBack = onBack,
@@ -193,6 +202,14 @@ fun PlantDetailContent(
     modifier: Modifier = Modifier,
     mostrarGuardar: Boolean = true
 ) {
+    val scope = rememberCoroutineScope()
+    val guardarEnColeccion = {
+        scope.launch {
+            try { CollectionRepository.agregar(resultado.idEscaneo) } catch (_: Exception) { }
+            onSave()
+        }
+        Unit
+    }
     val fallida = resultado.identificacionFallida()
 
     // Esta pantalla es clara: iconos oscuros en la barra de estado (se restauran al salir).
@@ -235,7 +252,7 @@ fun PlantDetailContent(
                     puedeGuardar = true,
                     mostrarGuardar = mostrarGuardar,
                     onDigitalize = onDigitalize,
-                    onSave = onSave
+                    onSave = guardarEnColeccion
                 )
             }
         }

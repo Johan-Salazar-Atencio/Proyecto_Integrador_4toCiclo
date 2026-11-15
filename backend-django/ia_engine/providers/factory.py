@@ -139,6 +139,8 @@ def get_provider_chain(name: str | None = None) -> list[IaProvider]:
         except Exception:  # noqa: BLE001 - un motor mal configurado no debe romper la cadena
             continue
 
+    # mock solo cuando no hay ningun motor real. Si los reales fallan se devuelve
+    # 502: inventar siempre "Monstera" esconde el fallo y engana al usuario.
     if not cadena:
         cadena.append(MockProvider())
     return cadena

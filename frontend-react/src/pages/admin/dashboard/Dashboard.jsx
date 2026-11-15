@@ -4,7 +4,7 @@ import Grafico from './Grafico'
 import TablaEscaneos from './TablaEscaneos'
 import './dashboard.css'
 
-const formato = (n) => n.toLocaleString('es-PE')
+const formato = (n) => (n == null ? '—' : Number(n).toLocaleString('es-PE'))
 
 export default function Dashboard() {
   const [estado, setEstado] = useState({ cargando: true, resumen: null, actividad: [], escaneos: [], error: '' })
@@ -35,8 +35,8 @@ export default function Dashboard() {
   }
 
   const tarjetas = [
-    { icono: '👥', titulo: 'Total usuarios', valor: formato(resumen.usuarios), nota: `+${resumen.crecimientoUsuarios}% este mes`, ejemplo: true },
-    { icono: '📷', titulo: 'Escaneos IA hoy', valor: formato(resumen.escaneosHoy), nota: `Pico: ${resumen.picoPorMinuto} req/min`, ejemplo: true },
+    { icono: '👥', titulo: 'Total usuarios', valor: formato(resumen.usuarios), nota: resumen.crecimientoUsuarios == null ? '—' : `+${resumen.crecimientoUsuarios}% este mes`, ejemplo: true },
+    { icono: '📷', titulo: 'Escaneos IA hoy', valor: formato(resumen.escaneosHoy), nota: `Pico: ${resumen.picoPorMinuto == null ? '—' : resumen.picoPorMinuto} req/min`, ejemplo: true },
     { icono: '📖', titulo: 'Especies en catálogo', valor: formato(resumen.especies), nota: `${resumen.toxicas} tóxicas para mascotas${resumen.origenCatalogo === 'spring' ? ' · leído de Spring' : ''}` },
     { icono: '⚠️', titulo: 'Eventos activos', valor: formato(resumen.eventosActivos), nota: `${resumen.eventosTotales} ${resumen.eventosTotales === 1 ? 'evento' : 'eventos'} en total` },
   ]

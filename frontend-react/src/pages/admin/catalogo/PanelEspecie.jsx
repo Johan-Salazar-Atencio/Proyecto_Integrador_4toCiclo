@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Boton from '../../../components/Boton'
-import { cuidadosDe, descartarCambios, guardarEspecie } from '../../../services/admin/catalogo'
+import { cuidadosDe, guardarEspecie } from '../../../services/admin/catalogo'
 import { estiloDe } from '../../user/planta/mapeo'
 
 const CAMPOS = ['nombreComun', 'nombreCientifico', 'riegoDias', 'solHoras', 'tempMin', 'tempMax', 'toxica', 'publicada']
@@ -28,14 +28,19 @@ export default function PanelEspecie({ especie, onCerrar, onCambio }) {
 
   const guardar = async () => {
     setGuardando(true)
-    await guardarEspecie(especie.id, { ...form, nombreComun: form.nombreComun.trim(), nombreCientifico: form.nombreCientifico.trim() })
-    setGuardando(false)
-    setAviso('Guardado (simulado: solo en este navegador)')
-    onCambio()
+    setAviso('')
+    try {
+      await guardarEspecie(especie.id, { ...form, nombreComun: form.nombreComun.trim(), nombreCientifico: form.nombreCientifico.trim() })
+      setAviso('Guardado en la base de datos')
+      onCambio()
+    } catch (err) {
+      setAviso(`Error al guardar: ${err.message || err}`)
+    } finally {
+      setGuardando(false)
+    }
   }
 
   const restaurar = () => {
-    descartarCambios(especie.id)
     onCambio()
   }
 
