@@ -1,7 +1,7 @@
-"""Fondos en pixel art (96x96, 8 frames) para dia, tarde y noche.
+"""Fondos en pixel art (96x96, 96 frames) para dia, tarde y noche.
 
 Todo se dibuja por codigo con paletas cortas. Salida: una tira PNG por fondo
-(8 frames de 96x96 en horizontal) y un manifiesto.json.
+(96 frames de 96x96 en horizontal) y un manifiesto.json.
 
 Uso: python generar_fondos.py
 """
@@ -13,8 +13,8 @@ import random
 from PIL import Image
 
 N = 96            # lado de la escena
-FRAMES = 8        # frames por animacion
-MS = 250          # milisegundos por frame
+FRAMES = 96       # frames por animacion: ciclo largo y calmado (96 x 120 ms = 11,5 s)
+MS = 120          # milisegundos por frame
 CIELO_ALTO = 66   # hasta aqui llega el cielo
 SALIDA = os.path.dirname(os.path.abspath(__file__))
 
@@ -85,9 +85,9 @@ def nube(lz, cx, cy, escala, luz, sombra):
 
 
 def nubes(lz, f, lista, luz, sombra):
-    """Las nubes se desplazan 12 px por frame: 8 frames = 96 px, el ciclo cierra sin saltos."""
+    """Las nubes avanzan 1 px por frame: 96 frames = 96 px, el ciclo cierra sin saltos."""
     for (x0, y, escala) in lista:
-        base = (x0 + f * 12) % N
+        base = (x0 + f) % N
         for desp in (-N, 0, N):
             nube(lz, base + desp, y, escala, luz, sombra)
 
@@ -102,7 +102,7 @@ def suelo(lz, f, c_pasto, c_pasto2, c_tierra, c_tierra2, rng):
     # matas de pasto que se mecen con el viento
     for k in range(18):
         x = 3 + k * 5 + rng.randint(-1, 1)
-        balanceo = round(math.sin(2 * math.pi * f / FRAMES + k))
+        balanceo = round(math.sin(2 * math.pi * 3 * f / FRAMES + k))  # 3 vaivenes por ciclo
         lz.poner(x, 71, c_pasto)
         lz.poner(x + balanceo, 70, c_pasto)
 
@@ -110,7 +110,7 @@ def suelo(lz, f, c_pasto, c_pasto2, c_tierra, c_tierra2, rng):
 def sol(lz, cx, cy, r, color, borde, f):
     lz.circulo(cx, cy, r + 1, borde)
     lz.circulo(cx, cy, r, color)
-    largo = 3 if f % 2 == 0 else 4
+    largo = 3 if (f // 8) % 2 == 0 else 4  # los rayos cambian cada 8 frames
     for ang in range(0, 360, 45):
         a = math.radians(ang)
         for d in range(r + 3, r + 3 + largo):
@@ -119,9 +119,10 @@ def sol(lz, cx, cy, r, color, borde, f):
 
 def pajaros(lz, f, color, y0):
     for k, x0 in enumerate((6, 54)):
-        x = (x0 + f * 12) % N
-        y = y0 + k * 5 + (f % 2)
-        alas = [(-2, 0), (-1, 1), (0, 1), (1, 1), (2, 0)] if f % 2 == 0 else [(-2, 1), (-1, 0), (0, 1), (1, 0), (2, 1)]
+        x = (x0 + f * 2) % N  # 2 px por frame: dan dos vueltas por ciclo
+        aleteo = (f // 6) % 2  # un aleteo cada 6 frames
+        y = y0 + k * 5 + aleteo
+        alas = [(-2, 0), (-1, 1), (0, 1), (1, 1), (2, 0)] if aleteo == 0 else [(-2, 1), (-1, 0), (0, 1), (1, 0), (2, 1)]
         for dx, dy in alas:
             lz.poner(x + dx, y + dy, color)
 
@@ -159,8 +160,8 @@ def noche(f):
     # estrellas: parpadean con fases distintas
     est = random.Random(7)
     for k in range(30):
-        x, y, fase = est.randint(1, N - 2), est.randint(1, 46), est.randint(0, FRAMES - 1)
-        brillo = (f + fase) % FRAMES in (0, 1)
+        x, y, fase = est.randint(1, N - 2), est.randint(1, 46), est.randint(0, 23)
+        brillo = (f + fase) % 24 < 4  # cada estrella brilla 4 de cada 24 frames
         lz.poner(x, y, hex_rgb("#ffffff") if brillo else hex_rgb("#7f8fd6"))
         if brillo and k % 4 == 0:
             for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
@@ -176,9 +177,9 @@ def noche(f):
     suelo(lz, f, hex_rgb("#3a7a52"), hex_rgb("#2a5a3e"), hex_rgb("#3a2a38"), hex_rgb("#2c2030"), rng)
     # luciernagas
     for k, (x0, y0) in enumerate(((14, 76), (40, 82), (66, 78), (84, 84), (28, 88))):
-        ang = 2 * math.pi * f / FRAMES + k * 1.3
+        ang = 2 * math.pi * 2 * f / FRAMES + k * 1.3  # 2 vueltas por ciclo
         x, y = x0 + round(4 * math.sin(ang)), y0 + round(3 * math.cos(ang))
-        if (f + k) % 3 != 0:
+        if (f // 6 + k) % 4 != 0:  # parpadeo lento
             lz.poner(x, y, hex_rgb("#e4ff6a"))
             lz.poner(x + 1, y, hex_rgb("#7fa03a"))
     return lz.imagen()
