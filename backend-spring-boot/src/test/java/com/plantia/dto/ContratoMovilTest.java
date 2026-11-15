@@ -28,10 +28,10 @@ class ContratoMovilTest {
 
     @Test
     void userSummary() throws Exception {
-        assertThat(claves(new UserSummaryDto("Johan", 5, "Cuidador", 320, 2450, 3000, null, "johan@plantia.com", 3, 2450)))
+        assertThat(claves(new UserSummaryDto("Johan", 5, "Cuidador", 320, 2450, 3000, null, "johan@plantia.com", 3, 2450, "LIMA")))
                 .containsExactlyInAnyOrder(
                         "name", "level", "badge", "leaves", "experience",
-                        "experienceToNextLevel", "profileImageUrl", "email", "streakDays", "experienceFromLevel");
+                        "experienceToNextLevel", "profileImageUrl", "email", "streakDays", "experienceFromLevel", "regionCode");
     }
 
     @Test

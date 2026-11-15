@@ -1,10 +1,15 @@
 package com.plantia.controllers;
 
+import jakarta.validation.Valid;
+
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.plantia.dto.CambiarRegionRequest;
 import com.plantia.dto.UserSummaryDto;
 import com.plantia.services.UsuarioService;
 
@@ -22,5 +27,13 @@ public class UsuarioController {
     @GetMapping("/me")
     public UserSummaryDto me(@RequestHeader("X-User-Id") Integer userId) {
         return usuarioService.me(userId);
+    }
+
+    /** Cambia la region del usuario (decide que desastres le llegan) y devuelve su resumen. */
+    @PutMapping("/me")
+    public UserSummaryDto cambiarRegion(
+            @RequestHeader("X-User-Id") Integer userId,
+            @Valid @RequestBody CambiarRegionRequest request) {
+        return usuarioService.cambiarRegion(userId, request.region());
     }
 }
