@@ -81,6 +81,10 @@ public class PlantaUsuario {
     @Column(name = "ultimo_dia_abono_tienda")
     private LocalDate ultimoDiaAbonoTienda;
 
+    /** Tema de fondo elegido para esta planta; null = el predeterminado. */
+    @Column(name = "id_tema_fondo")
+    private Integer idTemaFondo;
+
     /** JSON con la apariencia que dio la IA (forma, colores); null = dibujo por defecto. */
     @Column(name = "apariencia")
     private String apariencia;
@@ -133,6 +137,8 @@ public class PlantaUsuario {
     public void setUltimoDiaCuidado(LocalDate ultimoDiaCuidado) { this.ultimoDiaCuidado = ultimoDiaCuidado; }
     public LocalDate getUltimoDiaAbonoTienda() { return ultimoDiaAbonoTienda; }
     public void setUltimoDiaAbonoTienda(LocalDate d) { this.ultimoDiaAbonoTienda = d; }
+    public Integer getIdTemaFondo() { return idTemaFondo; }
+    public void setIdTemaFondo(Integer idTemaFondo) { this.idTemaFondo = idTemaFondo; }
     public String getApariencia() { return apariencia; }
     public void setApariencia(String apariencia) { this.apariencia = apariencia; }
     public String getFotoUrl() { return fotoUrl; }

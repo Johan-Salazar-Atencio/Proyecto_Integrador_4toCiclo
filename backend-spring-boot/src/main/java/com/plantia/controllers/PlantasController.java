@@ -10,11 +10,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import com.plantia.dto.PlantSummaryDto;
 import com.plantia.models.EscaneoHistorial;
+import com.plantia.dto.TemaFondoDto;
 import com.plantia.services.AbonoService;
+import com.plantia.services.FondosPlantaService;
 import com.plantia.services.PlantasService;
 
 @RestController
@@ -23,10 +26,13 @@ public class PlantasController {
 
     private final PlantasService plantasService;
     private final AbonoService abonoService;
+    private final FondosPlantaService fondosPlantaService;
 
-    public PlantasController(PlantasService plantasService, AbonoService abonoService) {
+    public PlantasController(PlantasService plantasService, AbonoService abonoService,
+                             FondosPlantaService fondosPlantaService) {
         this.plantasService = plantasService;
         this.abonoService = abonoService;
+        this.fondosPlantaService = fondosPlantaService;
     }
 
     /**
@@ -88,6 +94,23 @@ public class PlantasController {
             @PathVariable("id") Integer idPlantaUsuario) {
         abonoService.abonar(userId, idPlantaUsuario);
         return ResponseEntity.ok(plantasService.resumen(userId, idPlantaUsuario));
+    }
+
+    /** Temas de fondo que se le pueden poner a la planta (el predeterminado y los comprados), con el que tiene. */
+    @GetMapping("/{id}/fondos")
+    public List<TemaFondoDto> fondos(
+            @RequestHeader("X-User-Id") Integer userId,
+            @PathVariable("id") Integer idPlantaUsuario) {
+        return fondosPlantaService.temas(userId, idPlantaUsuario);
+    }
+
+    /** Pone un tema de fondo a la planta. Body: { "idTema": n } (o null para volver al de siempre). 409 si no lo tiene. */
+    @PutMapping("/{id}/fondo")
+    public List<TemaFondoDto> ponerFondo(
+            @RequestHeader("X-User-Id") Integer userId,
+            @PathVariable("id") Integer idPlantaUsuario,
+            @RequestBody Map<String, Integer> body) {
+        return fondosPlantaService.aplicar(userId, idPlantaUsuario, body.get("idTema"));
     }
 
     /** Refugia la planta del desastre activo (409 si no hay desastre o la planta ya murio). */

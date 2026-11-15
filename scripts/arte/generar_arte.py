@@ -36,6 +36,7 @@ def main():
 
     for nombre, generador in (("dia", fondos.dia), ("tarde", fondos.tarde), ("noche", fondos.noche)):
         fondos.tira(generador).save(os.path.join(SALIDA, "fondos", f"{nombre}.png"), optimize=True)
+        generador(0).save(os.path.join(SALIDA, "fondos", f"{nombre}_vista.png"), optimize=True)
 
     # Temas de la tienda: una tira de 96 cuadros por momento (<tema>_<dia|tarde|noche>.png) y su vista previa
     for nombre, (_, _, generador, _) in temas.TEMAS.items():

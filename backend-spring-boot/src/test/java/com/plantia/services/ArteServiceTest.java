@@ -13,6 +13,8 @@ import com.plantia.dto.AnimacionDto;
 import com.plantia.dto.FondoDto;
 import com.plantia.models.AnimacionDesastre;
 import com.plantia.models.FondoEscena;
+import com.plantia.models.PlantaUsuario;
+import com.plantia.repositories.PlantaUsuarioRepository;
 import com.plantia.models.FrameAnimacion;
 import com.plantia.models.TipoDesastre;
 import com.plantia.repositories.AnimacionDesastreRepository;
@@ -28,6 +30,7 @@ class ArteServiceTest {
     private FrameAnimacionRepository frameRepo;
     private TipoDesastreRepository tipoRepo;
     private ArteService service;
+    private PlantaUsuarioRepository plantaRepo;
 
     @BeforeEach
     void preparar() {
@@ -35,7 +38,8 @@ class ArteServiceTest {
         animacionRepo = mock(AnimacionDesastreRepository.class);
         frameRepo = mock(FrameAnimacionRepository.class);
         tipoRepo = mock(TipoDesastreRepository.class);
-        service = new ArteService(fondoRepo, animacionRepo, frameRepo, tipoRepo);
+        plantaRepo = mock(PlantaUsuarioRepository.class);
+        service = new ArteService(fondoRepo, animacionRepo, frameRepo, tipoRepo, plantaRepo);
     }
 
     private static FondoEscena fondo(int id, String momento, int frames, boolean predeterminado) {
@@ -92,20 +96,66 @@ class ArteServiceTest {
         assertThat(dto.imageUrl()).startsWith("/files/arte/fondos/");
     }
 
+    private static FondoEscena escena(int id, String momento, Integer idTema, boolean predeterminado) {
+        FondoEscena f = fondo(id, momento, 96, predeterminado);
+        f.setIdTema(idTema);
+        return f;
+    }
+
+    private static PlantaUsuario planta(Integer idTema, boolean activa) {
+        PlantaUsuario p = new PlantaUsuario();
+        p.setIdTemaFondo(idTema);
+        p.setEsActiva(activa);
+        p.setEtapaCrecimiento("SEMILLA");
+        return p;
+    }
+
+    private List<FondoEscena> catalogo() {
+        // Tema 1 = "Campo" (predeterminado); tema 7 = completo; tema 8 = solo trae la noche
+        return List.of(
+                escena(1, "DIA", 1, true), escena(2, "TARDE", 1, true), escena(3, "NOCHE", 1, true),
+                escena(10, "DIA", 7, false), escena(11, "TARDE", 7, false), escena(12, "NOCHE", 7, false),
+                escena(20, "NOCHE", 8, false));
+    }
+
     @Test
-    void losFondosDeUnUsuarioSonLosPredeterminadosYLosEquipados() {
-        FondoEscena normal = fondo(1, "DIA", 96, true);
-        FondoEscena comprado = fondo(2, "DIA", 96, false);
-        FondoEscena ajeno = fondo(3, "NOCHE", 96, false);
-        when(fondoRepo.findByActivoTrueOrderByMomentoAscEsPredeterminadoDescIdFondoAsc())
-                .thenReturn(List.of(normal, comprado, ajeno));
+    void losFondosSonLosDelTemaDeLaPlantaActivaUnoPorMomento() {
+        when(fondoRepo.findByActivoTrueOrderByMomentoAscEsPredeterminadoDescIdFondoAsc()).thenReturn(catalogo());
+        when(plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(5)).thenReturn(List.of(planta(null, false), planta(7, true)));
 
-        List<FondoDto> fondos = service.fondos(java.util.Set.of(2));
+        List<FondoDto> fondos = service.fondos(5);
 
-        // El equipado va primero dentro de su momento y el que no es suyo no se envia
-        assertThat(fondos).extracting(FondoDto::id).containsExactly("fondo_2", "fondo_1");
-        assertThat(fondos.get(0).equipado()).isTrue();
-        assertThat(fondos.get(1).equipado()).isFalse();
+        assertThat(fondos).extracting(FondoDto::id).containsExactly("fondo_10", "fondo_11", "fondo_12");
+        assertThat(fondos).allMatch(FondoDto::equipado);
+    }
+
+    @Test
+    void sinTemaElegidoSeUsaElPredeterminado() {
+        when(fondoRepo.findByActivoTrueOrderByMomentoAscEsPredeterminadoDescIdFondoAsc()).thenReturn(catalogo());
+        when(plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(5)).thenReturn(List.of(planta(null, true)));
+
+        List<FondoDto> fondos = service.fondos(5);
+
+        assertThat(fondos).extracting(FondoDto::id).containsExactly("fondo_1", "fondo_2", "fondo_3");
+        assertThat(fondos).noneMatch(FondoDto::equipado);
+    }
+
+    @Test
+    void siElTemaNoTraeUnMomentoEseUsaElPredeterminado() {
+        when(fondoRepo.findByActivoTrueOrderByMomentoAscEsPredeterminadoDescIdFondoAsc()).thenReturn(catalogo());
+        when(plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(5)).thenReturn(List.of(planta(8, true)));
+
+        assertThat(service.fondos(5)).extracting(FondoDto::id).containsExactly("fondo_1", "fondo_2", "fondo_20");
+    }
+
+    @Test
+    void sinPlantasSeUsaElPredeterminadoYUnaMuertaNoCuenta() {
+        when(fondoRepo.findByActivoTrueOrderByMomentoAscEsPredeterminadoDescIdFondoAsc()).thenReturn(catalogo());
+        PlantaUsuario muerta = planta(7, true);
+        muerta.setEtapaCrecimiento("MUERTA");
+        when(plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(5)).thenReturn(List.of(muerta));
+
+        assertThat(service.fondos(5)).extracting(FondoDto::id).containsExactly("fondo_1", "fondo_2", "fondo_3");
     }
 
     @Test

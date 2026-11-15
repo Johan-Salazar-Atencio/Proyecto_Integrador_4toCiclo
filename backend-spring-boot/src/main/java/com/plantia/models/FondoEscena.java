@@ -47,6 +47,14 @@ public class FondoEscena {
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
 
+    /** Tema al que pertenece esta escena (cada tema tiene una por momento del dia). */
+    @Column(name = "id_tema")
+    private Integer idTema;
+
+    /** Vista previa pequena (primer cuadro). */
+    @Column(name = "vista_url")
+    private String vistaUrl;
+
     @Column(name = "id_creador")
     private Integer idCreador;
 
@@ -73,6 +81,10 @@ public class FondoEscena {
     public void setEsPredeterminado(Boolean esPredeterminado) { this.esPredeterminado = esPredeterminado; }
     public Boolean getActivo() { return activo; }
     public void setActivo(Boolean activo) { this.activo = activo; }
+    public Integer getIdTema() { return idTema; }
+    public void setIdTema(Integer idTema) { this.idTema = idTema; }
+    public String getVistaUrl() { return vistaUrl; }
+    public void setVistaUrl(String vistaUrl) { this.vistaUrl = vistaUrl; }
     public Integer getIdCreador() { return idCreador; }
     public void setIdCreador(Integer idCreador) { this.idCreador = idCreador; }
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }

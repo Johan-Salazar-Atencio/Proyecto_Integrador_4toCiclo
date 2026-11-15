@@ -26,19 +26,9 @@ public class TiendaController {
         return tiendaService.listar(userId);
     }
 
-    /** Compra un fondo (402 sin monedas; 409 si ya lo tiene o falta nivel). */
+    /** Compra un tema de fondo (402 sin monedas; 409 si ya lo tiene o falta nivel). Se pone desde el jardin. */
     @PostMapping("/{id}/comprar")
     public TiendaDto comprar(@RequestHeader("X-User-Id") Integer userId, @PathVariable("id") Integer idItem) {
         return tiendaService.comprar(userId, idItem);
-    }
-
-    @PostMapping("/{id}/equipar")
-    public TiendaDto equipar(@RequestHeader("X-User-Id") Integer userId, @PathVariable("id") Integer idItem) {
-        return tiendaService.equipar(userId, idItem);
-    }
-
-    @PostMapping("/{id}/desequipar")
-    public TiendaDto desequipar(@RequestHeader("X-User-Id") Integer userId, @PathVariable("id") Integer idItem) {
-        return tiendaService.desequipar(userId, idItem);
     }
 }

@@ -34,6 +34,10 @@ public class ItemTienda {
     @Column(name = "id_fondo")
     private Integer idFondo;
 
+    /** Solo para FONDO: el tema de fondo (con sus escenas de dia, tarde y noche) que desbloquea. */
+    @Column(name = "id_tema")
+    private Integer idTema;
+
     @Column(name = "descripcion")
     private String descripcion;
 
@@ -55,6 +59,8 @@ public class ItemTienda {
     public void setAssetUrl(String assetUrl) { this.assetUrl = assetUrl; }
     public Integer getIdFondo() { return idFondo; }
     public void setIdFondo(Integer idFondo) { this.idFondo = idFondo; }
+    public Integer getIdTema() { return idTema; }
+    public void setIdTema(Integer idTema) { this.idTema = idTema; }
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
     public Boolean getActivo() { return activo; }

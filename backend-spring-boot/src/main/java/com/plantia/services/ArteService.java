@@ -14,10 +14,12 @@ import com.plantia.dto.FondoDto;
 import com.plantia.models.AnimacionDesastre;
 import com.plantia.models.FondoEscena;
 import com.plantia.models.FrameAnimacion;
+import com.plantia.models.PlantaUsuario;
 import com.plantia.models.TipoDesastre;
 import com.plantia.repositories.AnimacionDesastreRepository;
 import com.plantia.repositories.FondoEscenaRepository;
 import com.plantia.repositories.FrameAnimacionRepository;
+import com.plantia.repositories.PlantaUsuarioRepository;
 import com.plantia.repositories.TipoDesastreRepository;
 
 /** Arte de la escena: fondos por momento del dia y animaciones de desastre (solo lectura). */
@@ -28,13 +30,17 @@ public class ArteService {
     private final AnimacionDesastreRepository animacionRepo;
     private final FrameAnimacionRepository frameRepo;
     private final TipoDesastreRepository tipoRepo;
+    private final PlantaUsuarioRepository plantaRepo;
+    private static final List<String> MOMENTOS = List.of("DIA", "TARDE", "NOCHE");
 
     public ArteService(FondoEscenaRepository fondoRepo, AnimacionDesastreRepository animacionRepo,
-                       FrameAnimacionRepository frameRepo, TipoDesastreRepository tipoRepo) {
+                       FrameAnimacionRepository frameRepo, TipoDesastreRepository tipoRepo,
+                       PlantaUsuarioRepository plantaRepo) {
         this.fondoRepo = fondoRepo;
         this.animacionRepo = animacionRepo;
         this.frameRepo = frameRepo;
         this.tipoRepo = tipoRepo;
+        this.plantaRepo = plantaRepo;
     }
 
     /** Fondos activos; dentro de cada momento, el predeterminado va primero. */
@@ -46,17 +52,39 @@ public class ArteService {
     }
 
     /**
-     * Fondos que le tocan a un usuario: los predeterminados y los de la tienda que tiene equipados.
-     * Dentro de cada momento va primero el equipado y luego el predeterminado.
+     * Fondos de la planta que el usuario tiene en su jardin: una escena por momento del dia (DIA, TARDE y
+     * NOCHE) del tema que eligio para esa planta. Si el tema no trae alguno de los momentos, ese usa el
+     * fondo predeterminado.
      */
     @Transactional(readOnly = true)
-    public List<FondoDto> fondos(java.util.Set<Integer> equipados) {
-        return fondoRepo.findByActivoTrueOrderByMomentoAscEsPredeterminadoDescIdFondoAsc().stream()
-                .filter(f -> Boolean.TRUE.equals(f.getEsPredeterminado()) || equipados.contains(f.getIdFondo()))
-                .sorted(Comparator.comparing(FondoEscena::getMomento)
-                        .thenComparing(f -> !equipados.contains(f.getIdFondo())))
-                .map(f -> aDto(f, equipados.contains(f.getIdFondo())))
+    public List<FondoDto> fondos(Integer userId) {
+        Integer idTema = temaDeLaPlantaActiva(userId);
+        List<FondoEscena> todos = fondoRepo.findByActivoTrueOrderByMomentoAscEsPredeterminadoDescIdFondoAsc();
+        return MOMENTOS.stream()
+                .map(momento -> {
+                    FondoEscena del = idTema == null ? null : todos.stream()
+                            .filter(f -> momento.equals(f.getMomento()) && idTema.equals(f.getIdTema()))
+                            .findFirst().orElse(null);
+                    if (del != null) {
+                        return aDto(del, true);
+                    }
+                    return todos.stream()
+                            .filter(f -> momento.equals(f.getMomento()) && Boolean.TRUE.equals(f.getEsPredeterminado()))
+                            .findFirst().map(f -> aDto(f, false)).orElse(null);
+                })
+                .filter(java.util.Objects::nonNull)
                 .toList();
+    }
+
+    /** Tema de la planta del jardin (la activa o, si no hay, la ultima plantada); null = el predeterminado. */
+    private Integer temaDeLaPlantaActiva(Integer userId) {
+        List<PlantaUsuario> plantas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId).stream()
+                .filter(p -> !"MUERTA".equals(p.getEtapaCrecimiento()))
+                .toList();
+        return plantas.stream().filter(p -> Boolean.TRUE.equals(p.getEsActiva())).findFirst()
+                .or(() -> plantas.stream().findFirst())
+                .map(PlantaUsuario::getIdTemaFondo)
+                .orElse(null);
     }
 
     /** Animaciones activas con sus frames en orden; las que no tienen frames no se envian. */
