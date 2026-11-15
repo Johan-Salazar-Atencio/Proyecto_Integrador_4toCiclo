@@ -18,9 +18,14 @@ import org.springframework.web.server.ResponseStatusException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.plantia.models.EscaneoHistorial;
 import com.plantia.models.PlantaUsuario;
+import com.plantia.models.Usuario;
 import com.plantia.repositories.EscaneoHistorialRepository;
+import com.plantia.repositories.HistorialProgresoRepository;
+import com.plantia.repositories.NivelRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
 import com.plantia.repositories.PlantaUsuarioRepository;
+import com.plantia.repositories.ReglaProgresoRepository;
+import com.plantia.repositories.UsuarioRepository;
 
 /** Un usuario no puede tocar plantas ni escaneos de otro (antes bastaba con cambiar el id de la URL). */
 class PlantasServiceTest {
@@ -36,7 +41,12 @@ class PlantasServiceTest {
     void preparar() {
         plantaRepo = mock(PlantaUsuarioRepository.class);
         escaneoRepo = mock(EscaneoHistorialRepository.class);
-        service = new PlantasService(plantaRepo, mock(PlantaCatalogoRepository.class), escaneoRepo, new ObjectMapper());
+        // Sin reglas cargadas: el progreso no suma nada, pero el flujo de cuidar y digitalizar se ejecuta completo
+        UsuarioRepository usuarioRepo = mock(UsuarioRepository.class);
+        when(usuarioRepo.findById(any())).thenReturn(Optional.of(new Usuario()));
+        ProgresoService progreso = new ProgresoService(usuarioRepo, mock(NivelRepository.class),
+                mock(ReglaProgresoRepository.class), mock(HistorialProgresoRepository.class));
+        service = new PlantasService(plantaRepo, mock(PlantaCatalogoRepository.class), escaneoRepo, progreso, new ObjectMapper());
 
         PlantaUsuario planta = new PlantaUsuario();
         planta.setIdUsuario(DUENO);

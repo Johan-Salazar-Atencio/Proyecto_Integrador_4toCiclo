@@ -9,4 +9,7 @@ import com.plantia.models.EscaneoHistorial;
 public interface EscaneoHistorialRepository extends JpaRepository<EscaneoHistorial, Integer> {
 
     List<EscaneoHistorial> findTop20ByIdUsuarioOrderByFechaEscaneoDesc(Integer idUsuario);
+
+    /** Para saber si una especie es nueva para el usuario. */
+    boolean existsByIdUsuarioAndIdCatalogo(Integer idUsuario, Integer idCatalogo);
 }

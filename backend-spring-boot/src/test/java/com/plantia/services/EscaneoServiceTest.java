@@ -52,7 +52,7 @@ class EscaneoServiceTest {
             return new SimpleTransactionStatus();
         });
         escaneoRepo = mock(EscaneoHistorialRepository.class);
-        service = new EscaneoService(escaneoRepo, mock(PlantaCatalogoRepository.class), storage, ia, null, tx);
+        service = new EscaneoService(escaneoRepo, mock(PlantaCatalogoRepository.class), storage, ia, null, null, tx);
     }
 
     @Test

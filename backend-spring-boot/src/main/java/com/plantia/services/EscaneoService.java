@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.plantia.dto.CuidadoSeccionDto;
 import com.plantia.dto.IaResultDto;
+import com.plantia.dto.ProgresoDto;
 import com.plantia.dto.RecentScanDto;
 import com.plantia.dto.ScanResultDto;
 import com.plantia.models.EscaneoHistorial;
@@ -35,6 +36,7 @@ public class EscaneoService {
     private final StorageService storage;
     private final IaClient iaClient;
     private final CatalogoService catalogoService;
+    private final ProgresoService progresoService;
     private final TransactionTemplate transaccion;
 
     public EscaneoService(EscaneoHistorialRepository escaneoRepo,
@@ -42,12 +44,14 @@ public class EscaneoService {
                           StorageService storage,
                           IaClient iaClient,
                           CatalogoService catalogoService,
+                          ProgresoService progresoService,
                           PlatformTransactionManager transactionManager) {
         this.escaneoRepo = escaneoRepo;
         this.catalogoRepo = catalogoRepo;
         this.storage = storage;
         this.iaClient = iaClient;
         this.catalogoService = catalogoService;
+        this.progresoService = progresoService;
         this.transaccion = new TransactionTemplate(transactionManager);
     }
 
@@ -102,6 +106,10 @@ public class EscaneoService {
             catalogo = catalogoService.upsertDesdeIa(ia);
         }
 
+        // Se mira antes de guardar el escaneo: despues, la especie ya contaria como vista
+        boolean especieNueva = catalogo != null
+                && !escaneoRepo.existsByIdUsuarioAndIdCatalogo(userId, catalogo.getIdCatalogo());
+
         EscaneoHistorial escaneo = new EscaneoHistorial();
         escaneo.setIdUsuario(userId);
         escaneo.setIdCatalogo(catalogo != null ? catalogo.getIdCatalogo() : null);
@@ -113,6 +121,13 @@ public class EscaneoService {
 
         // Ya no insertamos automáticamente en coleccion - eso lo hace el endpoint dedicado
         // Si no está identificado, tampoco insertamos en coleccion desde aquí
+
+        // Solo un escaneo identificado da XP; una especie nueva suma ademas su propia regla
+        ProgresoDto progreso = null;
+        if (identificado) {
+            List<String> motivos = especieNueva ? List.of("ESCANEO", "ESPECIE_NUEVA") : List.of("ESCANEO");
+            progreso = progresoService.otorgar(userId, motivos, escaneo.getIdEscaneo());
+        }
 
         String nombreComun = catalogo != null ? catalogo.getNombreComun() : "Planta desconocida";
 
@@ -128,7 +143,8 @@ public class EscaneoService {
                         ? catalogoService.cuidados(catalogo.getIdCatalogo())
                         : List.<CuidadoSeccionDto>of(),
                 identificado, // nuevo campo: true solo si la IA devolvió nombre científico
-                identificado ? ia.apariencia() : null
+                identificado ? ia.apariencia() : null,
+                progreso
         );
     }
 

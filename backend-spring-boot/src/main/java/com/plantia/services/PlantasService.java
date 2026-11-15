@@ -29,15 +29,18 @@ public class PlantasService {
     private final PlantaUsuarioRepository plantaRepo;
     private final PlantaCatalogoRepository catalogoRepo;
     private final EscaneoHistorialRepository escaneoRepo;
+    private final ProgresoService progresoService;
     private final ObjectMapper json;
 
     public PlantasService(PlantaUsuarioRepository plantaRepo,
                           PlantaCatalogoRepository catalogoRepo,
                           EscaneoHistorialRepository escaneoRepo,
+                          ProgresoService progresoService,
                           ObjectMapper json) {
         this.plantaRepo = plantaRepo;
         this.catalogoRepo = catalogoRepo;
         this.escaneoRepo = escaneoRepo;
+        this.progresoService = progresoService;
         this.json = json;
     }
 
@@ -95,6 +98,8 @@ public class PlantasService {
                 .filter(p -> especie.equals(p.getIdCatalogo()))
                 .findFirst()
                 .orElseGet(PlantaUsuario::new);
+        // Reiniciar una especie que ya tenia no da XP: si no, se podria repetir para ganar
+        boolean nueva = planta.getIdPlantaUsuario() == null;
         suyas.forEach(p -> p.setEsActiva(false));
 
         LocalDateTime ahora = LocalDateTime.now();
@@ -120,7 +125,11 @@ public class PlantasService {
         planta.setEsActiva(true);
 
         plantaRepo.saveAll(suyas);
-        return map(plantaRepo.save(planta), catalogo);
+        PlantaUsuario guardada = plantaRepo.save(planta);
+        PlantSummaryDto dto = map(guardada, catalogo);
+        return nueva
+                ? dto.conProgreso(progresoService.otorgar(userId, "DIGITALIZAR", guardada.getIdPlantaUsuario()))
+                : dto;
     }
 
     @Transactional
@@ -178,7 +187,9 @@ public class PlantasService {
             p.setEtapaCrecimiento(etapaSegun(p.getCrecimiento()));
         }
         plantaRepo.save(p);
-        return map(p);
+        PlantSummaryDto dto = map(p);
+        // Solo un cuidado util da XP (regar una planta al 100 % no cuenta); la regla CUIDAR tiene tope diario
+        return util ? dto.conProgreso(progresoService.otorgar(userId, "CUIDAR", p.getIdPlantaUsuario())) : dto;
     }
 
     /** Activa una planta digital (avanza su etapa: SEMILLA -> BROTE -> ADULTA). */
