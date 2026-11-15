@@ -48,7 +48,7 @@ class ContratoMovilTest {
                         "name", "species", "healthPercent", "humidityPercent",
                         "lightPercent", "lastWatered", "imageUrl",
                         // Extras del jardin web (el movil los ignora)
-                        "id", "crecimiento", "apariencia", "fotoUrl", "activa", "refugiada");
+                        "id", "crecimiento", "apariencia", "fotoUrl", "activa", "refugiada", "diasCuidados", "diasTotales", "fase");
     }
 
     @Test

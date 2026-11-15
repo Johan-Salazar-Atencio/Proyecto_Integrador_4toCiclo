@@ -351,7 +351,10 @@ public class PlantasService {
                 deJson(p.getApariencia()),
                 p.getFotoUrl(),
                 Boolean.TRUE.equals(p.getEsActiva()),
-                Boolean.TRUE.equals(p.getEstaRefugiada()));
+                Boolean.TRUE.equals(p.getEstaRefugiada()),
+                valor(p.getDiasCuidados()),
+                CrecimientoPlanta.diasTotales(deJson(p.getApariencia())),
+                p.getEtapaCrecimiento());
     }
 
     private static String etapaUrl(PlantaCatalogo cat, String etapa) {
