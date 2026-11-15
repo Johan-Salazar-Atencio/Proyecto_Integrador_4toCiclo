@@ -86,4 +86,22 @@ class ContratoMovilTest {
                         "confianza", "imagenUrl", "nuevoEnColeccion", "cuidados", "identificado",
                         "apariencia");
     }
+
+    @Test
+    void progresoSoloSeEnviaCuandoHayProgreso() throws Exception {
+        ProgresoDto progreso = new ProgresoDto(20, 5, 2, true, 520, 3);
+        PlantSummaryDto planta = new PlantSummaryDto("Monstera", "Monstera deliciosa", 80, 60, 90, "Hace 2 dias", null);
+
+        assertThat(claves(planta)).doesNotContain("progreso");
+        assertThat(claves(planta.conProgreso(progreso))).contains("progreso");
+        assertThat(claves(progreso))
+                .containsExactlyInAnyOrder("xpGanado", "monedasGanadas", "nivel", "subioDeNivel", "experienciaXp", "rachaDias");
+
+        ScanResultDto sinProgreso = new ScanResultDto(1, 2, "Monstera", "Monstera deliciosa", 92.5,
+                "/files/x.jpg", false, List.of(), true);
+        ScanResultDto conProgreso = new ScanResultDto(1, 2, "Monstera", "Monstera deliciosa", 92.5,
+                "/files/x.jpg", false, List.of(), true, null, progreso);
+        assertThat(claves(sinProgreso)).doesNotContain("progreso");
+        assertThat(claves(conProgreso)).contains("progreso");
+    }
 }
