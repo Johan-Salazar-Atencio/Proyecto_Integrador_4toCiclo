@@ -86,11 +86,13 @@ private fun DrawScope.drawMaceta(cx: Float, baseY: Float, w: Float) {
 }
 
 private fun DrawScope.drawTallo(cx: Float, baseY: Float, h: Float) {
-    val path = Path().apply {
-        moveTo(cx, baseY)
-        quadraticBezierTo(cx - 2f, baseY - 60f, cx, baseY - 120f)
-    }
-    drawPath(path, color = Color(0xFF33691E), style = androidx.compose.ui.graphics.Stroke(width = 6f))
+    drawLine(
+        color = Color(0xFF33691E),
+        start = Offset(cx, baseY),
+        end = Offset(cx, baseY - 120f),
+        strokeWidth = 6f,
+        cap = androidx.compose.ui.graphics.StrokeCap.Round
+    )
 }
 
 private fun DrawScope.drawHojaIzquierda(cx: Float, baseY: Float, w: Float, h: Float) {
