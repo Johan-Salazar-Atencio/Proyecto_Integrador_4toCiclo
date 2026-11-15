@@ -81,3 +81,14 @@ export async function cancelarEvento(id) {
   }
   return await respuesta.json()
 }
+
+// REAL: que le paso a cada planta cuando termino el desastre (registros_desastre_usuario).
+// GET /django/api/admin/eventos/{id}/efectos/  ->  { resumen: {...}, registros: [...] }
+export async function efectosEvento(id) {
+  const respuesta = await fetch(`/django/api/admin/eventos/${id}/efectos/`, { headers: cabecerasAdmin() })
+  if (!respuesta.ok) {
+    const texto = await respuesta.text()
+    throw new Error(texto || `Error ${respuesta.status}`)
+  }
+  return await respuesta.json()
+}

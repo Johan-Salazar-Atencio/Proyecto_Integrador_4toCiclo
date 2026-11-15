@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cancelarEvento, crearEvento, listarEventos } from '../../../services/admin/eventos'
+import EfectoEvento from './EfectoEvento'
 import EventoEnCurso from './EventoEnCurso'
 import FormularioEvento from './FormularioEvento'
 import HistorialEventos from './HistorialEventos'
@@ -11,6 +12,7 @@ export default function Eventos() {
   const [estado, setEstado] = useState({ cargando: true, eventos: [], error: '' })
   const [cancelando, setCancelando] = useState(false)
   const [aviso, setAviso] = useState('')
+  const [verEfecto, setVerEfecto] = useState(null)
   const temporizador = useRef(null)
 
   const cargar = useCallback(async () => {
@@ -62,6 +64,8 @@ export default function Eventos() {
 
       <FormularioEvento hayActivo={Boolean(activo)} onLanzar={lanzar} />
 
+      {verEfecto && <EfectoEvento key={verEfecto.id_desastre} evento={verEfecto} onCerrar={() => setVerEfecto(null)} />}
+
       <section className="tarjeta aparece" style={{ animationDelay: '0.16s' }}>
         <div className="dashboard-titulo">
           <div>
@@ -69,7 +73,7 @@ export default function Eventos() {
             <p>Registro de los eventos lanzados desde el panel</p>
           </div>
         </div>
-        <HistorialEventos eventos={eventos} />
+        <HistorialEventos eventos={eventos} onVerEfecto={setVerEfecto} />
       </section>
 
       {aviso && <div className="jardin-aviso" role="status">{aviso}</div>}

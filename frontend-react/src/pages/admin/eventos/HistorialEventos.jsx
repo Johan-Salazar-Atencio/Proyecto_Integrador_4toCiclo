@@ -12,14 +12,14 @@ function duracion(inicio, fin) {
 const ESTADOS = { ACTIVO: ['En curso', 'est-activo'], PROGRAMADO: ['Programado', 'est-programado'], FINALIZADO: ['Finalizado', 'est-final'] }
 
 // Historial de eventos (Django, solo lectura) mas los simulados de esta sesion
-export default function HistorialEventos({ eventos }) {
+export default function HistorialEventos({ eventos, onVerEfecto }) {
   if (eventos.length === 0) return <p className="historial-vacio">Aún no se ha lanzado ningún evento.</p>
 
   return (
     <div className="tabla-escaneos">
       <table>
         <thead>
-          <tr><th>Evento</th><th>Severidad</th><th>Inicio</th><th>Duración</th><th>Estado</th></tr>
+          <tr><th>Evento</th><th>Severidad</th><th>Inicio</th><th>Duración</th><th>Estado</th><th /></tr>
         </thead>
         <tbody>
           {eventos.map((e) => {
@@ -34,6 +34,7 @@ export default function HistorialEventos({ eventos }) {
                 <td>{fecha(e.fecha_inicio)}</td>
                 <td>{duracion(e.fecha_inicio, e.fecha_fin)}</td>
                 <td><span className={`tabla-estado ${clase}`}>{texto}</span></td>
+                <td>{e.estado === 'FINALIZADO' && !e.simulado && <button className="historial-efecto" onClick={() => onVerEfecto(e)}>Ver efecto</button>}</td>
               </tr>
             )
           })}

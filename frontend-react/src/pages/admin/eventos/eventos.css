@@ -83,3 +83,9 @@
 @media (max-width: 640px) { .formulario-fila { grid-template-columns: 1fr; } .formulario-severidad { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .en-curso-vivo i { animation: none; } }
 .eventos .jardin-aviso { top: auto; bottom: 24px; left: 50%; }
+
+/* Efecto de un desastre terminado */
+.efecto { display: flex; flex-direction: column; gap: 14px; }
+.efecto-resumen { display: flex; flex-wrap: wrap; gap: 10px; }
+.efecto-cerrar, .historial-efecto { padding: 6px 14px; background: var(--fondo); border: 0; border-radius: 999px; color: var(--texto); font-weight: 700; cursor: pointer; }
+.efecto-cerrar:hover, .historial-efecto:hover { filter: brightness(0.95); }
