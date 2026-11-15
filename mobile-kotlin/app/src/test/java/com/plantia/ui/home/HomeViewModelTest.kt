@@ -2,6 +2,7 @@ package com.plantia.ui.home
 
 import com.plantia.data.repository.AlertaResultado
 import com.plantia.data.repository.PlantaActivaResultado
+import com.plantia.data.repository.PlantaResultado
 import com.plantia.fakes.FakeCollectionRepository
 import com.plantia.fakes.FakeGardenRepository
 import com.plantia.fakes.FakeHomeRepository
@@ -114,5 +115,66 @@ class HomeViewModelTest {
         assertEquals(3, home.consultasAlerta)
 
         tarea.cancel()
+    }
+
+    // --- Boton Refugiar Planta ---
+
+    @Test
+    fun refugiar_marca_la_planta_y_avisa() = runTest {
+        home.datos = home.datos.copy(alerta = alerta())
+        val vm = viewModel()
+
+        vm.refugiar()
+
+        assertEquals(listOf(1), garden.refugiados)
+        assertEquals(true, vm.uiState.planta?.refugiada)
+        assertEquals("Monstera esta a resguardo", vm.aviso)
+        assertEquals(false, vm.refugiando)
+    }
+
+    @Test
+    fun si_el_desastre_ya_termino_avisa_y_refresca_la_alerta() = runTest {
+        home.datos = home.datos.copy(alerta = alerta())
+        garden.alRefugiar = PlantaResultado.Fallo("Ya no hay un desastre activo para refugiar la planta")
+        val vm = viewModel()
+        home.alertaResultado = AlertaResultado.Sin
+
+        vm.refugiar()
+
+        assertEquals("Ya no hay un desastre activo para refugiar la planta", vm.aviso)
+        assertEquals(false, vm.uiState.planta?.refugiada)
+        assertNull(vm.uiState.alerta)
+    }
+
+    @Test
+    fun sin_planta_no_llama_al_servidor_y_avisa() = runTest {
+        home.datos = home.datos.copy(planta = null)
+        val vm = viewModel()
+
+        vm.refugiar()
+
+        assertEquals(emptyList<Int>(), garden.refugiados)
+        assertEquals("Aun no tienes una planta para refugiar", vm.aviso)
+    }
+
+    @Test
+    fun una_planta_ya_refugiada_no_se_vuelve_a_pedir() = runTest {
+        home.datos = home.datos.copy(planta = planta().copy(refugiada = true))
+        val vm = viewModel()
+
+        vm.refugiar()
+
+        assertEquals(emptyList<Int>(), garden.refugiados)
+    }
+
+    @Test
+    fun el_aviso_se_limpia_al_mostrarse() = runTest {
+        val vm = viewModel()
+        vm.refugiar()
+        assertNotNull(vm.aviso)
+
+        vm.avisoMostrado()
+
+        assertNull(vm.aviso)
     }
 }

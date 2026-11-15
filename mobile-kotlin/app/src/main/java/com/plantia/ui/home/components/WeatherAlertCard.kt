@@ -34,7 +34,11 @@ import com.plantia.ui.theme.TextSecondary
 fun WeatherAlertCard(
     alert: WeatherAlert,
     onActionClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** La planta ya esta a resguardo: el boton pasa a ser una confirmacion y no se puede volver a tocar. */
+    refugiada: Boolean = false,
+    /** Hay una peticion de refugio en curso. */
+    refugiando: Boolean = false
 ) {
     Surface(
         modifier = modifier
@@ -112,15 +116,23 @@ fun WeatherAlertCard(
 
             Button(
                 onClick = onActionClick,
+                enabled = !refugiada && !refugiando,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = TextPrimary
+                    contentColor = TextPrimary,
+                    // Refugiada: se ve como confirmacion (verde), no como un boton apagado
+                    disabledContainerColor = if (refugiada) GreenLight else MaterialTheme.colorScheme.surface,
+                    disabledContentColor = if (refugiada) Color(0xFF16A34A) else TextSecondary
                 )
             ) {
                 Text(
-                    text = alert.actionText,
+                    text = when {
+                        refugiada -> "Planta refugiada"
+                        refugiando -> "Refugiando..."
+                        else -> alert.actionText
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(vertical = 4.dp)

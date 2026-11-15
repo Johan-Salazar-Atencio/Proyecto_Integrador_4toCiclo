@@ -88,6 +88,10 @@ interface PlantiaApi {
         @Body body: Map<String, String>
     ): Response<PlantSummaryDto>
 
+    /** Refugia la planta del desastre activo (409 si no hay desastre, 404 si no es del usuario). */
+    @POST("api/v1/plantas/{id}/refugio")
+    suspend fun refugiarPlanta(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
     // Catalogo
 
     /** Catalogo de plantas, con busqueda y filtro de toxicidad. */

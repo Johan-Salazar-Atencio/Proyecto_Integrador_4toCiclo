@@ -83,8 +83,10 @@ class FakeGardenRepository : GardenRepository {
     var alDigitalizar: PlantaResultado = PlantaResultado.Con(planta())
     var alSeleccionar: PlantaResultado = PlantaResultado.Con(planta())
     var alCuidar: PlantaResultado = PlantaResultado.Con(planta())
+    var alRefugiar: PlantaResultado = PlantaResultado.Con(planta().copy(refugiada = true))
 
     val cuidados = mutableListOf<Pair<Int, AccionCuidado>>()
+    val refugiados = mutableListOf<Int>()
     val digitalizados = mutableListOf<Pair<Int, Int?>>()
 
     override suspend fun plantaActiva() = activa
@@ -100,6 +102,11 @@ class FakeGardenRepository : GardenRepository {
     override suspend fun cuidar(idPlanta: Int, accion: AccionCuidado): PlantaResultado {
         cuidados += idPlanta to accion
         return alCuidar
+    }
+
+    override suspend fun refugiar(idPlanta: Int): PlantaResultado {
+        refugiados += idPlanta
+        return alRefugiar
     }
 }
 

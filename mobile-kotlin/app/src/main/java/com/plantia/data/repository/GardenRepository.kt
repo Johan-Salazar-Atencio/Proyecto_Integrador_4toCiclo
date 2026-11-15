@@ -33,4 +33,7 @@ interface GardenRepository {
     suspend fun seleccionar(idPlanta: Int): PlantaResultado
 
     suspend fun cuidar(idPlanta: Int, accion: AccionCuidado): PlantaResultado
+
+    /** Pone la planta a resguardo del desastre en curso; falla si ya no hay desastre activo. */
+    suspend fun refugiar(idPlanta: Int): PlantaResultado
 }

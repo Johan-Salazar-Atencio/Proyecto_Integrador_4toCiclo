@@ -58,6 +58,21 @@ class RemoteGardenRepository(
     override suspend fun cuidar(idPlanta: Int, accion: AccionCuidado): PlantaResultado =
         planta { api().cuidarPlanta(idPlanta, mapOf("accion" to accion.name)) }
 
+    override suspend fun refugiar(idPlanta: Int): PlantaResultado = withContext(Dispatchers.IO) {
+        try {
+            val respuesta = api().refugiarPlanta(idPlanta)
+            val cuerpo = respuesta.body()
+            when {
+                respuesta.isSuccessful && cuerpo != null -> PlantaResultado.Con(cuerpo.aPlanta())
+                respuesta.code() == 409 -> PlantaResultado.Fallo("Ya no hay un desastre activo para refugiar la planta")
+                respuesta.code() == 404 -> PlantaResultado.Fallo("No se encontro la planta")
+                else -> PlantaResultado.Fallo("El servidor respondio ${respuesta.code()}")
+            }
+        } catch (e: Exception) {
+            PlantaResultado.Fallo(e.message ?: SIN_CONEXION)
+        }
+    }
+
     private suspend fun planta(llamada: suspend () -> Response<PlantSummaryDto>): PlantaResultado =
         withContext(Dispatchers.IO) {
             try {

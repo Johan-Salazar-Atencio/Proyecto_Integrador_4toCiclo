@@ -19,6 +19,7 @@ import com.plantia.data.repository.CollectionRepository
 import com.plantia.data.repository.GardenRepository
 import com.plantia.data.repository.HomeRepository
 import com.plantia.data.repository.PlantaActivaResultado
+import com.plantia.data.repository.PlantaResultado
 import com.plantia.di.AppContainer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -65,6 +66,45 @@ class HomeViewModel(
     var uiState by mutableStateOf(HomeUiState())
         private set
 
+    /** Mensaje breve para el usuario (resultado de refugiar); la pantalla lo muestra y llama a [avisoMostrado]. */
+    var aviso by mutableStateOf<String?>(null)
+        private set
+
+    /** Hay una peticion de refugio en curso: evita doble toque y bloquea el refresco de la planta. */
+    var refugiando by mutableStateOf(false)
+        private set
+
+    fun avisoMostrado() {
+        aviso = null
+    }
+
+    /** Refugia la planta del Home del desastre activo. */
+    fun refugiar() {
+        val planta = uiState.planta
+        val id = planta?.id
+        if (id == null) {
+            aviso = "Aun no tienes una planta para refugiar"
+            return
+        }
+        if (refugiando || planta.refugiada) return
+        viewModelScope.launch {
+            refugiando = true
+            when (val resultado = garden.refugiar(id)) {
+                is PlantaResultado.Con -> {
+                    uiState = uiState.copy(planta = uiState.planta?.copy(refugiada = true))
+                    aviso = "${planta.name} esta a resguardo"
+                }
+                is PlantaResultado.Fallo -> {
+                    aviso = resultado.mensaje
+                    refugiando = false
+                    // Lo mas probable es que el desastre ya termino: se refresca la alerta
+                    actualizarEnVivo()
+                }
+            }
+            refugiando = false
+        }
+    }
+
     init {
         // Si cambia el usuario de la sesion, se recarga todo el Home.
         viewModelScope.launch {
@@ -109,7 +149,8 @@ class HomeViewModel(
             AlertaResultado.Fallo -> nuevo
         }
         if (usuario != null) nuevo = nuevo.copy(usuario = usuario)
-        if (planta is PlantaActivaResultado.ConPlanta) {
+        // Mientras se refugia no se pisa la planta con una lectura anterior a la respuesta del servidor
+        if (planta is PlantaActivaResultado.ConPlanta && !refugiando) {
             nuevo = nuevo.copy(planta = fusionar(nuevo.planta, planta.planta))
         }
         uiState = nuevo

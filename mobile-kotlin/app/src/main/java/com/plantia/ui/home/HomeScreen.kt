@@ -49,6 +49,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.plantia.ui.components.AvisoToast
 import com.plantia.ui.home.components.DailyMissionCard
 import com.plantia.ui.home.components.PlantSummaryCard
 import com.plantia.ui.home.components.QuickAccessGrid
@@ -97,6 +98,7 @@ fun HomeScreen(
         ciclo.repeatOnLifecycle(Lifecycle.State.STARTED) { homeViewModel.sondear() }
     }
     val accesosRapidos = state.accesos
+    AvisoToast(homeViewModel.aviso, homeViewModel::avisoMostrado)
 
     Scaffold(
         topBar = {
@@ -253,7 +255,9 @@ fun HomeScreen(
                 state.alerta?.let { alerta ->
                     WeatherAlertCard(
                         alert = alerta,
-                        onActionClick = {}
+                        onActionClick = homeViewModel::refugiar,
+                        refugiada = state.planta?.refugiada == true,
+                        refugiando = homeViewModel.refugiando
                     )
                 }
 
