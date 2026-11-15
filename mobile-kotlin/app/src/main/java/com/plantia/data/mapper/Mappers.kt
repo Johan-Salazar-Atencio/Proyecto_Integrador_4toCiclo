@@ -59,7 +59,9 @@ fun UserSummaryDto.toDomain(): UserSummary = UserSummary(
     leaves = leaves,
     experience = experience,
     experienceToNextLevel = experienceToNextLevel,
-    profileImageUrl = profileImageUrl
+    profileImageUrl = profileImageUrl,
+    streakDays = streakDays,
+    experienceFromLevel = experienceFromLevel
 )
 
 fun WeatherAlertDto.toDomain(): WeatherAlert = WeatherAlert(

@@ -177,4 +177,28 @@ class HomeViewModelTest {
 
         assertNull(vm.aviso)
     }
+
+    // --- Subida de nivel ---
+
+    @Test
+    fun si_el_refresco_trae_un_nivel_mayor_avisa_la_subida() = runTest {
+        val vm = viewModel()
+        assertNull(vm.aviso)
+
+        home.usuarioResultado = usuarioEjemplo(nivel = 2, xp = 520)
+        vm.actualizarEnVivo()
+
+        assertEquals("Subiste al nivel 2", vm.aviso)
+    }
+
+    @Test
+    fun si_solo_sube_el_xp_no_hay_aviso_de_nivel() = runTest {
+        val vm = viewModel()
+
+        home.usuarioResultado = usuarioEjemplo(nivel = 1, xp = 300)
+        vm.actualizarEnVivo()
+
+        assertNull(vm.aviso)
+        assertEquals(300, vm.uiState.usuario?.experience)
+    }
 }

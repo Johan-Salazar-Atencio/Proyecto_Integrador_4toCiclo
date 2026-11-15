@@ -176,8 +176,7 @@ fun PerfilScreen(
 
 @Composable
 private fun TarjetaUsuario(usuario: UserSummary) {
-    val falta = usuario.experienceToNextLevel.coerceAtLeast(1)
-    val objetivo = (usuario.experience.toFloat() / falta).coerceIn(0f, 1f)
+    val objetivo = usuario.progresoNivel
     var arranque by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { arranque = true }
     val progreso by animateFloatAsState(if (arranque) objetivo else 0f, tween(900), label = "xp")

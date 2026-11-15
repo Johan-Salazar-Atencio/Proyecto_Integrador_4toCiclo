@@ -148,7 +148,14 @@ class HomeViewModel(
             AlertaResultado.Sin -> nuevo.copy(alerta = null)
             AlertaResultado.Fallo -> nuevo
         }
-        if (usuario != null) nuevo = nuevo.copy(usuario = usuario)
+        if (usuario != null) {
+            // Un nivel mas que antes: el XP llego de un escaneo, un cuidado o un desastre superado
+            val nivelAntes = nuevo.usuario?.level
+            if (nivelAntes != null && usuario.level > nivelAntes) {
+                aviso = "Subiste al nivel ${usuario.level}"
+            }
+            nuevo = nuevo.copy(usuario = usuario)
+        }
         // Mientras se refugia no se pisa la planta con una lectura anterior a la respuesta del servidor
         if (planta is PlantaActivaResultado.ConPlanta && !refugiando) {
             nuevo = nuevo.copy(planta = fusionar(nuevo.planta, planta.planta))
