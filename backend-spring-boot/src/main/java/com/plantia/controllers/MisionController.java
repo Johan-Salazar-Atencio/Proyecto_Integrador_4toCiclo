@@ -1,5 +1,7 @@
 package com.plantia.controllers;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -26,5 +28,11 @@ public class MisionController {
         return misionService.diaria(userId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /** Todas las misiones activas de hoy con el avance del usuario (las define el admin). */
+    @GetMapping
+    public List<DailyMissionDto> deHoy(@RequestHeader("X-User-Id") Integer userId) {
+        return misionService.deHoy(userId);
     }
 }

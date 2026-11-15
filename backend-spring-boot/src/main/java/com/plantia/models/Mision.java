@@ -37,6 +37,9 @@ public class Mision {
     @Column(name = "activa")
     private Boolean activa;
 
+    @Column(name = "orden", nullable = false)
+    private Integer orden = 0;
+
     public Integer getIdMision() { return idMision; }
     public void setIdMision(Integer idMision) { this.idMision = idMision; }
     public String getTitulo() { return titulo; }
@@ -53,4 +56,6 @@ public class Mision {
     public void setRecompensaXp(Integer recompensaXp) { this.recompensaXp = recompensaXp; }
     public Boolean getActiva() { return activa; }
     public void setActiva(Boolean activa) { this.activa = activa; }
+    public Integer getOrden() { return orden; }
+    public void setOrden(Integer orden) { this.orden = orden; }
 }

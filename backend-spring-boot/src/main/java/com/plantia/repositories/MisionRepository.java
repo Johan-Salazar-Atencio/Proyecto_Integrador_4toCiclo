@@ -8,5 +8,5 @@ import com.plantia.models.Mision;
 
 public interface MisionRepository extends JpaRepository<Mision, Integer> {
 
-    List<Mision> findByActivaTrue();
+    List<Mision> findByActivaTrueOrderByOrdenAscIdMisionAsc();
 }

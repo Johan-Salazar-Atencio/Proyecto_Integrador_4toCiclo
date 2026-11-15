@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.plantia.dto.PlantSummaryDto;
+import com.plantia.dto.ProgresoDto;
 import com.plantia.models.EscaneoHistorial;
 import com.plantia.models.PlantaUsuario;
 import com.plantia.models.PlantaCatalogo;
@@ -131,7 +132,7 @@ public class PlantasService {
         PlantaUsuario guardada = plantaRepo.save(planta);
         PlantSummaryDto dto = map(guardada, catalogo);
         return nueva
-                ? dto.conProgreso(progresoService.otorgar(userId, "DIGITALIZAR", guardada.getIdPlantaUsuario()))
+                ? dto.conProgreso(progresoService.otorgar(userId, List.of("DIGITALIZAR"), List.of("DIGITALIZAR", "COLECCION"), guardada.getIdPlantaUsuario()))
                 : dto;
     }
 
@@ -192,7 +193,7 @@ public class PlantasService {
         plantaRepo.save(p);
         PlantSummaryDto dto = map(p);
         // Solo un cuidado util da XP (regar una planta al 100 % no cuenta); la regla CUIDAR tiene tope diario
-        return util ? dto.conProgreso(progresoService.otorgar(userId, "CUIDAR", p.getIdPlantaUsuario())) : dto;
+        return util ? dto.conProgreso(progresoService.otorgar(userId, List.of("CUIDAR"), List.of(misionDeCuidado(accion)), p.getIdPlantaUsuario())) : dto;
     }
 
     /**
@@ -212,10 +213,25 @@ public class PlantasService {
             }
             // updated_at no se toca: envejecer() lo usa para contar las horas de desgaste
             p.setEstaRefugiada(true);
-            p.setRefugiadaDesde(LocalDateTime.now());
+            LocalDateTime ahora = LocalDateTime.now();
+            p.setRefugiadaDesde(ahora);
             plantaRepo.save(p);
+            // Cuenta para las misiones de tipo REFUGIO; solo se informa si la mision pago algo
+            ProgresoDto premio = progresoService.registrarAccion(userId, "REFUGIO", p.getIdPlantaUsuario(), ahora);
+            if (premio.xpGanado() != 0 || premio.monedasGanadas() != 0) {
+                return map(p).conProgreso(premio);
+            }
         }
         return map(p);
+    }
+
+    /** Tipo de mision que cuenta cada cuidado. */
+    private static String misionDeCuidado(String accion) {
+        return switch (accion) {
+            case "REGAR" -> "RIEGO";
+            case "SOL" -> "SOL";
+            default -> "ABONO";
+        };
     }
 
     /** Activa una planta digital (avanza su etapa: SEMILLA -> BROTE -> ADULTA). */

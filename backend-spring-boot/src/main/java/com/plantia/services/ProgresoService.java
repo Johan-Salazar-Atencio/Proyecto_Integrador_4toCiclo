@@ -13,10 +13,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.plantia.dto.ProgresoDto;
 import com.plantia.models.HistorialProgreso;
+import com.plantia.models.MisionUsuario;
 import com.plantia.models.Nivel;
 import com.plantia.models.ReglaProgreso;
 import com.plantia.models.Usuario;
 import com.plantia.repositories.HistorialProgresoRepository;
+import com.plantia.repositories.MisionUsuarioRepository;
 import com.plantia.repositories.NivelRepository;
 import com.plantia.repositories.ReglaProgresoRepository;
 import com.plantia.repositories.UsuarioRepository;
@@ -30,20 +32,27 @@ import com.plantia.repositories.UsuarioRepository;
 public class ProgresoService {
 
     static final String MOTIVO_RACHA = "RACHA";
+    static final String MOTIVO_MISION = "MISION";
 
     private final UsuarioRepository usuarioRepo;
     private final NivelRepository nivelRepo;
     private final ReglaProgresoRepository reglaRepo;
     private final HistorialProgresoRepository historialRepo;
+    private final MisionService misionService;
+    private final MisionUsuarioRepository misionUsuarioRepo;
 
     public ProgresoService(UsuarioRepository usuarioRepo,
                            NivelRepository nivelRepo,
                            ReglaProgresoRepository reglaRepo,
-                           HistorialProgresoRepository historialRepo) {
+                           HistorialProgresoRepository historialRepo,
+                           MisionService misionService,
+                           MisionUsuarioRepository misionUsuarioRepo) {
         this.usuarioRepo = usuarioRepo;
         this.nivelRepo = nivelRepo;
         this.reglaRepo = reglaRepo;
         this.historialRepo = historialRepo;
+        this.misionService = misionService;
+        this.misionUsuarioRepo = misionUsuarioRepo;
     }
 
     @Transactional
@@ -62,7 +71,26 @@ public class ProgresoService {
      */
     @Transactional
     public ProgresoDto otorgar(Integer userId, List<String> motivos, Integer idReferencia, LocalDateTime ahora) {
-        return aplicar(userId, motivos, idReferencia, ahora, true);
+        return aplicar(userId, motivos, List.of(), idReferencia, ahora, true);
+    }
+
+    /**
+     * Igual que {@link #otorgar(Integer, List, Integer)}, y además cuenta la acción en las misiones
+     * activas del día cuyo tipo coincide (RIEGO, ESCANEO, DIGITALIZAR, COLECCION, SOL, ABONO).
+     * Al completar una misión se suma su recompensa de XP y monedas, una sola vez por día.
+     */
+    @Transactional
+    public ProgresoDto otorgar(Integer userId, List<String> motivos, List<String> acciones, Integer idReferencia) {
+        return aplicar(userId, motivos, acciones, idReferencia, LocalDateTime.now(), true);
+    }
+
+    /**
+     * Cuenta solo una acción en las misiones (por ejemplo REFUGIO, cuya recompensa de regla llega
+     * cuando termina el evento): no suma reglas, no cuenta como actividad del día ni toca la racha.
+     */
+    @Transactional
+    public ProgresoDto registrarAccion(Integer userId, String accion, Integer idReferencia, LocalDateTime ahora) {
+        return aplicar(userId, List.of(), List.of(accion), idReferencia, ahora, false);
     }
 
     /**
@@ -71,11 +99,11 @@ public class ProgresoService {
      */
     @Transactional
     public ProgresoDto otorgarSinRacha(Integer userId, String motivo, Integer idReferencia, LocalDateTime ahora) {
-        return aplicar(userId, List.of(motivo), idReferencia, ahora, false);
+        return aplicar(userId, List.of(motivo), List.of(), idReferencia, ahora, false);
     }
 
-    private ProgresoDto aplicar(Integer userId, List<String> motivos, Integer idReferencia,
-                                LocalDateTime ahora, boolean conRacha) {
+    private ProgresoDto aplicar(Integer userId, List<String> motivos, List<String> acciones,
+                                Integer idReferencia, LocalDateTime ahora, boolean conRacha) {
         Usuario u = usuarioRepo.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         List<Nivel> niveles = nivelRepo.findAll().stream()
@@ -103,12 +131,51 @@ public class ProgresoService {
                 historialRepo.save(movimiento(u, regla, ganado, idReferencia, ahora));
             }
         }
+        if (!acciones.isEmpty()) {
+            int[] premio = avanzarMisiones(u, acciones, niveles, ahora);
+            xpGanado += premio[0];
+            monedasGanadas += premio[1];
+        }
         u.setUpdatedAt(ahora);
         usuarioRepo.save(u);
 
         int nivel = valor(u.getNivel(), 1);
         return new ProgresoDto(xpGanado, monedasGanadas, nivel, nivel > nivelInicial,
                 valor(u.getExperienciaXp(), 0), valor(u.getRachaDias(), 0));
+    }
+
+    /**
+     * Suma 1 al avance de cada misión activa de hoy que coincide con alguna acción y, al llegar a
+     * la meta, la marca completada y paga su recompensa. Devuelve {xp, monedas} ganados.
+     */
+    private int[] avanzarMisiones(Usuario u, List<String> acciones, List<Nivel> niveles, LocalDateTime ahora) {
+        int xp = 0;
+        int monedas = 0;
+        ReglaProgreso reglaMision = reglaRepo.findByMotivo(MOTIVO_MISION).orElse(null);
+        for (String accion : acciones) {
+            for (MisionService.Asignada a : misionService.asignadas(u.getIdUsuario(), ahora.toLocalDate())) {
+                MisionUsuario estado = a.estado();
+                if (!accion.equals(a.mision().getTipo()) || Boolean.TRUE.equals(estado.getCompletada())) {
+                    continue;
+                }
+                int meta = Math.max(1, valor(a.mision().getMeta(), 1));
+                estado.setProgreso(Math.min(meta, valor(estado.getProgreso(), 0) + 1));
+                if (estado.getProgreso() >= meta) {
+                    estado.setCompletada(true);
+                    ReglaProgreso premio = new ReglaProgreso();
+                    premio.setXp(valor(a.mision().getRecompensaXp(), 0));
+                    premio.setMonedas(valor(a.mision().getRecompensaMonedas(), 0));
+                    int[] ganado = sumar(u, premio, niveles);
+                    xp += ganado[0];
+                    monedas += ganado[1];
+                    if (reglaMision != null && (ganado[0] != 0 || ganado[1] != 0)) {
+                        historialRepo.save(movimiento(u, reglaMision, ganado, a.mision().getIdMision(), ahora));
+                    }
+                }
+                misionUsuarioRepo.save(estado);
+            }
+        }
+        return new int[] {xp, monedas};
     }
 
     /** true si hoy es un día nuevo de actividad (suma a la racha); false si ya había actividad hoy. */

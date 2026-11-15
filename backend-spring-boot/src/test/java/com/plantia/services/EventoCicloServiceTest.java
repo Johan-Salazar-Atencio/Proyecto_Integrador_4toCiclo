@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import com.plantia.models.EventoDesastre;
 import com.plantia.repositories.EventoDesastreRepository;
 import com.plantia.repositories.HistorialProgresoRepository;
+import com.plantia.repositories.MisionUsuarioRepository;
 import com.plantia.repositories.NivelRepository;
 import com.plantia.repositories.PlantaUsuarioRepository;
 import com.plantia.repositories.RegistroDesastreUsuarioRepository;
@@ -36,7 +37,8 @@ class EventoCicloServiceTest {
         eventoRepo = mock(EventoDesastreRepository.class);
         plantaRepo = mock(PlantaUsuarioRepository.class);
         ProgresoService progreso = new ProgresoService(mock(UsuarioRepository.class), mock(NivelRepository.class),
-                mock(ReglaProgresoRepository.class), mock(HistorialProgresoRepository.class));
+                mock(ReglaProgresoRepository.class), mock(HistorialProgresoRepository.class),
+                mock(MisionService.class), mock(MisionUsuarioRepository.class));
         ResultadoDesastreService resultados = new ResultadoDesastreService(
                 eventoRepo, plantaRepo, mock(RegistroDesastreUsuarioRepository.class), mock(TipoDesastreRepository.class), progreso, 6);
         ciclo = new EventoCicloService(eventoRepo, resultados);

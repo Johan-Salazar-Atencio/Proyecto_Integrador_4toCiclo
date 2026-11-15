@@ -23,6 +23,7 @@ import com.plantia.models.TipoDesastre;
 import com.plantia.models.Usuario;
 import com.plantia.repositories.EventoDesastreRepository;
 import com.plantia.repositories.HistorialProgresoRepository;
+import com.plantia.repositories.MisionUsuarioRepository;
 import com.plantia.repositories.NivelRepository;
 import com.plantia.repositories.PlantaUsuarioRepository;
 import com.plantia.repositories.RegistroDesastreUsuarioRepository;
@@ -64,7 +65,8 @@ class ResultadoDesastreServiceTest {
         ReglaProgresoRepository reglaRepo = mock(ReglaProgresoRepository.class);
         when(reglaRepo.findByMotivo("REFUGIO")).thenReturn(Optional.of(refugio));
         ProgresoService progreso = new ProgresoService(usuarioRepo, mock(NivelRepository.class), reglaRepo,
-                mock(HistorialProgresoRepository.class));
+                mock(HistorialProgresoRepository.class), mock(MisionService.class),
+                mock(MisionUsuarioRepository.class));
 
         service = new ResultadoDesastreService(eventoRepo, plantaRepo, registroRepo, tipoRepo, progreso, 6);
     }

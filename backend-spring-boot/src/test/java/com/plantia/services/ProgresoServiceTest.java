@@ -23,10 +23,13 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.plantia.dto.ProgresoDto;
 import com.plantia.models.HistorialProgreso;
+import com.plantia.models.Mision;
+import com.plantia.models.MisionUsuario;
 import com.plantia.models.Nivel;
 import com.plantia.models.ReglaProgreso;
 import com.plantia.models.Usuario;
 import com.plantia.repositories.HistorialProgresoRepository;
+import com.plantia.repositories.MisionUsuarioRepository;
 import com.plantia.repositories.NivelRepository;
 import com.plantia.repositories.ReglaProgresoRepository;
 import com.plantia.repositories.UsuarioRepository;
@@ -40,6 +43,8 @@ class ProgresoServiceTest {
     private UsuarioRepository usuarioRepo;
     private ReglaProgresoRepository reglaRepo;
     private HistorialProgresoRepository historialRepo;
+    private MisionService misionService;
+    private MisionUsuarioRepository misionUsuarioRepo;
     private ProgresoService service;
     private Usuario usuario;
 
@@ -52,7 +57,9 @@ class ProgresoServiceTest {
         // Mismos valores que la tabla niveles de la base (hasta el 4 alcanza para las pruebas)
         when(nivelRepo.findAll()).thenReturn(List.of(
                 nivel(1, 0, 0), nivel(2, 500, 20), nivel(3, 1000, 25), nivel(4, 1700, 30)));
-        service = new ProgresoService(usuarioRepo, nivelRepo, reglaRepo, historialRepo);
+        misionService = mock(MisionService.class);
+        misionUsuarioRepo = mock(MisionUsuarioRepository.class);
+        service = new ProgresoService(usuarioRepo, nivelRepo, reglaRepo, historialRepo, misionService, misionUsuarioRepo);
 
         usuario = new Usuario();
         usuario.setIdUsuario(USER);
@@ -258,5 +265,116 @@ class ProgresoServiceTest {
         assertThat(p.xpGanado()).isEqualTo(40); // sin el bono de racha
         assertThat(usuario.getRachaDias()).isEqualTo(4);
         assertThat(usuario.getUltimaActividad()).isEqualTo(AHORA.toLocalDate().minusDays(1));
+    }
+
+    // --- Misiones del admin: el avance y la recompensa salen de la tabla misiones ---
+
+    private MisionService.Asignada mision(int id, String tipo, int meta, int xp, int monedas, int progreso, boolean completada) {
+        Mision m = new Mision();
+        m.setIdMision(id);
+        m.setTipo(tipo);
+        m.setMeta(meta);
+        m.setRecompensaXp(xp);
+        m.setRecompensaMonedas(monedas);
+        MisionUsuario mu = new MisionUsuario();
+        mu.setIdUsuario(USER);
+        mu.setIdMision(id);
+        mu.setProgreso(progreso);
+        mu.setCompletada(completada);
+        return new MisionService.Asignada(m, mu);
+    }
+
+    private void misionesDeHoy(MisionService.Asignada... asignadas) {
+        when(misionService.asignadas(eq(USER), any())).thenReturn(List.of(asignadas));
+    }
+
+    @Test
+    void unaAccionAvanzaLaMisionDeSuTipoSinPagarAunqueNoLlegueALaMeta() {
+        MisionService.Asignada riego = mision(1, "RIEGO", 2, 20, 50, 0, false);
+        misionesDeHoy(riego);
+
+        ProgresoDto p = service.registrarAccion(USER, "RIEGO", 5, AHORA);
+
+        assertThat(riego.estado().getProgreso()).isEqualTo(1);
+        assertThat(riego.estado().getCompletada()).isFalse();
+        assertThat(p.xpGanado()).isZero();
+        verify(misionUsuarioRepo).save(riego.estado());
+    }
+
+    @Test
+    void alLlegarALaMetaCompletaLaMisionYPagaXpYMonedasDeLaMision() {
+        regla(5, "MISION", 0, 0, null);
+        MisionService.Asignada riego = mision(1, "RIEGO", 2, 20, 50, 1, false);
+        misionesDeHoy(riego);
+
+        ProgresoDto p = service.registrarAccion(USER, "RIEGO", 5, AHORA);
+
+        assertThat(riego.estado().getCompletada()).isTrue();
+        assertThat(p.xpGanado()).isEqualTo(20);
+        assertThat(p.monedasGanadas()).isEqualTo(50);
+        assertThat(usuario.getMonedas()).isEqualTo(150);
+        ArgumentCaptor<HistorialProgreso> h = ArgumentCaptor.forClass(HistorialProgreso.class);
+        verify(historialRepo).save(h.capture());
+        assertThat(h.getValue().getIdRegla()).isEqualTo(5);
+        assertThat(h.getValue().getIdReferencia()).isEqualTo(1); // la mision
+    }
+
+    @Test
+    void unaMisionYaCompletadaNoVuelveAPagar() {
+        MisionService.Asignada riego = mision(1, "RIEGO", 2, 20, 50, 2, true);
+        misionesDeHoy(riego);
+
+        ProgresoDto p = service.registrarAccion(USER, "RIEGO", 5, AHORA);
+
+        assertThat(p.xpGanado()).isZero();
+        assertThat(riego.estado().getProgreso()).isEqualTo(2);
+        verify(misionUsuarioRepo, never()).save(any());
+    }
+
+    @Test
+    void unaAccionNoTocaMisionesDeOtroTipo() {
+        MisionService.Asignada escaneo = mision(2, "ESCANEO", 1, 20, 30, 0, false);
+        misionesDeHoy(escaneo);
+
+        service.registrarAccion(USER, "RIEGO", 5, AHORA);
+
+        assertThat(escaneo.estado().getProgreso()).isZero();
+        verify(misionUsuarioRepo, never()).save(any());
+    }
+
+    @Test
+    void variasMisionesDelMismoTipoAvanzanALaVez() {
+        MisionService.Asignada a = mision(1, "REFUGIO", 1, 40, 0, 0, false);
+        MisionService.Asignada b = mision(7, "REFUGIO", 3, 10, 0, 0, false);
+        misionesDeHoy(a, b);
+
+        ProgresoDto p = service.registrarAccion(USER, "REFUGIO", 9, AHORA);
+
+        assertThat(a.estado().getCompletada()).isTrue();
+        assertThat(b.estado().getProgreso()).isEqualTo(1);
+        assertThat(p.xpGanado()).isEqualTo(40);
+    }
+
+    @Test
+    void registrarAccionNoTocaLaRachaNiDaElBono() {
+        usuario.setUltimaActividad(AHORA.toLocalDate().minusDays(1));
+        usuario.setRachaDias(4);
+        regla(9, "RACHA", 10, 0, 1);
+        misionesDeHoy(mision(3, "REFUGIO", 1, 40, 0, 0, false));
+
+        ProgresoDto p = service.registrarAccion(USER, "REFUGIO", 9, AHORA);
+
+        assertThat(p.xpGanado()).isEqualTo(40);
+        assertThat(usuario.getRachaDias()).isEqualTo(4);
+    }
+
+    @Test
+    void sinLaReglaMisionLaRecompensaIgualSeCobraSinHistorial() {
+        misionesDeHoy(mision(1, "RIEGO", 1, 20, 0, 0, false));
+
+        ProgresoDto p = service.registrarAccion(USER, "RIEGO", 5, AHORA);
+
+        assertThat(p.xpGanado()).isEqualTo(20);
+        verify(historialRepo, never()).save(any());
     }
 }

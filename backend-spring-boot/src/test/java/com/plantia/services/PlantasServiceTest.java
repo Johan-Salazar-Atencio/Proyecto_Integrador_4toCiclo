@@ -24,6 +24,7 @@ import com.plantia.models.Usuario;
 import com.plantia.repositories.EscaneoHistorialRepository;
 import com.plantia.repositories.EventoDesastreRepository;
 import com.plantia.repositories.HistorialProgresoRepository;
+import com.plantia.repositories.MisionUsuarioRepository;
 import com.plantia.repositories.NivelRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
 import com.plantia.repositories.PlantaUsuarioRepository;
@@ -49,7 +50,8 @@ class PlantasServiceTest {
         UsuarioRepository usuarioRepo = mock(UsuarioRepository.class);
         when(usuarioRepo.findById(any())).thenReturn(Optional.of(new Usuario()));
         ProgresoService progreso = new ProgresoService(usuarioRepo, mock(NivelRepository.class),
-                mock(ReglaProgresoRepository.class), mock(HistorialProgresoRepository.class));
+                mock(ReglaProgresoRepository.class), mock(HistorialProgresoRepository.class),
+                mock(MisionService.class), mock(MisionUsuarioRepository.class));
         eventoRepo = mock(EventoDesastreRepository.class);
         EventoService eventos = new EventoService(eventoRepo, usuarioRepo);
         service = new PlantasService(plantaRepo, mock(PlantaCatalogoRepository.class), escaneoRepo, progreso, eventos, new ObjectMapper());

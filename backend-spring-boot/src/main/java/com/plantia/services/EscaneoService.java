@@ -126,7 +126,7 @@ public class EscaneoService {
         ProgresoDto progreso = null;
         if (identificado) {
             List<String> motivos = especieNueva ? List.of("ESCANEO", "ESPECIE_NUEVA") : List.of("ESCANEO");
-            progreso = progresoService.otorgar(userId, motivos, escaneo.getIdEscaneo());
+            progreso = progresoService.otorgar(userId, motivos, List.of("ESCANEO"), escaneo.getIdEscaneo());
         }
 
         String nombreComun = catalogo != null ? catalogo.getNombreComun() : "Planta desconocida";
