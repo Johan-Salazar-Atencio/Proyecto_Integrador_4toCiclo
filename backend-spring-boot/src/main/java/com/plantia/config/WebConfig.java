@@ -32,6 +32,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         Path dir = Paths.get(imagesDir).toAbsolutePath().normalize();
+        // Arte versionado en el repo (fondos y animaciones): se sirve desde el classpath
+        registry.addResourceHandler("/files/arte/**")
+                .addResourceLocations("classpath:/arte/");
         registry.addResourceHandler("/files/**")
                 .addResourceLocations(dir.toUri().toString());
     }
