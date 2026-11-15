@@ -1,6 +1,5 @@
 // Sesion guardada en el navegador (el movil usa el objeto Sesion)
 const CLAVE = 'plantia.sesion'
-const USUARIO_POR_DEFECTO = 1
 
 export function leerSesion() {
   try {
@@ -26,8 +25,9 @@ export function borrarSesion() {
   }
 }
 
+// null sin sesion: antes se usaba el usuario 1 por defecto y la web actuaba como el
 export function obtenerUsuarioId() {
-  return leerSesion()?.id ?? USUARIO_POR_DEFECTO
+  return leerSesion()?.id ?? null
 }
 
 export function obtenerToken() {

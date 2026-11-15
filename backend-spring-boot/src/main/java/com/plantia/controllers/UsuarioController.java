@@ -20,7 +20,7 @@ public class UsuarioController {
 
     /** Alimenta UserSummary del movil. Usuario temporal via header X-User-Id. */
     @GetMapping("/me")
-    public UserSummaryDto me(@RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId) {
+    public UserSummaryDto me(@RequestHeader("X-User-Id") Integer userId) {
         return usuarioService.me(userId);
     }
 }

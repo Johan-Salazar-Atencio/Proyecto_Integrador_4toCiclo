@@ -26,7 +26,7 @@ export default function LoginAdmin() {
       iniciar(await iniciarSesionAdmin(datos.email, datos.password))
       irA(RUTAS_ADMIN.DASHBOARD, { replace: true })
     } catch (err) {
-      setError(err.estado === 403 ? 'Tu cuenta no tiene permisos de administrador.' : err.message || 'No se pudo iniciar sesión.')
+      setError(err.estado === 401 ? 'Correo o contraseña incorrectos, o la cuenta no es de administrador.' : err.message || 'No se pudo iniciar sesión.')
     } finally {
       setCargando(false)
     }

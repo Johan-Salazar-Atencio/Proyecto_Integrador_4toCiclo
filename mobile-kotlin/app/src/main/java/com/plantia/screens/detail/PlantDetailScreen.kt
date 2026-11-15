@@ -58,6 +58,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -172,8 +173,13 @@ fun PlantDetailScreen(
     onDigitalize: () -> Unit = {},
     onSave: () -> Unit = {}
 ) {
-    // Ultimo escaneo real si existe; si no, datos simulados (Fase 2 sin backend).
-    val resultado = remember(plantId) { ScanResultStore.ultimo ?: MockPlantData.scanResult }
+    // Ultimo escaneo real. Si no hay (p. ej. Android cerro la app y la reabrio en esta
+    // pantalla) se vuelve atras: antes se mostraba una Monstera inventada como si fuera real.
+    val resultado = remember(plantId) { ScanResultStore.ultimo }
+    if (resultado == null) {
+        LaunchedEffect(Unit) { onBack() }
+        return
+    }
     PlantDetailContent(
         resultado = resultado,
         onBack = onBack,

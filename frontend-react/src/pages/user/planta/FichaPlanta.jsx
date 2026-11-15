@@ -4,7 +4,7 @@ import Boton from '../../../components/Boton'
 import { RUTAS } from '../../../routes/rutas'
 import { agregarColeccion } from '../../../services/coleccion'
 import { urlImagen } from '../../../services/home'
-import { digitalizar } from '../../../store/jardinSimulado'
+import { digitalizarPlanta } from '../../../services/jardin'
 import { estiloDe, etiquetaPrecision, identificacionFallida, tarjetasCuidado, textoDiagnostico } from './mapeo'
 import './ficha.css'
 
@@ -25,9 +25,17 @@ export default function FichaPlanta({ resultado, mostrarGuardar = true, mostrarA
   const foto = urlImagen(resultado.imagenUrl)
   const diagnosticoLargo = diagnostico && diagnostico.length > LARGO_DIAGNOSTICO
 
-  const alDigitalizar = () => {
-    digitalizar(resultado)
-    irA(RUTAS.JARDIN)
+  const alDigitalizar = async () => {
+    if (guardando) return
+    setGuardando(true)
+    setErrorGuardar('')
+    try {
+      await digitalizarPlanta(resultado)
+      irA(RUTAS.JARDIN)
+    } catch (e) {
+      setErrorGuardar(e?.message || 'No se pudo digitalizar la planta.')
+      setGuardando(false)
+    }
   }
 
   const alGuardar = async () => {
@@ -120,7 +128,7 @@ export default function FichaPlanta({ resultado, mostrarGuardar = true, mostrarA
 
           {mostrarAcciones && (
             <div className={`ficha-acciones ${mostrarGuardar ? '' : 'ficha-acciones-sola'}`}>
-              <Boton onClick={alDigitalizar}>🪴 Digitalizar</Boton>
+              <Boton onClick={alDigitalizar} disabled={guardando}>🪴 Digitalizar</Boton>
               {mostrarGuardar && (
                 <Boton onClick={alGuardar} disabled={guardando}>
                   {guardando ? 'Guardando…' : '💾 Guardar en colección'}

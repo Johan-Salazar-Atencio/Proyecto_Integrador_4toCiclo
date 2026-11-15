@@ -1,4 +1,4 @@
-import { obtenerAdminId } from './auth'
+import { cabecerasAdmin } from './auth'
 
 // Estadisticas del dashboard. Todas las fuentes son reales contra Django.
 const leerLista = async (ruta) => {
@@ -9,8 +9,7 @@ const leerLista = async (ruta) => {
 }
 
 export async function obtenerResumen() {
-  const adminId = obtenerAdminId()
-  const cabeceras = adminId ? { 'X-Admin-Id': String(adminId) } : {}
+  const cabeceras = cabecerasAdmin()
 
   let stats = null
   try {

@@ -1,4 +1,4 @@
-import { obtenerAdminId } from './auth'
+import { cabecerasAdmin } from './auth'
 
 // Catalogo de especies para el panel. Lectura y escritura son REALES contra Django.
 // GET  /django/api/catalog/              -> lista de especies
@@ -55,10 +55,9 @@ export async function cuidadosDe(id) {
 
 // REAL: guarda los cambios de una especie en la BD (Django)
 export async function guardarEspecie(id, campos) {
-  const adminId = obtenerAdminId()
   const respuesta = await fetch(`/django/api/admin/catalogo/${id}/`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'X-Admin-Id': String(adminId ?? '') },
+    headers: { 'Content-Type': 'application/json', ...cabecerasAdmin() },
     body: JSON.stringify(aDjango(campos)),
   })
   if (!respuesta.ok) {

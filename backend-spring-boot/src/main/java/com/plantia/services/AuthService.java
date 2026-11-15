@@ -1,7 +1,6 @@
 package com.plantia.services;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -14,6 +13,7 @@ import com.plantia.dto.auth.AuthRegistroRequest;
 import com.plantia.dto.auth.AuthUsuarioResponse;
 import com.plantia.models.Usuario;
 import com.plantia.repositories.UsuarioRepository;
+import com.plantia.util.TokenSesion;
 
 @Service
 public class AuthService {
@@ -50,8 +50,8 @@ public class AuthService {
         if (password.length() < 8) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña debe tener al menos 8 caracteres");
         }
-        // Nueva validación: BCrypt limita a 72 bytes, rechazamos >72 con 400
-        if (password.length() > 72) {
+        // BCrypt solo usa los primeros 72 BYTES: con tildes o emojis 72 caracteres pasan de 72 bytes
+        if (password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña no puede tener más de 72 caracteres");
         }
 
@@ -68,8 +68,7 @@ public class AuthService {
         usuario.setUpdatedAt(LocalDateTime.now());
 
         Usuario guardado = usuarioRepo.save(usuario);
-        String token = generarToken();
-        guardado.setSessionToken(token);
+        String token = abrirSesion(guardado);
         usuarioRepo.save(guardado);
         return new AuthUsuarioResponse(guardado.getIdUsuario(), guardado.getNombre(), guardado.getEmail(), guardado.getRol(), token);
     }
@@ -97,15 +96,18 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
         }
 
-        String token = generarToken();
-        usuario.setSessionToken(token);
+        String token = abrirSesion(usuario);
         usuarioRepo.save(usuario);
 
         return new AuthUsuarioResponse(usuario.getIdUsuario(), usuario.getNombre(), usuario.getEmail(), usuario.getRol(), token);
     }
 
-    private String generarToken() {
-        return UUID.randomUUID().toString().replace("-", "");
+    /** Genera un token nuevo, guarda solo su hash con fecha de caducidad y devuelve el token. */
+    private String abrirSesion(Usuario usuario) {
+        String token = TokenSesion.generar();
+        usuario.setSessionToken(TokenSesion.hash(token));
+        usuario.setSessionExpira(LocalDateTime.now().plus(TokenSesion.DURACION));
+        return token;
     }
 
     private String normalizarEmail(String email) {

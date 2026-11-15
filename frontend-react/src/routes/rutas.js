@@ -11,6 +11,7 @@ export const RUTAS = {
   PERFIL: '/perfil',
   CATALOGO: '/catalogo',
   HISTORIAL: '/historial',
+  DEMO_PLANTA: '/demo-planta',
 }
 
 // Rutas del panel de administracion

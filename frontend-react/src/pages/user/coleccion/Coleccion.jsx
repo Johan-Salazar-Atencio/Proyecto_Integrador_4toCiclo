@@ -4,24 +4,24 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { RUTAS } from '../../../routes/rutas'
 import { listarColeccion } from '../../../services/coleccion'
 import { urlImagen } from '../../../services/home'
-import { activar, listarDigitales, plantaActiva } from '../../../store/jardinSimulado'
+import { listarPlantasDigitales, seleccionarPlanta } from '../../../services/jardin'
 import './coleccion.css'
 
 export default function Coleccion() {
   const [pestana, setPestana] = useState('escaneadas')
   const [escaneadas, setEscaneadas] = useState([])
+  const [digitales, setDigitales] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
   const irA = useNavigate()
-
-  const digitales = listarDigitales()
-  const activa = plantaActiva()?.name
 
   const cargar = useCallback(async () => {
     setCargando(true)
     setError('')
     try {
-      setEscaneadas(await listarColeccion())
+      const [coleccion, plantas] = await Promise.all([listarColeccion(), listarPlantasDigitales()])
+      setEscaneadas(coleccion)
+      setDigitales(plantas || [])
     } catch (err) {
       setError(err instanceof TypeError ? 'No se pudo conectar con el servidor.' : err.message)
     } finally {
@@ -31,9 +31,13 @@ export default function Coleccion() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  const abrirDigital = (planta) => {
-    activar(planta.name)
-    irA(RUTAS.JARDIN)
+  const abrirDigital = async (planta) => {
+    try {
+      await seleccionarPlanta(planta.id)
+      irA(RUTAS.JARDIN)
+    } catch (err) {
+      setError(err.message || 'No se pudo abrir la planta.')
+    }
   }
 
   const lista = pestana === 'escaneadas' ? escaneadas : digitales
@@ -63,16 +67,16 @@ export default function Coleccion() {
         </div>
       </header>
 
-      {pestana === 'escaneadas' && cargando && <div className="home-cargando"><span className="home-giro" aria-label="Cargando" /></div>}
+      {cargando && <div className="home-cargando"><span className="home-giro" aria-label="Cargando" /></div>}
 
-      {pestana === 'escaneadas' && !cargando && error && (
+      {!cargando && error && (
         <div className="home-error" role="alert">
           <span>{error}</span>
           <button onClick={cargar}>Reintentar</button>
         </div>
       )}
 
-      {!(pestana === 'escaneadas' && (cargando || error)) && (
+      {!cargando && !error && (
         lista.length === 0 ? (
           <div className="coleccion-vacio aparece">
             <span>🌱</span>
@@ -120,13 +124,13 @@ export default function Coleccion() {
           ) : (
             <div className="coleccion-grilla">
               {digitales.map((p, i) => (
-                <button key={p.name} className="planta-card aparece" style={{ animationDelay: `${i * 0.05}s` }} onClick={() => abrirDigital(p)}>
-                  <Foto url={urlImagen(p.imageUrl)} nombre={p.name} />
+                <button key={p.id} className="planta-card aparece" style={{ animationDelay: `${i * 0.05}s` }} onClick={() => abrirDigital(p)}>
+                  <Foto url={urlImagen(p.fotoUrl)} nombre={p.name} />
                   <div className="planta-card-datos">
                     <b>{p.name}</b>
                     <small>{p.species}</small>
                     <div className="planta-card-chips">
-                      {p.name === activa && <span className="chip-activo">Activo</span>}
+                      {p.activa && <span className="chip-activo">Activo</span>}
                     </div>
                   </div>
                 </button>
