@@ -51,3 +51,65 @@ class AdminDesdeRequestTests(SimpleTestCase):
     def test_fecha_sin_zona_se_lee_como_utc(self):
         naive = timezone.make_naive(timezone.now() + timedelta(hours=1), admin_views.dt_timezone.utc)
         self.assertTrue(admin_views._como_aware(naive) > timezone.now())
+
+
+class CrearEventoTiposTests(SimpleTestCase):
+    """AdminEventoCreateView: el tipo se valida contra tipos_desastre, la region se crea si falta."""
+
+    def _post(self, datos, tipo, region_creada=False):
+        from unittest.mock import MagicMock
+
+        from .models import Region
+
+        request = APIRequestFactory().post("/api/admin/eventos/", datos, format="json")
+        region = Region(id_region=9, codigo=datos.get("region") or "GLOBAL", nombre="x")
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario()), patch.object(
+            admin_views.TipoDesastre.objects, "filter", return_value=MagicMock(first=lambda: tipo)
+        ), patch.object(
+            admin_views.Region.objects, "get_or_create", return_value=(region, region_creada)
+        ), patch.object(
+            admin_views.EventoDesastre.objects, "create", return_value=MagicMock(id_desastre=5, estado="ACTIVO")
+        ) as crear:
+            respuesta = admin_views.AdminEventoCreateView.as_view()(request)
+        return respuesta, crear
+
+    DATOS = {
+        "tipo_evento": "HUAYCO",
+        "region": "Arequipa",
+        "mensaje_notificacion": "m",
+        "fecha_inicio": "2026-11-15T10:00:00Z",
+        "fecha_fin": "2026-11-15T16:00:00Z",
+    }
+
+    def test_tipo_inexistente_devuelve_400(self):
+        respuesta, crear = self._post(self.DATOS, tipo=None)
+        self.assertEqual(respuesta.status_code, 400)
+        crear.assert_not_called()
+
+    def test_tipo_valido_guarda_texto_y_llaves(self):
+        from .models import TipoDesastre
+
+        tipo = TipoDesastre(id_tipo_desastre=1, codigo="HUAYCO", nombre="Huayco")
+        respuesta, crear = self._post(self.DATOS, tipo=tipo, region_creada=True)
+        self.assertEqual(respuesta.status_code, 201)
+        argumentos = crear.call_args.kwargs
+        self.assertEqual(argumentos["tipo_evento"], "HUAYCO")
+        self.assertIs(argumentos["id_tipo_desastre"], tipo)
+        self.assertEqual(argumentos["region"], "Arequipa")
+        self.assertEqual(argumentos["id_region"].id_region, 9)
+
+
+class EventoSerializerTests(SimpleTestCase):
+    def test_evento_sin_tipo_enlazado_no_falla(self):
+        from datetime import datetime
+
+        from .models import EventoDesastre
+        from .serializers import EventoDesastreSerializer
+
+        evento = EventoDesastre(
+            id_desastre=1, tipo_evento="HUAYCO", region="GLOBAL", mensaje_notificacion="m",
+            fecha_inicio=datetime(2026, 11, 15), fecha_fin=datetime(2026, 11, 16),
+        )
+        datos = EventoDesastreSerializer(evento).data
+        self.assertIsNone(datos["tipo_nombre"])
+        self.assertEqual(datos["tipo_evento"], "HUAYCO")

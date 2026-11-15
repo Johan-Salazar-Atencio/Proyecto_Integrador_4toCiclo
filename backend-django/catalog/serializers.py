@@ -31,11 +31,17 @@ class PlantaCatalogoSerializer(serializers.ModelSerializer):
 
 
 class EventoDesastreSerializer(serializers.ModelSerializer):
+    # Nombre y color del tipo para pintar la alerta sin una lista fija en el cliente
+    tipo_nombre = serializers.CharField(source="id_tipo_desastre.nombre", read_only=True, default=None)
+    tipo_color = serializers.CharField(source="id_tipo_desastre.color_hex", read_only=True, default=None)
+
     class Meta:
         model = EventoDesastre
         fields = [
             "id_desastre",
             "tipo_evento",
+            "tipo_nombre",
+            "tipo_color",
             "region",
             "mensaje_notificacion",
             "severidad",

@@ -18,7 +18,7 @@ from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import EventoDesastre, PlantaCatalogo, Usuario
+from .models import EventoDesastre, PlantaCatalogo, Region, TipoDesastre, Usuario
 
 # Hash BCrypt valido para comparar cuando el correo no existe: asi el tiempo de
 # respuesta no revela si esta registrado (mismo criterio que AuthService de Spring).
@@ -126,10 +126,22 @@ class AdminEventoCreateView(APIView):
             return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
         try:
+            codigo_tipo = data["tipo_evento"]
+            tipo = TipoDesastre.objects.filter(codigo=codigo_tipo, activo=True).first()
+            if tipo is None:
+                return Response(
+                    {"error": f"Tipo de desastre no valido: {codigo_tipo}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            codigo_region = data.get("region") or "GLOBAL"
+            # Si la region no existe todavia, se crea: el panel ofrece nombres libres
+            region, _ = Region.objects.get_or_create(codigo=codigo_region, defaults={"nombre": codigo_region})
             evento = EventoDesastre.objects.create(
                 id_creador=admin,
-                tipo_evento=data["tipo_evento"],
-                region=data.get("region", "GLOBAL"),
+                tipo_evento=tipo.codigo,
+                id_tipo_desastre=tipo,
+                region=region.codigo,
+                id_region=region,
                 mensaje_notificacion=data["mensaje_notificacion"],
                 fecha_inicio=data["fecha_inicio"],
                 fecha_fin=data["fecha_fin"],

@@ -6,6 +6,51 @@ El DDL vive en `db/migration` (Flyway, lado Spring Boot).
 from django.db import models
 
 
+class Region(models.Model):
+    """Region a la que pertenecen usuarios y eventos (Flyway V13)."""
+
+    id_region = models.AutoField(primary_key=True)
+    codigo = models.CharField(max_length=100, unique=True)
+    nombre = models.CharField(max_length=100)
+    activa = models.BooleanField(default=True)
+
+    class Meta:
+        managed = False
+        db_table = "regiones"
+        verbose_name = "Region"
+        verbose_name_plural = "Regiones"
+
+    def __str__(self):
+        return self.nombre
+
+
+class TipoDesastre(models.Model):
+    """Tipo de desastre que el admin puede crear (Flyway V13); reemplaza la lista fija de 4."""
+
+    id_tipo_desastre = models.AutoField(primary_key=True)
+    codigo = models.CharField(max_length=50, unique=True)
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(null=True, blank=True)
+    icono_url = models.CharField(max_length=255, null=True, blank=True)
+    color_hex = models.CharField(max_length=7, default="#888888")
+    # Salud que pierde una planta sin refugio segun la severidad
+    dano_bajo = models.IntegerField(default=10)
+    dano_moderado = models.IntegerField(default=25)
+    dano_critico = models.IntegerField(default=50)
+    activo = models.BooleanField(default=True)
+    id_creador = models.IntegerField(null=True, blank=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = "tipos_desastre"
+        verbose_name = "Tipo de desastre"
+        verbose_name_plural = "Tipos de desastre"
+
+    def __str__(self):
+        return self.nombre
+
+
 class Usuario(models.Model):
     id_usuario = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=100)
@@ -17,6 +62,12 @@ class Usuario(models.Model):
     monedas = models.IntegerField(default=100)
     racha_dias = models.IntegerField(default=0)
     region = models.CharField(max_length=100, default="GLOBAL")
+    # Llave a regiones; si va vacia, la base la completa desde `region` (V13)
+    id_region = models.ForeignKey(
+        Region, on_delete=models.SET_NULL, db_column="id_region", null=True, blank=True
+    )
+    ultima_actividad = models.DateField(null=True, blank=True)
+    foto_url = models.CharField(max_length=500, null=True, blank=True)
     # SHA-256 del token de la sesion activa (Flyway V7/V11; la comparte con Spring)
     session_token = models.CharField(max_length=64, null=True, blank=True)
     session_expira = models.DateTimeField(null=True, blank=True)
@@ -119,12 +170,6 @@ class EscaneoHistorial(models.Model):
 
 
 class EventoDesastre(models.Model):
-    TIPOS = [
-        ("HUAYCO", "Huayco"),
-        ("HELADA", "Helada"),
-        ("OLA_DE_CALOR", "Ola de calor"),
-        ("PLAGA", "Plaga"),
-    ]
     ESTADOS = [
         ("PROGRAMADO", "Programado"),
         ("ACTIVO", "Activo"),
@@ -136,8 +181,17 @@ class EventoDesastre(models.Model):
     id_creador = models.ForeignKey(
         Usuario, on_delete=models.SET_NULL, db_column="id_creador", null=True, blank=True
     )
-    tipo_evento = models.CharField(max_length=50, choices=TIPOS)
+    # Texto y llave conviven hasta la migracion que elimine el texto; se guardan los dos
+    tipo_evento = models.CharField(max_length=50)
+    id_tipo_desastre = models.ForeignKey(
+        TipoDesastre, on_delete=models.PROTECT, db_column="id_tipo_desastre", null=True, blank=True
+    )
     region = models.CharField(max_length=100, default="GLOBAL")
+    id_region = models.ForeignKey(
+        Region, on_delete=models.SET_NULL, db_column="id_region", null=True, blank=True
+    )
+    # True cuando Spring ya registro el resultado en las plantas
+    procesado = models.BooleanField(default=False)
     mensaje_notificacion = models.TextField()
     fecha_inicio = models.DateTimeField()
     fecha_fin = models.DateTimeField()
