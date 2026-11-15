@@ -3,7 +3,8 @@ package com.plantia.ui.garden.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -18,7 +19,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +29,7 @@ import com.plantia.data.model.Apariencia
 import com.plantia.ui.escena.Escena
 import com.plantia.ui.escena.EscenaPixel
 import com.plantia.ui.escena.PlantaPixel
+import com.plantia.ui.escena.faseNumero
 import com.plantia.ui.escena.rememberSprites
 import com.plantia.ui.theme.GreenDark
 import com.plantia.ui.theme.GreenPrimary
@@ -53,7 +56,6 @@ object GardenBackgrounds {
 @Composable
 fun PlantFrame(
     nombre: String,
-    especie: String,
     animo: String,
     imageUrl: String?,
     modifier: Modifier = Modifier,
@@ -112,38 +114,70 @@ fun PlantFrame(
         }}
         if (escena != null) EscenaPixel(escena, Modifier.fillMaxSize(), planta) else planta()
 
-        // Nombre + estado de animo
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(14.dp)
-                .clip(CircleShape)
-                .background(SurfaceWhite.copy(alpha = 0.92f))
-                .padding(horizontal = 14.dp, vertical = 8.dp)
-        ) {
-            Text(
-                text = "$nombre · $animo",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = TextPrimary
-            )
-        }
+        // Chip compacto: animo, dia de crecimiento y fase; el nombre va fuera del marco para no tapar la escena
+        ChipCrecimiento(
+            animo = animo,
+            diasCuidados = diasCuidados,
+            diasTotales = diasTotales,
+            marchita = marchita,
+            modifier = Modifier.align(Alignment.TopStart).padding(10.dp)
+        )
+    }
+}
 
-        if (especie.isNotBlank()) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 14.dp)
-            ) {
-                Text(
-                    text = especie,
-                    fontSize = 13.sp,
-                    fontStyle = FontStyle.Italic,
-                    color = TextSecondary
-                )
+/** Icono de animo, "Dia 3/7" y 3 puntos de fase en un solo chip pequeno. */
+@Composable
+private fun ChipCrecimiento(
+    animo: String,
+    diasCuidados: Int,
+    diasTotales: Int,
+    marchita: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val fase = faseNumero(diasCuidados, diasTotales)
+    val texto = when {
+        marchita -> "Marchita"
+        diasTotales <= 0 -> null
+        diasCuidados >= diasTotales -> "Madura"
+        else -> "Día $diasCuidados/$diasTotales"
+    }
+    val descripcion = buildString {
+        append("Ánimo $animo")
+        if (diasTotales > 0) append(", día $diasCuidados de $diasTotales, fase $fase de 3")
+        if (marchita) append(", marchita")
+    }
+    Row(
+        modifier = modifier
+            .semantics(mergeDescendants = true) { contentDescription = descripcion }
+            .clip(CircleShape)
+            .background(SurfaceWhite.copy(alpha = 0.92f))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(text = emojiAnimo(animo), fontSize = 16.sp)
+        if (texto != null) {
+            Text(text = texto, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+            if (!marchita) {
+                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    repeat(3) { i ->
+                        Box(
+                            Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(if (i < fase) GreenPrimary else TextSecondary.copy(alpha = 0.3f))
+                        )
+                    }
+                }
             }
         }
     }
+}
+
+private fun emojiAnimo(animo: String): String = when (animo) {
+    "Feliz" -> "😊"
+    "Regular" -> "😐"
+    else -> "😟"
 }
 
 @Composable

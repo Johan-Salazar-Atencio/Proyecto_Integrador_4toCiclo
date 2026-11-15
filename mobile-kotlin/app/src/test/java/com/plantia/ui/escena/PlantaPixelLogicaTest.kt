@@ -24,6 +24,17 @@ class PlantaPixelLogicaTest {
     }
 
     @Test
+    fun laFaseCoincideConLaDelServidor() {
+        // 5 dias: fase 2 desde el dia 2; 7: desde el 3; 12: desde el 5; la 3 al completar
+        assertEquals(listOf(1, 1, 2, 2, 2, 3), (0..5).map { faseNumero(it, 5) })
+        assertEquals(listOf(1, 1, 1, 2, 2, 2, 2, 3), (0..7).map { faseNumero(it, 7) })
+        assertEquals(1, faseNumero(4, 12))
+        assertEquals(2, faseNumero(5, 12))
+        assertEquals(3, faseNumero(12, 12))
+        assertEquals(1, faseNumero(0, 0))
+    }
+
+    @Test
     fun marchitaYSinDatosDelServidor() {
         assertEquals(SPRITE_MARCHITA, indiceSprite(3, 7, true))
         assertEquals(3, indiceSprite(0, 0, false))

@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.data.model.AccionCuidado
@@ -177,7 +178,6 @@ internal fun JardinContenido(planta: PlantSummary, escena: Escena? = null, onCui
             ) {
                 PlantFrame(
                     nombre = planta.name,
-                    especie = planta.species,
                     animo = estadoAnimo(planta),
                     imageUrl = planta.imageUrl,
                     escena = escena,
@@ -195,6 +195,7 @@ internal fun JardinContenido(planta: PlantSummary, escena: Escena? = null, onCui
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                EncabezadoPlanta(planta)
                 TarjetaVital(planta)
                 TarjetaAcciones(onCuidar)
                 TarjetaConsejo(consejo(planta))
@@ -209,9 +210,9 @@ internal fun JardinContenido(planta: PlantSummary, escena: Escena? = null, onCui
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            EncabezadoPlanta(planta)
             PlantFrame(
                 nombre = planta.name,
-                especie = planta.species,
                 animo = estadoAnimo(planta),
                 imageUrl = planta.imageUrl,
                 escena = escena,
@@ -225,6 +226,17 @@ internal fun JardinContenido(planta: PlantSummary, escena: Escena? = null, onCui
             TarjetaAcciones(onCuidar)
             TarjetaConsejo(consejo(planta))
             Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+/** Nombre y especie fuera del marco, para que nada tape la escena. */
+@Composable
+private fun EncabezadoPlanta(planta: PlantSummary) {
+    Column(Modifier.fillMaxWidth()) {
+        Text(planta.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+        if (planta.species.isNotBlank()) {
+            Text(planta.species, fontSize = 13.sp, fontStyle = FontStyle.Italic, color = TextSecondary)
         }
     }
 }

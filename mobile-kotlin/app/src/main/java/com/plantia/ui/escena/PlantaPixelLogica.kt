@@ -54,6 +54,14 @@ fun indiceSprite(dias: Int, total: Int, marchita: Boolean): Int {
     }
 }
 
+/** Fase 1 a 3 como la calcula el servidor: la segunda empieza al 35 % de los dias y la tercera al completarlos. */
+fun faseNumero(dias: Int, total: Int): Int = when {
+    total <= 0 -> 1
+    dias >= total -> 3
+    dias >= kotlin.math.ceil(total * 0.35).toInt() -> 2
+    else -> 1
+}
+
 /** Los 7 sprites (solo la planta) que corresponden a la apariencia. */
 fun spritesDe(datos: PlantaSpritesJson, ap: Apariencia?): List<List<String>> {
     val d = datos.defecto
