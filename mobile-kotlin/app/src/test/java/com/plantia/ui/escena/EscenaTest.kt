@@ -32,20 +32,21 @@ private val ARTE = Arte(
 
 class MomentoDelDiaTest {
     @Test
-    fun el_dia_va_de_las_6_a_las_16() {
+    fun el_dia_va_de_las_6_a_las_12() {
         assertEquals("DIA", momentoDelDia(6))
-        assertEquals("DIA", momentoDelDia(16))
+        assertEquals("DIA", momentoDelDia(11))
     }
 
     @Test
-    fun la_tarde_es_de_las_17_a_las_18() {
+    fun la_tarde_va_de_las_12_a_las_18() {
+        assertEquals("TARDE", momentoDelDia(12))
         assertEquals("TARDE", momentoDelDia(17))
-        assertEquals("TARDE", momentoDelDia(18))
     }
 
     @Test
-    fun la_noche_es_el_resto_incluida_la_madrugada() {
-        assertEquals("NOCHE", momentoDelDia(19))
+    fun la_noche_va_de_las_18_a_las_6_incluida_la_madrugada() {
+        assertEquals("NOCHE", momentoDelDia(18))
+        assertEquals("NOCHE", momentoDelDia(23))
         assertEquals("NOCHE", momentoDelDia(0))
         assertEquals("NOCHE", momentoDelDia(5))
     }

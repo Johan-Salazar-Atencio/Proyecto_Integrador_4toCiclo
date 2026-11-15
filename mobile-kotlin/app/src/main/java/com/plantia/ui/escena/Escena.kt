@@ -13,10 +13,10 @@ data class Escena(
     val desastreMs: Int = 0
 )
 
-/** Momento del dia segun la hora: DIA de 6 a 16, TARDE de 17 a 18 y NOCHE el resto. */
+/** Momento del dia segun la hora: DIA de 6:00 a 11:59, TARDE de 12:00 a 17:59 y NOCHE de 18:00 a 5:59. */
 fun momentoDelDia(hora: Int): String = when (hora) {
-    in 6..16 -> "DIA"
-    in 17..18 -> "TARDE"
+    in 6..11 -> "DIA"
+    in 12..17 -> "TARDE"
     else -> "NOCHE"
 }
 

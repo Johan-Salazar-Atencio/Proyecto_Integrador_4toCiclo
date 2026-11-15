@@ -1,5 +1,6 @@
 package com.plantia.ui.escena
 
+import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalContext
@@ -24,7 +26,9 @@ import androidx.compose.ui.unit.IntSize
 import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 /**
  * Escena en pixel art: el fondo animado va detras, [contenido] (la planta) en medio y la animacion
@@ -38,18 +42,24 @@ fun EscenaPixel(
     contenido: @Composable BoxScope.() -> Unit
 ) {
     val contexto = LocalContext.current
-    val tira by produceState<ImageBitmap?>(null, escena.fondoUrl) { value = cargarBitmap(contexto, escena.fondoUrl) }
+    // La tira de cuadros se corta al cargarla: una imagen de 9216 px de ancho puede pasar el limite de
+    // textura de algunos celulares, y los cuadros sueltos son pequenos (96x96).
+    val cuadros by produceState<List<ImageBitmap>>(emptyList(), escena.fondoUrl, escena.fondoFrames) {
+        value = withContext(Dispatchers.Default) {
+            cargarBitmap(contexto, escena.fondoUrl)?.let { cortarEnCuadros(it, escena) }.orEmpty()
+        }
+    }
     val capas by produceState<List<ImageBitmap>>(emptyList(), escena.desastreFrames) {
         value = escena.desastreFrames.mapNotNull { cargarBitmap(contexto, it) }
     }
 
     var cuadroFondo by remember { mutableIntStateOf(0) }
-    LaunchedEffect(tira, escena.fondoFrames, escena.fondoMs) {
+    LaunchedEffect(cuadros, escena.fondoMs) {
         cuadroFondo = 0
-        if (tira == null || escena.fondoFrames <= 1) return@LaunchedEffect
+        if (cuadros.size <= 1) return@LaunchedEffect
         while (true) {
             delay(escena.fondoMs.toLong())
-            cuadroFondo = (cuadroFondo + 1) % escena.fondoFrames
+            cuadroFondo = (cuadroFondo + 1) % cuadros.size
         }
     }
     var cuadroCapa by remember { mutableIntStateOf(0) }
@@ -63,18 +73,24 @@ fun EscenaPixel(
     }
 
     Box(modifier = modifier) {
-        tira?.let { hoja ->
-            Canvas(Modifier.fillMaxSize()) {
-                val ancho = if (escena.fondoAncho > 0) escena.fondoAncho else hoja.width / escena.fondoFrames
-                val alto = if (escena.fondoAlto > 0) escena.fondoAlto else hoja.height
-                dibujar(hoja, IntOffset(cuadroFondo.coerceIn(0, escena.fondoFrames - 1) * ancho, 0), IntSize(ancho, alto))
-            }
+        cuadros.getOrNull(cuadroFondo)?.let { cuadro ->
+            Canvas(Modifier.fillMaxSize()) { dibujar(cuadro, IntOffset.Zero, IntSize(cuadro.width, cuadro.height)) }
         }
         contenido()
         capas.getOrNull(cuadroCapa)?.let { capa ->
             Canvas(Modifier.fillMaxSize()) { dibujar(capa, IntOffset.Zero, IntSize(capa.width, capa.height)) }
         }
     }
+}
+
+/** Corta la tira horizontal en sus cuadros (ancho y alto del fondo, o la tira entre sus cuadros). */
+private fun cortarEnCuadros(tira: ImageBitmap, escena: Escena): List<ImageBitmap> {
+    val origen = tira.asAndroidBitmap()
+    val ancho = if (escena.fondoAncho > 0) escena.fondoAncho else origen.width / escena.fondoFrames.coerceAtLeast(1)
+    val alto = if (escena.fondoAlto > 0) escena.fondoAlto else origen.height
+    if (ancho <= 0 || alto <= 0) return emptyList()
+    val total = minOf(escena.fondoFrames.coerceAtLeast(1), origen.width / ancho)
+    return List(total) { Bitmap.createBitmap(origen, it * ancho, 0, ancho, minOf(alto, origen.height)).asImageBitmap() }
 }
 
 /** Dibuja el recorte [origen]/[tam] de la imagen ocupando todo el espacio, sin suavizar. */
