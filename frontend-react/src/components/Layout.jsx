@@ -9,6 +9,7 @@ const MENU = [
   { ruta: RUTAS.HOME, icono: '🏠', texto: 'Inicio' },
   { ruta: RUTAS.ESCANEAR, icono: '📷', texto: 'Escanear' },
   { ruta: RUTAS.COLECCION, icono: '📚', texto: 'Colección' },
+  { ruta: RUTAS.TIENDA, icono: '🛒', texto: 'Tienda' },
   { ruta: RUTAS.PERFIL, icono: '👤', texto: 'Perfil' },
 ]
 
@@ -17,6 +18,7 @@ const TITULOS = [
   [RUTAS.CATALOGO, 'Enciclopedia'],
   [RUTAS.HISTORIAL, 'Historial'],
   [RUTAS.JARDIN, 'Jardín virtual'],
+  [RUTAS.TIENDA, 'Tienda'],
 ]
 
 // Marco de las paginas con sesion: menu lateral en pantallas anchas, barra inferior en moviles

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { RUTAS } from '../../../routes/rutas'
 import { urlImagen } from '../../../services/home'
 import { cuidarPlanta, obtenerPlantaJardin } from '../../../services/jardin'
+import { comprarAbono, obtenerTienda } from '../../../services/tienda'
 import PlantaPixel from '../../../components/PlantaPixel'
 import EscenaPixel from '../../../components/EscenaPixel'
 import { ACCIONES, mensajeCuidado } from './acciones'
@@ -22,6 +23,7 @@ export default function Jardin() {
   const [aviso, setAviso] = useState('')
   const [salto, setSalto] = useState(0)
   const [cuidando, setCuidando] = useState(false)
+  const [abono, setAbono] = useState(null) // abono de la tienda (precio), si esta a la venta
   const temporizador = useRef(null)
 
   // Planta del jardin guardada en el servidor (GET /plantas/activa, 204 = sin planta)
@@ -35,6 +37,9 @@ export default function Jardin() {
   }, [])
 
   useEffect(() => { cargar() }, [cargar])
+  useEffect(() => {
+    obtenerTienda().then((t) => setAbono(t.items.find((i) => i.tipo === 'ABONO') || null)).catch(() => setAbono(null))
+  }, [])
   useEffect(() => () => clearTimeout(temporizador.current), [])
 
   const avisar = (texto) => {
@@ -62,6 +67,24 @@ export default function Jardin() {
       }
     } catch (err) {
       avisar(err.message || 'No se pudo cuidar la planta.')
+    } finally {
+      setCuidando(false)
+    }
+  }
+
+  // Abono de la tienda: cuesta monedas y suma un dia de crecimiento (maximo uno al dia por planta)
+  const abonarConTienda = async () => {
+    if (cuidando) return
+    setCuidando(true)
+    try {
+      const planta = await comprarAbono(estado.planta.id)
+      const antes = etapaDe(estado.planta)
+      const despues = etapaDe(planta)
+      setEstado((e) => ({ ...e, planta }))
+      setSalto((s) => s + 1)
+      avisar(despues.indice > antes.indice ? `¡${planta.name} creció! Ahora es: ${despues.nombre} 🎉` : `Abono aplicado: ${planta.name} ganó un día 🌿`)
+    } catch (err) {
+      avisar(err.message || 'No se pudo usar el abono.')
     } finally {
       setCuidando(false)
     }
@@ -154,6 +177,15 @@ export default function Jardin() {
             </button>
           ))}
         </div>
+
+        {abono && (
+          <button className="jardin-abono aparece" onClick={abonarConTienda} disabled={cuidando} style={{ animationDelay: '0.26s' }}>
+            <span>🌿</span>
+            <b>{abono.nombre}: +1 día de crecimiento</b>
+            <small>{abono.precio} 🍃 · máximo 1 al día</small>
+          </button>
+        )}
+        <Link className="jardin-tienda-enlace" to={RUTAS.TIENDA}>🛒 Ir a la tienda</Link>
       </div>
 
       {aviso && <div className="jardin-aviso" role="status">{aviso}</div>}

@@ -4,6 +4,11 @@ import { llamar } from './api'
 // se piden una vez y se reutilizan; si falla, la escena se queda con su fondo de color.
 let cache = null
 
+// Tras equipar o quitar un fondo en la tienda: la proxima escena pide el arte de nuevo
+export function olvidarArte() {
+  cache = null
+}
+
 export async function obtenerArte() {
   if (cache) return cache
   try {
@@ -27,7 +32,10 @@ export function momentoDelDia(hora) {
 export function elegirEscena(arte, hora, tipo, fase) {
   if (!arte || !arte.fondos?.length) return null
   const momento = momentoDelDia(hora)
-  const delMomento = arte.fondos.filter((f) => f.momento === momento).sort((a, b) => Number(b.isDefault) - Number(a.isDefault))
+  // El fondo equipado de la tienda va primero; despues el predeterminado
+  const delMomento = arte.fondos
+    .filter((f) => f.momento === momento)
+    .sort((a, b) => Number(b.equipado) - Number(a.equipado) || Number(b.isDefault) - Number(a.isDefault))
   const fondo = delMomento[0] || arte.fondos[0]
   const delTipo = tipo ? arte.animaciones.filter((a) => a.disasterType === tipo) : []
   const animacion = delTipo.find((a) => a.phase === fase) || delTipo[0] || null

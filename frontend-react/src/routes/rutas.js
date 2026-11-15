@@ -7,6 +7,7 @@ export const RUTAS = {
   ESCANEAR: '/escanear',
   FICHA: '/ficha',
   JARDIN: '/jardin',
+  TIENDA: '/tienda',
   COLECCION: '/coleccion',
   PERFIL: '/perfil',
   CATALOGO: '/catalogo',
@@ -20,4 +21,5 @@ export const RUTAS_ADMIN = {
   EVENTOS: '/admin/eventos',
   CATALOGO: '/admin/catalogo',
   MISIONES: '/admin/misiones',
+  TIENDA: '/admin/tienda',
 }
