@@ -128,6 +128,18 @@ class ResultadoDesastreServiceTest {
     }
 
     @Test
+    void procesarUnDesastreNoReiniciaElRelojDeDesgasteDeLaPlanta() {
+        LocalDateTime antes = AHORA.minusHours(5);
+        PlantaUsuario p = planta(7, 100, false);
+        p.setUpdatedAt(antes);
+        when(plantaRepo.findAll()).thenReturn(List.of(p));
+
+        service.procesar(evento("BAJO", AHORA.minusMinutes(1)), AHORA);
+
+        assertThat(p.getUpdatedAt()).isEqualTo(antes);
+    }
+
+    @Test
     void eventoDeUnaRegionSoloAfectaAPlantasDeEsaRegion() {
         EventoDesastre e = evento("BAJO", AHORA.minusMinutes(1));
         e.setRegion("Arequipa");

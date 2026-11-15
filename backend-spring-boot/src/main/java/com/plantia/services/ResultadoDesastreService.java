@@ -102,7 +102,7 @@ public class ResultadoDesastreService {
                 p.setSaludPorcentaje(nueva);
                 danadas++;
             }
-            p.setUpdatedAt(ahora);
+            // updated_at no se toca: PlantasService.envejecer lo usa para contar las horas de desgaste
             plantaRepo.save(p);
             registroRepo.save(r);
         }
