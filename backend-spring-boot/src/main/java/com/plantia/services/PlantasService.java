@@ -114,6 +114,7 @@ public class PlantasService {
         planta.setCrecimiento(0);
         planta.setDiasCuidados(0);
         planta.setUltimoDiaCuidado(null);
+        planta.setUltimoDiaAbonoTienda(null);
         planta.setEtapaCrecimiento("SEMILLA");
         planta.setModoTiempo("REAL");
         planta.setEstaRefugiada(false);
@@ -282,9 +283,20 @@ public class PlantasService {
      */
     static void contarDia(PlantaUsuario p, LocalDate hoy, int diasTotales) {
         if (!hoy.equals(p.getUltimoDiaCuidado())) {
-            p.setDiasCuidados(Math.min(diasTotales, valor(p.getDiasCuidados()) + 1));
+            sumarDia(p, diasTotales);
             p.setUltimoDiaCuidado(hoy);
+        } else {
+            subirFase(p, diasTotales);
         }
+    }
+
+    /** Suma un dia de crecimiento (sin pasar del total) y sube la fase si corresponde. */
+    static void sumarDia(PlantaUsuario p, int diasTotales) {
+        p.setDiasCuidados(Math.min(diasTotales, valor(p.getDiasCuidados()) + 1));
+        subirFase(p, diasTotales);
+    }
+
+    private static void subirFase(PlantaUsuario p, int diasTotales) {
         String fase = CrecimientoPlanta.faseSegun(valor(p.getDiasCuidados()), diasTotales);
         if (CrecimientoPlanta.rango(fase) > CrecimientoPlanta.rango(p.getEtapaCrecimiento())) {
             p.setEtapaCrecimiento(fase);
@@ -308,6 +320,16 @@ public class PlantasService {
         } catch (JsonProcessingException e) {
             return null;
         }
+    }
+
+    /** Resumen de una planta propia (404 si no es del usuario). */
+    @Transactional
+    public PlantSummaryDto resumen(Integer userId, Integer idPlantaUsuario) {
+        return map(propia(userId, idPlantaUsuario));
+    }
+
+    Map<String, Object> apariencia(PlantaUsuario p) {
+        return deJson(p.getApariencia());
     }
 
     private Map<String, Object> deJson(String apariencia) {

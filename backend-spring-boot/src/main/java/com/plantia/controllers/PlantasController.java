@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import com.plantia.dto.PlantSummaryDto;
 import com.plantia.models.EscaneoHistorial;
+import com.plantia.services.AbonoService;
 import com.plantia.services.PlantasService;
 
 @RestController
@@ -21,9 +22,11 @@ import com.plantia.services.PlantasService;
 public class PlantasController {
 
     private final PlantasService plantasService;
+    private final AbonoService abonoService;
 
-    public PlantasController(PlantasService plantasService) {
+    public PlantasController(PlantasService plantasService, AbonoService abonoService) {
         this.plantasService = plantasService;
+        this.abonoService = abonoService;
     }
 
     /**
@@ -76,6 +79,15 @@ public class PlantasController {
         }
         PlantSummaryDto actualizado = plantasService.cuidar(userId, idPlantaUsuario, accion);
         return ResponseEntity.ok(actualizado);
+    }
+
+    /** Compra un abono de la tienda y lo usa: +1 dia de crecimiento (409 si no corresponde, 402 sin monedas). */
+    @PostMapping("/{id}/abono-tienda")
+    public ResponseEntity<PlantSummaryDto> abonoDeTienda(
+            @RequestHeader("X-User-Id") Integer userId,
+            @PathVariable("id") Integer idPlantaUsuario) {
+        abonoService.abonar(userId, idPlantaUsuario);
+        return ResponseEntity.ok(plantasService.resumen(userId, idPlantaUsuario));
     }
 
     /** Refugia la planta del desastre activo (409 si no hay desastre o la planta ya murio). */

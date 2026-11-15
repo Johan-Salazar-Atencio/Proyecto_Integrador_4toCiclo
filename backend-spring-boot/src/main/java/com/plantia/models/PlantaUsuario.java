@@ -77,6 +77,10 @@ public class PlantaUsuario {
     @Column(name = "ultimo_dia_cuidado")
     private LocalDate ultimoDiaCuidado;
 
+    /** Ultimo dia que se uso un abono de la tienda en esta planta (maximo uno al dia). */
+    @Column(name = "ultimo_dia_abono_tienda")
+    private LocalDate ultimoDiaAbonoTienda;
+
     /** JSON con la apariencia que dio la IA (forma, colores); null = dibujo por defecto. */
     @Column(name = "apariencia")
     private String apariencia;
@@ -127,6 +131,8 @@ public class PlantaUsuario {
     public void setDiasCuidados(Integer diasCuidados) { this.diasCuidados = diasCuidados; }
     public LocalDate getUltimoDiaCuidado() { return ultimoDiaCuidado; }
     public void setUltimoDiaCuidado(LocalDate ultimoDiaCuidado) { this.ultimoDiaCuidado = ultimoDiaCuidado; }
+    public LocalDate getUltimoDiaAbonoTienda() { return ultimoDiaAbonoTienda; }
+    public void setUltimoDiaAbonoTienda(LocalDate d) { this.ultimoDiaAbonoTienda = d; }
     public String getApariencia() { return apariencia; }
     public void setApariencia(String apariencia) { this.apariencia = apariencia; }
     public String getFotoUrl() { return fotoUrl; }
