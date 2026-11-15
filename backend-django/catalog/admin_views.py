@@ -361,6 +361,8 @@ class AdminTiendaDetailView(APIView):
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
         if valores.get("activo") and item.tipo == "MACETA":
             return Response({"error": "Las macetas aun no estan disponibles"}, status=status.HTTP_400_BAD_REQUEST)
+        if valores.get("activo") and item.tipo == "FONDO" and not item.id_fondo:
+            return Response({"error": "Este fondo no tiene imagen: no se puede poner a la venta"}, status=status.HTTP_400_BAD_REQUEST)
         for campo, valor in valores.items():
             setattr(item, campo, valor)
         if valores:

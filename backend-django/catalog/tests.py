@@ -370,3 +370,13 @@ class AdminTiendaTests(SimpleTestCase):
         with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: None)):
             respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"activo": False}, pk=99)
         self.assertEqual(respuesta.status_code, 404)
+
+    def test_un_fondo_sin_imagen_no_se_puede_activar(self):
+        from unittest.mock import MagicMock
+
+        item = admin_views.ItemTienda(id_item=3, nombre="Fondo viejo", tipo="FONDO", precio_monedas=150, id_fondo=None, activo=False)
+        item.save = MagicMock()
+        with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: item)):
+            respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"activo": True}, pk=3)
+        self.assertEqual(respuesta.status_code, 400)
+        item.save.assert_not_called()
