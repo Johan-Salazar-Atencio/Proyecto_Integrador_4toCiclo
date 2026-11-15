@@ -81,7 +81,7 @@ def cyberpunk(f):
             lz.poner(x, y0, col)
             lz.poner(x, y0 + 1, col)
     # autos voladores
-    for (y, velocidad, sentido, color) in ((18, 2, 1, "#ffe45c"), (26, 1, -1, "#ff3fb4")):
+    for (y, velocidad, sentido, color) in ((18, 1, 1, "#ffe45c"), (26, 1, -1, "#ff3fb4")):
         x = (f * velocidad * sentido) % N
         for dx in range(5):
             lz.poner((x + dx * sentido) % N, y, c("#06031a"))
@@ -93,7 +93,7 @@ def cyberpunk(f):
     gota = random.Random(5)
     for _ in range(26):
         x0, y0 = gota.randint(0, N - 1), gota.randint(0, N - 1)
-        y = (y0 + 4 * f) % N
+        y = (y0 + 2 * f) % N  # 2 px por frame: llovizna suave (dos vueltas por ciclo)
         x = (x0 + f) % N
         if y < 80:
             lz.poner(x, y, c("#6f86ff"))
@@ -133,7 +133,7 @@ def nevado(f):
     copo = random.Random(3)
     for k in range(46):
         x0, y0, rapido = copo.randint(0, N - 1), copo.randint(0, N - 1), k % 3 == 0
-        y = (y0 + (2 if rapido else 1) * f) % N
+        y = (y0 + f) % N  # 1 px por frame (8 px/s): nieve lenta
         x = (x0 + round(2 * math.sin(ciclo(f, 2, k)))) % N
         if y < 86:
             lz.poner(x, y, c("#ffffff"))
@@ -208,7 +208,7 @@ def sakura(f):
     petalo = random.Random(9)
     for k in range(34):
         x0, y0, rapido = petalo.randint(0, N - 1), petalo.randint(0, N - 1), k % 2 == 0
-        y = (y0 + (2 if rapido else 1) * f) % N
+        y = (y0 + f) % N  # 1 px por frame (8 px/s): petalos que flotan
         x = (x0 + round(3 * math.sin(ciclo(f, 2, k)))) % N
         if y < 84:
             lz.poner(x, y, c("#ffb7d0"))

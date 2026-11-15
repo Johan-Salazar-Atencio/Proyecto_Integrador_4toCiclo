@@ -119,7 +119,7 @@ def sol(lz, cx, cy, r, color, borde, f):
 
 def pajaros(lz, f, color, y0):
     for k, x0 in enumerate((6, 54)):
-        x = (x0 + f * 2) % N  # 2 px por frame: dan dos vueltas por ciclo
+        x = (x0 + f) % N  # 1 px por frame (8 px/s): dan una vuelta por ciclo, como las nubes
         aleteo = (f // 6) % 2  # un aleteo cada 6 frames
         y = y0 + k * 5 + aleteo
         alas = [(-2, 0), (-1, 1), (0, 1), (1, 1), (2, 0)] if aleteo == 0 else [(-2, 1), (-1, 0), (0, 1), (1, 0), (2, 1)]
