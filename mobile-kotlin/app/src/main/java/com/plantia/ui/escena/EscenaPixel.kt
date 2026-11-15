@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.IntSize
 import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
+import coil.size.Size as TamanoCoil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -60,6 +61,7 @@ fun EscenaPixel(
         while (true) {
             delay(escena.fondoMs.toLong())
             cuadroFondo = (cuadroFondo + 1) % cuadros.size
+
         }
     }
     var cuadroCapa by remember { mutableIntStateOf(0) }
@@ -107,7 +109,9 @@ private fun DrawScope.dibujar(imagen: ImageBitmap, origen: IntOffset, tam: IntSi
 
 /** Descarga una imagen (Coil la deja en cache); null si falla, y la escena sigue sin ella. */
 private suspend fun cargarBitmap(contexto: android.content.Context, url: String): ImageBitmap? {
-    val peticion = ImageRequest.Builder(contexto).data(url).allowHardware(false).build()
+    // Tamano original: la tira de 96 cuadros mide 9216x96 y Coil la reduciria para ajustarla a la pantalla
+    val peticion = ImageRequest.Builder(contexto).data(url).allowHardware(false)
+        .size(TamanoCoil.ORIGINAL).build()
     val resultado = contexto.imageLoader.execute(peticion) as? SuccessResult ?: return null
     return (resultado.drawable as? BitmapDrawable)?.bitmap?.asImageBitmap()
 }
