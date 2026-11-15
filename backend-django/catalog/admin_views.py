@@ -19,7 +19,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import (
-    EventoDesastre, Mision, PlantaCatalogo, Region, RegistroDesastreUsuario, TipoDesastre, Usuario,
+    EventoDesastre, FondoEscena, ItemTienda, Mision, PlantaCatalogo, Region, RegistroDesastreUsuario,
+    TipoDesastre, Usuario,
 )
 
 # Hash BCrypt valido para comparar cuando el correo no existe: asi el tiempo de
@@ -260,6 +261,111 @@ class AdminMisionDetailView(APIView):
         if valores:
             mision.save(update_fields=list(valores))
         return Response(_mision_a_dict(mision))
+
+
+def _item_a_dict(i, fondos):
+    fondo = fondos.get(i.id_fondo)
+    return {
+        "id_item": i.id_item, "nombre": i.nombre, "tipo": i.tipo, "descripcion": i.descripcion,
+        "precio_monedas": i.precio_monedas, "nivel_requerido": i.nivel_requerido, "activo": i.activo,
+        "id_fondo": i.id_fondo, "fondo": fondo.nombre if fondo else None, "momento": fondo.momento if fondo else None,
+        "vista": i.asset_url,
+    }
+
+
+def _validar_item(data, parcial):
+    """Devuelve (valores, error). Con parcial=True solo valida los campos que llegan."""
+    valores = {}
+    if not parcial or "nombre" in data:
+        nombre = str(data.get("nombre") or "").strip()
+        if not nombre or len(nombre) > 100:
+            return None, "El nombre es obligatorio (maximo 100 caracteres)"
+        valores["nombre"] = nombre
+    if not parcial or "precio_monedas" in data:
+        precio = data.get("precio_monedas")
+        if isinstance(precio, bool) or not isinstance(precio, int) or precio < 0:
+            return None, "El precio debe ser un entero >= 0"
+        valores["precio_monedas"] = precio
+    if "nivel_requerido" in data or not parcial:
+        nivel = data.get("nivel_requerido", 1)
+        if isinstance(nivel, bool) or not isinstance(nivel, int) or nivel < 1:
+            return None, "El nivel requerido debe ser un entero >= 1"
+        valores["nivel_requerido"] = nivel
+    if "descripcion" in data:
+        descripcion = str(data["descripcion"] or "").strip()
+        if len(descripcion) > 200:
+            return None, "La descripcion admite hasta 200 caracteres"
+        valores["descripcion"] = descripcion or None
+    if "activo" in data:
+        if not isinstance(data["activo"], bool):
+            return None, "activo debe ser verdadero o falso"
+        valores["activo"] = data["activo"]
+    return valores, None
+
+
+def _fondos_de(items):
+    ids = {i.id_fondo for i in items if i.id_fondo}
+    return {f.id_fondo: f for f in FondoEscena.objects.filter(pk__in=ids)} if ids else {}
+
+
+class AdminTiendaListCreateView(APIView):
+    """GET /api/admin/tienda/ lista todos los productos (activos o no) y los fondos que aun no se venden;
+    POST agrega un fondo a la venta ({nombre, precio_monedas, nivel_requerido, id_fondo, descripcion})."""
+
+    def get(self, request):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        items = list(ItemTienda.objects.order_by("tipo", "id_item"))
+        fondos = _fondos_de(items)
+        vendidos = {i.id_fondo for i in items if i.id_fondo}
+        disponibles = [
+            {"id_fondo": f.id_fondo, "nombre": f.nombre, "momento": f.momento}
+            for f in FondoEscena.objects.filter(activo=True, es_predeterminado=False).order_by("momento", "id_fondo")
+            if f.id_fondo not in vendidos
+        ]
+        return Response({"items": [_item_a_dict(i, fondos) for i in items], "fondos_disponibles": disponibles})
+
+    def post(self, request):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        if request.data.get("tipo", "FONDO") != "FONDO":
+            return Response({"error": "Por ahora solo se pueden agregar fondos"}, status=status.HTTP_400_BAD_REQUEST)
+        valores, error = _validar_item(request.data, parcial=False)
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+        id_fondo = request.data.get("id_fondo")
+        if isinstance(id_fondo, bool) or not isinstance(id_fondo, int):
+            return Response({"error": "Elige el fondo que se vende"}, status=status.HTTP_400_BAD_REQUEST)
+        fondo = FondoEscena.objects.filter(pk=id_fondo, activo=True, es_predeterminado=False).first()
+        if fondo is None:
+            return Response({"error": "Fondo no disponible"}, status=status.HTTP_400_BAD_REQUEST)
+        if ItemTienda.objects.filter(id_fondo=id_fondo).exists():
+            return Response({"error": "Ese fondo ya esta en la tienda"}, status=status.HTTP_400_BAD_REQUEST)
+        item = ItemTienda.objects.create(
+            tipo="FONDO", id_fondo=id_fondo, asset_url=fondo.imagen_url.replace(".png", "_vista.png"), **valores)
+        return Response(_item_a_dict(item, {fondo.id_fondo: fondo}), status=status.HTTP_201_CREATED)
+
+
+class AdminTiendaDetailView(APIView):
+    """PATCH /api/admin/tienda/<id>/ cambia nombre, descripcion, precio, nivel o activo. Quitar un producto
+    es {"activo": false}: no se borra, asi quienes ya lo compraron lo conservan y se puede reactivar."""
+
+    def patch(self, request, pk):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        item = ItemTienda.objects.filter(pk=pk).first()
+        if item is None:
+            return Response({"error": "Producto no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+        valores, error = _validar_item(request.data, parcial=True)
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+        if valores.get("activo") and item.tipo == "MACETA":
+            return Response({"error": "Las macetas aun no estan disponibles"}, status=status.HTTP_400_BAD_REQUEST)
+        for campo, valor in valores.items():
+            setattr(item, campo, valor)
+        if valores:
+            item.save(update_fields=list(valores))
+        return Response(_item_a_dict(item, _fondos_de([item])))
 
 
 class AdminEventoEfectosView(APIView):

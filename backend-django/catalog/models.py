@@ -219,6 +219,9 @@ class ItemTienda(models.Model):
     precio_monedas = models.IntegerField()
     nivel_requerido = models.IntegerField(default=1)
     asset_url = models.CharField(max_length=255)
+    id_fondo = models.IntegerField(null=True, blank=True)
+    descripcion = models.CharField(max_length=200, null=True, blank=True)
+    activo = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -229,6 +232,24 @@ class ItemTienda(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.precio_monedas} monedas)"
+
+
+class FondoEscena(models.Model):
+    """Fondo animado del jardin (solo lectura aqui: el admin elige cual vender, no sube imagenes)."""
+
+    id_fondo = models.AutoField(primary_key=True)
+    momento = models.CharField(max_length=10)
+    nombre = models.CharField(max_length=100)
+    imagen_url = models.CharField(max_length=255)
+    es_predeterminado = models.BooleanField(default=False)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        managed = False
+        db_table = "fondos_escena"
+
+    def __str__(self):
+        return f"{self.nombre} ({self.momento})"
 
 
 class Logro(models.Model):

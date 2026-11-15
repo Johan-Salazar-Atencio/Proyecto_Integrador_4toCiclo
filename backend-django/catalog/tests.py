@@ -281,3 +281,92 @@ class EfectosDesastreTests(SimpleTestCase):
         respuesta = self._get()
         self.assertEqual(respuesta.status_code, 200)
         self.assertEqual(respuesta.data["registros"], [])
+
+
+class AdminTiendaTests(SimpleTestCase):
+    """Tienda del admin: precios, activar o desactivar y agregar fondos; las macetas aun no."""
+
+    def _llamar(self, vista, metodo, datos=None, admin=True, **kwargs):
+        fabrica = getattr(APIRequestFactory(), metodo)
+        request = fabrica("/api/admin/tienda/", datos, format="json")
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario() if admin else None):
+            return vista.as_view()(request, **kwargs)
+
+    def test_sin_admin_devuelve_401(self):
+        respuesta = self._llamar(admin_views.AdminTiendaListCreateView, "post", {}, admin=False)
+        self.assertEqual(respuesta.status_code, 401)
+
+    def test_solo_se_agregan_fondos(self):
+        datos = {"tipo": "MACETA", "nombre": "Maceta", "precio_monedas": 10}
+        respuesta = self._llamar(admin_views.AdminTiendaListCreateView, "post", datos)
+        self.assertEqual(respuesta.status_code, 400)
+
+    def test_precio_negativo_o_nivel_cero_no_se_aceptan(self):
+        for cambios in ({"precio_monedas": -5}, {"nivel_requerido": 0}):
+            datos = dict({"nombre": "Fondo", "precio_monedas": 50, "id_fondo": 9}, **cambios)
+            respuesta = self._llamar(admin_views.AdminTiendaListCreateView, "post", datos)
+            self.assertEqual(respuesta.status_code, 400, cambios)
+
+    def test_el_fondo_debe_existir_y_no_estar_ya_a_la_venta(self):
+        from unittest.mock import MagicMock
+
+        datos = {"nombre": "Fondo", "precio_monedas": 50, "id_fondo": 9}
+        with patch.object(admin_views.FondoEscena.objects, "filter", return_value=MagicMock(first=lambda: None)):
+            self.assertEqual(self._llamar(admin_views.AdminTiendaListCreateView, "post", datos).status_code, 400)
+        fondo = admin_views.FondoEscena(id_fondo=9, momento="NOCHE", nombre="Cyber", imagen_url="/files/arte/fondos/x.png")
+        with patch.object(admin_views.FondoEscena.objects, "filter", return_value=MagicMock(first=lambda: fondo)), \
+                patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(exists=lambda: True)):
+            self.assertEqual(self._llamar(admin_views.AdminTiendaListCreateView, "post", datos).status_code, 400)
+
+    def test_agregar_un_fondo_guarda_su_vista_previa(self):
+        from unittest.mock import MagicMock
+
+        datos = {"nombre": "Cyber", "precio_monedas": 250, "nivel_requerido": 3, "id_fondo": 9}
+        fondo = admin_views.FondoEscena(id_fondo=9, momento="NOCHE", nombre="Cyber", imagen_url="/files/arte/fondos/cyberpunk.png")
+        creado = admin_views.ItemTienda(id_item=7, nombre="Cyber", tipo="FONDO", precio_monedas=250, nivel_requerido=3, id_fondo=9,
+                                        asset_url="/files/arte/fondos/cyberpunk_vista.png", activo=True)
+        with patch.object(admin_views.FondoEscena.objects, "filter", return_value=MagicMock(first=lambda: fondo)), \
+                patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(exists=lambda: False)), \
+                patch.object(admin_views.ItemTienda.objects, "create", return_value=creado) as crear:
+            respuesta = self._llamar(admin_views.AdminTiendaListCreateView, "post", datos)
+        self.assertEqual(respuesta.status_code, 201)
+        self.assertEqual(crear.call_args.kwargs["asset_url"], "/files/arte/fondos/cyberpunk_vista.png")
+        self.assertEqual(crear.call_args.kwargs["tipo"], "FONDO")
+
+    def test_cambiar_el_precio_solo_guarda_el_precio(self):
+        from unittest.mock import MagicMock
+
+        item = admin_views.ItemTienda(id_item=2, nombre="Nevado", tipo="FONDO", precio_monedas=100, nivel_requerido=1, activo=True)
+        item.save = MagicMock()
+        with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: item)):
+            respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"precio_monedas": 80}, pk=2)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.data["precio_monedas"], 80)
+        item.save.assert_called_once_with(update_fields=["precio_monedas"])
+
+    def test_desactivar_no_borra(self):
+        from unittest.mock import MagicMock
+
+        item = admin_views.ItemTienda(id_item=2, nombre="Nevado", tipo="FONDO", precio_monedas=100, activo=True)
+        item.save = MagicMock()
+        with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: item)):
+            respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"activo": False}, pk=2)
+        self.assertFalse(respuesta.data["activo"])
+        item.save.assert_called_once_with(update_fields=["activo"])
+
+    def test_una_maceta_no_se_puede_activar_todavia(self):
+        from unittest.mock import MagicMock
+
+        item = admin_views.ItemTienda(id_item=3, nombre="Maceta", tipo="MACETA", precio_monedas=80, activo=False)
+        item.save = MagicMock()
+        with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: item)):
+            respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"activo": True}, pk=3)
+        self.assertEqual(respuesta.status_code, 400)
+        item.save.assert_not_called()
+
+    def test_producto_inexistente_devuelve_404(self):
+        from unittest.mock import MagicMock
+
+        with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: None)):
+            respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"activo": False}, pk=99)
+        self.assertEqual(respuesta.status_code, 404)
