@@ -24,4 +24,6 @@ public interface EventoDesastreRepository extends JpaRepository<EventoDesastre, 
     List<EventoDesastre> findByEstadoAndFechaInicioLessThanEqual(String estado, LocalDateTime limite);
 
     List<EventoDesastre> findByEstadoAndFechaFinLessThanEqual(String estado, LocalDateTime limite);
+
+    List<EventoDesastre> findByEstadoAndProcesado(String estado, Boolean procesado);
 }

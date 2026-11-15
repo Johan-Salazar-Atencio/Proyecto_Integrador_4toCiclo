@@ -21,16 +21,23 @@ public class EventoCicloService {
     private static final Logger log = LoggerFactory.getLogger(EventoCicloService.class);
 
     private final EventoDesastreRepository eventoRepo;
+    private final ResultadoDesastreService resultados;
 
-    public EventoCicloService(EventoDesastreRepository eventoRepo) {
+    public EventoCicloService(EventoDesastreRepository eventoRepo, ResultadoDesastreService resultados) {
         this.eventoRepo = eventoRepo;
+        this.resultados = resultados;
     }
 
-    /** Avanza los estados segun la hora indicada y devuelve los eventos que cambiaron a FINALIZADO. */
+    /**
+     * Avanza los estados segun la hora indicada, registra el resultado de los eventos terminados
+     * y devuelve los que cambiaron a FINALIZADO en esta pasada.
+     */
     @Transactional
     public List<EventoDesastre> avanzar(LocalDateTime ahora) {
         activar(ahora);
-        return finalizar(ahora);
+        List<EventoDesastre> finalizados = finalizar(ahora);
+        resultados.procesarPendientes(ahora);
+        return finalizados;
     }
 
     private void activar(LocalDateTime ahora) {
