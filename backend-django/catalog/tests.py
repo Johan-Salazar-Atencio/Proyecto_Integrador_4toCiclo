@@ -203,3 +203,24 @@ class AdminMisionesTests(SimpleTestCase):
         with patch.object(admin_views.Mision.objects, "filter", return_value=MagicMock(first=lambda: None)):
             respuesta = self._llamar(admin_views.AdminMisionDetailView, "patch", {"activa": False}, pk=99)
         self.assertEqual(respuesta.status_code, 404)
+
+
+class RegionListTests(SimpleTestCase):
+    """RegionListView: solo regiones activas, con el codigo que guardan usuarios y eventos."""
+
+    def test_devuelve_codigo_y_nombre_de_las_activas(self):
+        from unittest.mock import MagicMock
+
+        from . import views
+        from .models import Region
+
+        activas = [Region(id_region=1, codigo="GLOBAL", nombre="Global"),
+                   Region(id_region=3, codigo="LIMA", nombre="Lima Metropolitana")]
+        qs = MagicMock()
+        qs.order_by.return_value = activas
+        request = APIRequestFactory().get("/api/catalog/regiones/")
+        with patch.object(views.Region.objects, "filter", return_value=qs) as filtrar:
+            respuesta = views.RegionListView.as_view()(request)
+        filtrar.assert_called_once_with(activa=True)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.data[1], {"codigo": "LIMA", "nombre": "Lima Metropolitana"})

@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework import generics
 from rest_framework.response import Response
 
-from .models import EventoDesastre, PlantaCatalogo
+from .models import EventoDesastre, PlantaCatalogo, Region
 from .serializers import EventoDesastreSerializer, PlantaCatalogoSerializer
 
 
@@ -58,3 +58,11 @@ class EventoActivoView(generics.GenericAPIView):
         if not evento:
             return Response(status=204)
         return Response(EventoDesastreSerializer(evento).data)
+
+
+class RegionListView(generics.GenericAPIView):
+    """Regiones activas (codigo y nombre): las mismas que el usuario elige en su perfil."""
+
+    def get(self, request):
+        regiones = Region.objects.filter(activa=True).order_by("nombre")
+        return Response([{"codigo": r.codigo, "nombre": r.nombre} for r in regiones])
