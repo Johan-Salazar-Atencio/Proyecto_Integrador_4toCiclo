@@ -28,7 +28,10 @@ public class UsuarioService {
 
         int nivel = u.getNivel() != null ? u.getNivel() : 1;
         int xp = u.getExperienciaXp() != null ? u.getExperienciaXp() : 0;
-        int siguiente = nivelRepo.findById(nivel + 1).map(n -> n.getXpRequerido()).orElse(xp + 500);
+        // XP total que marca el inicio del nivel actual (0 si el nivel no esta en la tabla)
+        int base = nivelRepo.findById(nivel).map(n -> n.getXpRequerido()).orElse(0);
+        // En el ultimo nivel no hay siguiente: ambos limites quedan en el XP y la barra se ve completa
+        int siguiente = nivelRepo.findById(nivel + 1).map(n -> n.getXpRequerido()).orElse(Math.max(xp, base));
 
         String email = u.getEmail();
         int streakDays = u.getRachaDias() != null ? u.getRachaDias() : 0;
@@ -40,9 +43,10 @@ public class UsuarioService {
                 u.getMonedas() != null ? u.getMonedas() : 0,
                 xp,
                 siguiente,
-                null,
+                u.getFotoUrl(),
                 email,
-                streakDays);
+                streakDays,
+                base);
     }
 
     private static String badge(int nivel) {
