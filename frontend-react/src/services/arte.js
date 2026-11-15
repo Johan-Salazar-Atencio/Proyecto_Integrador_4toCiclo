@@ -3,6 +3,8 @@ import { llamar } from './api'
 // Fondos animados y animaciones de desastre (GET /fondos y /animaciones). Casi no cambian:
 // se piden una vez y se reutilizan; si falla, la escena se queda con su fondo de color.
 let cache = null
+let cacheDesde = 0
+const VIGENCIA_MS = 30000 // el arte depende de la planta del jardin: se pide de nuevo cada tanto
 
 // Tras equipar o quitar un fondo en la tienda: la proxima escena pide el arte de nuevo
 export function olvidarArte() {
@@ -10,10 +12,11 @@ export function olvidarArte() {
 }
 
 export async function obtenerArte() {
-  if (cache) return cache
+  if (cache && Date.now() - cacheDesde < VIGENCIA_MS) return cache
   try {
     const [fondos, animaciones] = await Promise.all([llamar('/fondos'), llamar('/animaciones')])
     cache = { fondos: fondos || [], animaciones: animaciones || [] }
+    cacheDesde = Date.now()
     return cache
   } catch {
     return null

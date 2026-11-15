@@ -11,16 +11,16 @@ import './tienda-admin.css'
 const TEXTO_TIPO = { ABONO: '🌿 Abono', FONDO: '🖼️ Fondo', MACETA: '🪴 Maceta' }
 
 export default function TiendaAdmin() {
-  const [estado, setEstado] = useState({ cargando: true, items: [], disponibles: [], error: '' })
+  const [estado, setEstado] = useState({ cargando: true, items: [], error: '' })
   const [formulario, setFormulario] = useState(null) // null = oculto, {} = agregar fondo, producto = editar
   const [error, setError] = useState('')
 
   const cargar = useCallback(async () => {
     try {
       const datos = await listarProductos()
-      setEstado({ cargando: false, items: datos.items, disponibles: datos.fondos_disponibles, error: '' })
+      setEstado({ cargando: false, items: datos.items, error: '' })
     } catch (err) {
-      setEstado({ cargando: false, items: [], disponibles: [], error: err.message || 'No se pudo leer Django.' })
+      setEstado({ cargando: false, items: [], error: err.message || 'No se pudo leer Django.' })
     }
   }, [])
 
@@ -43,7 +43,7 @@ export default function TiendaAdmin() {
     }
   }
 
-  const { cargando, items, disponibles, error: errorCarga } = estado
+  const { cargando, items, error: errorCarga } = estado
   if (cargando) return <div className="home-cargando"><span className="home-giro" aria-label="Cargando" /></div>
 
   const activos = items.filter((i) => i.activo).length
@@ -58,19 +58,13 @@ export default function TiendaAdmin() {
       <section className="cat-resumen aparece">
         <span className="cat-dato">A la venta <b>{activos}</b></span>
         <span className="cat-dato">Desactivados <b>{items.length - activos}</b></span>
-        <button
-          className="mision-primario"
-          disabled={disponibles.length === 0}
-          title={disponibles.length === 0 ? 'No hay fondos nuevos para agregar' : ''}
-          onClick={() => setFormulario({})}
-        >+ Agregar fondo</button>
+        <button className="mision-primario" onClick={() => setFormulario({})}>+ Agregar fondo</button>
       </section>
 
       {formulario && (
         <FormularioProducto
           key={formulario.id_item || 'nuevo'}
           producto={formulario.id_item ? formulario : null}
-          disponibles={disponibles}
           onGuardar={guardar}
           onCancelar={() => setFormulario(null)}
         />
@@ -87,12 +81,18 @@ export default function TiendaAdmin() {
                 {items.map((p) => (
                   <tr key={p.id_item} className={p.activo ? '' : 'mision-apagada'}>
                     <td className="tienda-admin-producto">
-                      {p.id_fondo && <img src={urlImagen(p.vista)} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} />}
+                      {p.variantes?.length > 0 ? (
+                        <span className="tienda-admin-vistas">
+                          {p.variantes.map((v) => (
+                            <img key={v.momento} src={urlImagen(v.vista)} alt={`Escena de ${MOMENTOS[v.momento]?.texto || v.momento}`} title={MOMENTOS[v.momento]?.texto} onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                          ))}
+                        </span>
+                      ) : null}
                       <span>
                         <b>{p.nombre}</b>
                         <small className="mision-detalle">
                           {TEXTO_TIPO[p.tipo] || p.tipo}
-                          {p.momento && ` · ${MOMENTOS[p.momento]?.icono || ''} ${MOMENTOS[p.momento]?.texto || p.momento}`}
+                          {p.variantes?.length > 0 && ` · ${p.variantes.length} de 3 escenas`}
                         </small>
                       </span>
                     </td>

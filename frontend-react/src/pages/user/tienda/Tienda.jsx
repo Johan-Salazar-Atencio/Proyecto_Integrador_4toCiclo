@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RUTAS } from '../../../routes/rutas'
-import { urlImagen } from '../../../services/home'
 import { obtenerPlantaJardin } from '../../../services/jardin'
-import {
-  MOMENTOS, comprarAbono, comprarItem, desequiparItem, equiparItem, obtenerTienda,
-} from '../../../services/tienda'
+import { comprarAbono, comprarItem, obtenerTienda } from '../../../services/tienda'
+import VistasDelTema from '../../../components/VistasDelTema'
 import './tienda.css'
 
 const MS_AVISO = 3000
@@ -89,33 +87,24 @@ export default function Tienda() {
           <p className="historial-vacio">Aún no hay fondos a la venta.</p>
         ) : (
           <div className="tienda-grilla">
-            {fondos.map((f) => {
-              const momento = MOMENTOS[f.momento]
-              return (
-                <article key={f.id} className={`tarjeta tienda-item aparece ${f.equipado ? 'tienda-equipado' : ''}`}>
-                  <img className="tienda-vista" src={urlImagen(f.previewUrl)} alt={`Vista previa de ${f.nombre}`} />
-                  <div className="tienda-datos">
-                    <b>{f.nombre}</b>
-                    {f.equipado && <span className="tienda-uso">✓ En uso</span>}
-                    {momento && <span className="tienda-momento">{momento.icono} {momento.texto}</span>}
-                    <small>{f.descripcion}</small>
-                  </div>
-                  {f.comprado ? (
-                    f.equipado ? (
-                      <button className="boton boton-suave" disabled={ocupado} onClick={() => accion(() => desequiparItem(f.id), 'Volviste al fondo de siempre')}>Quitar fondo</button>
-                    ) : (
-                      <button className="boton boton-principal" disabled={ocupado} onClick={() => accion(() => equiparItem(f.id), `Ahora usas «${f.nombre}»`)}>Equipar</button>
-                    )
-                  ) : f.bloqueado ? (
-                    <button className="boton boton-suave" disabled>🔒 Nivel {f.nivelRequerido}</button>
-                  ) : (
-                    <button className="boton boton-principal" disabled={ocupado || monedas < f.precio} onClick={() => accion(() => comprarItem(f.id), `Compraste «${f.nombre}»`)}>
-                      Comprar · {f.precio} 🍃
-                    </button>
-                  )}
-                </article>
-              )
-            })}
+            {fondos.map((f) => (
+              <article key={f.id} className="tarjeta tienda-item aparece">
+                <VistasDelTema variantes={f.variantes} />
+                <div className="tienda-datos">
+                  <b>{f.nombre}</b>
+                  <small>{f.descripcion}</small>
+                </div>
+                {f.comprado ? (
+                  <Link className="boton boton-suave tienda-tengo" to={RUTAS.JARDIN}>✓ Lo tienes · elígelo en tu jardín 🖼️</Link>
+                ) : f.bloqueado ? (
+                  <button className="boton boton-suave" disabled>🔒 Nivel {f.nivelRequerido}</button>
+                ) : (
+                  <button className="boton boton-principal" disabled={ocupado || monedas < f.precio} onClick={() => accion(() => comprarItem(f.id), `Compraste «${f.nombre}». Ponlo desde el ícono 🖼️ de tu jardín`)}>
+                    Comprar · {f.precio} 🍃
+                  </button>
+                )}
+              </article>
+            ))}
           </div>
         )
       )}

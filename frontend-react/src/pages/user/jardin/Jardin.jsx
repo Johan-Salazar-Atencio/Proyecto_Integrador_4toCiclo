@@ -6,6 +6,7 @@ import { cuidarPlanta, obtenerPlantaJardin } from '../../../services/jardin'
 import { comprarAbono, obtenerTienda } from '../../../services/tienda'
 import PlantaPixel from '../../../components/PlantaPixel'
 import EscenaPixel from '../../../components/EscenaPixel'
+import FondosPlanta from '../../../components/FondosPlanta'
 import { ACCIONES, mensajeCuidado } from './acciones'
 import { consejo, estadoAnimo, nivelBarra } from './animo'
 import { etapaDe } from './etapas'
@@ -23,6 +24,8 @@ export default function Jardin() {
   const [aviso, setAviso] = useState('')
   const [salto, setSalto] = useState(0)
   const [cuidando, setCuidando] = useState(false)
+  const [fondosAbierto, setFondosAbierto] = useState(false)
+  const [claveEscena, setClaveEscena] = useState(0) // cambia al poner otro fondo: la escena se vuelve a armar
   const [abono, setAbono] = useState(null) // abono de la tienda (precio), si esta a la venta
   const temporizador = useRef(null)
 
@@ -122,10 +125,11 @@ export default function Jardin() {
   return (
     <div className="jardin">
       <section className={`jardin-marco aparece ${marchita ? 'jardin-marco-marchita' : ''}`}>
-        <EscenaPixel />
+        <EscenaPixel key={claveEscena} />
         <div key={salto} className={`jardin-planta ${salto ? 'jardin-salta' : ''}`}>
           <PlantaPixel etapa={etapa.indice} apariencia={planta.apariencia} titulo={`${planta.name}: ${etapa.nombre}`} />
         </div>
+        <button className="jardin-fondos-boton" onClick={() => setFondosAbierto(true)} aria-label={`Fondos de ${planta.name}`} title="Fondos de esta planta">🖼️</button>
         <div
           className={`jardin-chip ${animo.clase}`}
           aria-label={`Ánimo ${animo.texto}${etapa.total > 0 ? `, día ${etapa.dias} de ${etapa.total}, fase ${etapa.fase} de 3` : ''}${marchita ? ', marchita' : ''}`}
@@ -187,6 +191,17 @@ export default function Jardin() {
         )}
         <Link className="jardin-tienda-enlace" to={RUTAS.TIENDA}>🛒 Ir a la tienda</Link>
       </div>
+
+      {fondosAbierto && (
+        <FondosPlanta
+          planta={planta}
+          onCerrar={() => setFondosAbierto(false)}
+          onCambio={(tema) => {
+            setClaveEscena((k) => k + 1)
+            avisar(`${planta.name} ahora usa «${tema.nombre}»`)
+          }}
+        />
+      )}
 
       {aviso && <div className="jardin-aviso" role="status">{aviso}</div>}
     </div>

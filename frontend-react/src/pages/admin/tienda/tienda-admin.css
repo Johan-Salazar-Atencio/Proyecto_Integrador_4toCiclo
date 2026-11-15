@@ -1,3 +1,15 @@
 .tienda-admin-producto { display: flex; align-items: center; gap: 12px; }
-.tienda-admin-producto img { width: 44px; height: 44px; flex-shrink: 0; object-fit: cover; border-radius: 10px; image-rendering: pixelated; }
+.tienda-admin-vistas { display: flex; gap: 4px; flex-shrink: 0; }
+.tienda-admin-vistas img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; image-rendering: pixelated; }
 .mision-primario:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.tienda-escenas { display: flex; flex-direction: column; gap: 12px; padding: 14px; border: 1.5px dashed var(--linea); border-radius: var(--radio); }
+.tienda-escenas legend { padding: 0 8px; color: var(--texto-suave); font-size: 0.8rem; font-weight: 800; }
+.tienda-ayuda { margin: 0; color: var(--texto-suave); font-size: 0.82rem; line-height: 1.4; }
+.tienda-escena { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.tienda-escena > b { min-width: 74px; }
+.tienda-escena-actual { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; image-rendering: pixelated; }
+.tienda-escena input[type='file'] { flex: 1 1 180px; width: auto; padding: 6px 8px; }
+.tienda-cuadros { display: flex; align-items: center; gap: 8px; }
+.tienda-cuadros > span { margin: 0; }
+.tienda-cuadros input { width: 110px; }
