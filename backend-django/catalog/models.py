@@ -220,6 +220,7 @@ class ItemTienda(models.Model):
     nivel_requerido = models.IntegerField(default=1)
     asset_url = models.CharField(max_length=255)
     id_fondo = models.IntegerField(null=True, blank=True)
+    id_tema = models.IntegerField(null=True, blank=True)
     descripcion = models.CharField(max_length=200, null=True, blank=True)
     activo = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -234,15 +235,38 @@ class ItemTienda(models.Model):
         return f"{self.nombre} ({self.precio_monedas} monedas)"
 
 
+class TemaFondo(models.Model):
+    """Tema de fondo del jardin: trae una escena para el dia, otra para la tarde y otra para la noche."""
+
+    id_tema = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=100)
+    descripcion = models.CharField(max_length=200, null=True, blank=True)
+    es_predeterminado = models.BooleanField(default=False)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        managed = False
+        db_table = "temas_fondo"
+
+    def __str__(self):
+        return self.nombre
+
+
 class FondoEscena(models.Model):
-    """Fondo animado del jardin (solo lectura aqui: el admin elige cual vender, no sube imagenes)."""
+    """Una escena animada (tira de cuadros) de un tema, para un momento del dia."""
 
     id_fondo = models.AutoField(primary_key=True)
     momento = models.CharField(max_length=10)
     nombre = models.CharField(max_length=100)
     imagen_url = models.CharField(max_length=255)
+    vista_url = models.CharField(max_length=255, null=True, blank=True)
+    total_frames = models.IntegerField(default=1)
+    ancho_px = models.IntegerField(null=True, blank=True)
+    alto_px = models.IntegerField(null=True, blank=True)
+    ms_por_frame = models.IntegerField(default=200)
     es_predeterminado = models.BooleanField(default=False)
     activo = models.BooleanField(default=True)
+    id_tema = models.IntegerField(null=True, blank=True)
 
     class Meta:
         managed = False

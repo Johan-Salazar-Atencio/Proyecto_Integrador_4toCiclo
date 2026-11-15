@@ -7,20 +7,24 @@ y `X-Admin-Token`; se comprueba el token, que no haya caducado y el rol ADMIN.
 """
 import hashlib
 import hmac
+import os
 import secrets
 from datetime import timedelta
 from datetime import timezone as dt_timezone
 
 import bcrypt
+from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.parsers import JSONParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from . import fondos_imagen
 from .models import (
     EventoDesastre, FondoEscena, ItemTienda, Mision, PlantaCatalogo, Region, RegistroDesastreUsuario,
-    TipoDesastre, Usuario,
+    TemaFondo, TipoDesastre, Usuario,
 )
 
 # Hash BCrypt valido para comparar cuando el correo no existe: asi el tiempo de
@@ -263,13 +267,36 @@ class AdminMisionDetailView(APIView):
         return Response(_mision_a_dict(mision))
 
 
-def _item_a_dict(i, fondos):
-    fondo = fondos.get(i.id_fondo)
+MOMENTOS = ("DIA", "TARDE", "NOCHE")
+
+
+def _entero(valor):
+    """Los formularios con archivos llegan como texto: "100" pasa a 100; lo demas queda igual."""
+    if isinstance(valor, str) and valor.strip().lstrip("-").isdigit():
+        return int(valor.strip())
+    return valor
+
+
+def _directorio_fondos():
+    return os.path.join(settings.STORAGE_IMAGES_DIR, "fondos")
+
+
+def _variantes_por_tema(ids):
+    variantes = {}
+    if ids:
+        for f in FondoEscena.objects.filter(id_tema__in=ids, activo=True):
+            variantes.setdefault(f.id_tema, []).append(
+                {"momento": f.momento, "vista": f.vista_url or f.imagen_url, "cuadros": f.total_frames, "ms": f.ms_por_frame})
+        for lista in variantes.values():
+            lista.sort(key=lambda v: MOMENTOS.index(v["momento"]) if v["momento"] in MOMENTOS else 9)
+    return variantes
+
+
+def _item_a_dict(i, variantes):
     return {
         "id_item": i.id_item, "nombre": i.nombre, "tipo": i.tipo, "descripcion": i.descripcion,
         "precio_monedas": i.precio_monedas, "nivel_requerido": i.nivel_requerido, "activo": i.activo,
-        "id_fondo": i.id_fondo, "fondo": fondo.nombre if fondo else None, "momento": fondo.momento if fondo else None,
-        "vista": i.asset_url,
+        "id_tema": i.id_tema, "vista": i.asset_url, "variantes": variantes.get(i.id_tema, []),
     }
 
 
@@ -282,12 +309,12 @@ def _validar_item(data, parcial):
             return None, "El nombre es obligatorio (maximo 100 caracteres)"
         valores["nombre"] = nombre
     if not parcial or "precio_monedas" in data:
-        precio = data.get("precio_monedas")
+        precio = _entero(data.get("precio_monedas"))
         if isinstance(precio, bool) or not isinstance(precio, int) or precio < 0:
             return None, "El precio debe ser un entero >= 0"
         valores["precio_monedas"] = precio
     if "nivel_requerido" in data or not parcial:
-        nivel = data.get("nivel_requerido", 1)
+        nivel = _entero(data.get("nivel_requerido", 1))
         if isinstance(nivel, bool) or not isinstance(nivel, int) or nivel < 1:
             return None, "El nivel requerido debe ser un entero >= 1"
         valores["nivel_requerido"] = nivel
@@ -297,33 +324,70 @@ def _validar_item(data, parcial):
             return None, "La descripcion admite hasta 200 caracteres"
         valores["descripcion"] = descripcion or None
     if "activo" in data:
-        if not isinstance(data["activo"], bool):
+        activo = data["activo"]
+        if isinstance(activo, str):
+            activo = {"true": True, "false": False}.get(activo.lower(), activo)
+        if not isinstance(activo, bool):
             return None, "activo debe ser verdadero o falso"
-        valores["activo"] = data["activo"]
+        valores["activo"] = activo
     return valores, None
 
 
-def _fondos_de(items):
-    ids = {i.id_fondo for i in items if i.id_fondo}
-    return {f.id_fondo: f for f in FondoEscena.objects.filter(pk__in=ids)} if ids else {}
+def _procesar_escenas(request):
+    """Lee las imagenes subidas (campos dia, tarde y noche; opcionales cuadros_<momento> y ms) y las convierte
+    a tiras. Devuelve ({momento: resultado}, error)."""
+    escenas = {}
+    ms = _entero(request.data.get("ms")) if request.data.get("ms") not in (None, "") else None
+    if ms is not None and (isinstance(ms, bool) or not isinstance(ms, int)):
+        return None, "ms debe ser un entero"
+    for momento in MOMENTOS:
+        archivo = request.FILES.get(momento.lower())
+        if archivo is None:
+            continue
+        cuadros = _entero(request.data.get(f"cuadros_{momento.lower()}")) if request.data.get(f"cuadros_{momento.lower()}") not in (None, "") else None
+        if cuadros is not None and (isinstance(cuadros, bool) or not isinstance(cuadros, int) or cuadros < 1):
+            return None, f"cuadros_{momento.lower()} debe ser un entero >= 1"
+        try:
+            escenas[momento] = fondos_imagen.procesar(archivo.read(), cuadros=cuadros, ms=ms)
+        except fondos_imagen.ErrorImagen as e:
+            return None, f"Escena de {momento.lower()}: {e}"
+    return escenas, None
+
+
+def _guardar_escena(tema, momento, resultado):
+    """Guarda los archivos de la escena y crea o reemplaza su fila en fondos_escena."""
+    tira, vista = fondos_imagen.guardar(_directorio_fondos(), f"tema{tema.id_tema}_{momento.lower()}", resultado)
+    etiqueta = {"DIA": "dia", "TARDE": "tarde", "NOCHE": "noche"}[momento]
+    FondoEscena.objects.update_or_create(
+        id_tema=tema.id_tema, momento=momento,
+        defaults=dict(
+            nombre=f"{tema.nombre} ({etiqueta})", imagen_url=f"/files/fondos/{tira}", vista_url=f"/files/fondos/{vista}",
+            total_frames=resultado["cuadros"], ancho_px=resultado["lado"], alto_px=resultado["lado"],
+            ms_por_frame=resultado["ms"], es_predeterminado=False, activo=True))
+
+
+def _vista_principal(tema):
+    """Vista previa del articulo: la del dia, o la primera escena que tenga el tema."""
+    escenas = {f.momento: f for f in FondoEscena.objects.filter(id_tema=tema.id_tema, activo=True)}
+    for momento in MOMENTOS:
+        if momento in escenas:
+            return escenas[momento].vista_url or escenas[momento].imagen_url
+    return ""
 
 
 class AdminTiendaListCreateView(APIView):
-    """GET /api/admin/tienda/ lista todos los productos (activos o no) y los fondos que aun no se venden;
-    POST agrega un fondo a la venta ({nombre, precio_monedas, nivel_requerido, id_fondo, descripcion})."""
+    """GET /api/admin/tienda/ lista todos los productos (activos o no) con las escenas de cada fondo;
+    POST (multipart) agrega un tema de fondo a la venta: nombre, precio_monedas, nivel_requerido, descripcion
+    y las imagenes dia, tarde y noche (GIF/WebP/APNG animados o tiras PNG con cuadros_<momento>)."""
+
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get(self, request):
         if _admin_desde_request(request) is None:
             return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
         items = list(ItemTienda.objects.order_by("tipo", "id_item"))
-        fondos = _fondos_de(items)
-        vendidos = {i.id_fondo for i in items if i.id_fondo}
-        disponibles = [
-            {"id_fondo": f.id_fondo, "nombre": f.nombre, "momento": f.momento}
-            for f in FondoEscena.objects.filter(activo=True, es_predeterminado=False).order_by("momento", "id_fondo")
-            if f.id_fondo not in vendidos
-        ]
-        return Response({"items": [_item_a_dict(i, fondos) for i in items], "fondos_disponibles": disponibles})
+        variantes = _variantes_por_tema({i.id_tema for i in items if i.id_tema})
+        return Response({"items": [_item_a_dict(i, variantes) for i in items]})
 
     def post(self, request):
         if _admin_desde_request(request) is None:
@@ -333,22 +397,25 @@ class AdminTiendaListCreateView(APIView):
         valores, error = _validar_item(request.data, parcial=False)
         if error:
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
-        id_fondo = request.data.get("id_fondo")
-        if isinstance(id_fondo, bool) or not isinstance(id_fondo, int):
-            return Response({"error": "Elige el fondo que se vende"}, status=status.HTTP_400_BAD_REQUEST)
-        fondo = FondoEscena.objects.filter(pk=id_fondo, activo=True, es_predeterminado=False).first()
-        if fondo is None:
-            return Response({"error": "Fondo no disponible"}, status=status.HTTP_400_BAD_REQUEST)
-        if ItemTienda.objects.filter(id_fondo=id_fondo).exists():
-            return Response({"error": "Ese fondo ya esta en la tienda"}, status=status.HTTP_400_BAD_REQUEST)
-        item = ItemTienda.objects.create(
-            tipo="FONDO", id_fondo=id_fondo, asset_url=fondo.imagen_url.replace(".png", "_vista.png"), **valores)
-        return Response(_item_a_dict(item, {fondo.id_fondo: fondo}), status=status.HTTP_201_CREATED)
+        escenas, error = _procesar_escenas(request)
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+        if not escenas:
+            return Response({"error": "Sube al menos una escena (dia, tarde o noche)"}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            tema = TemaFondo.objects.create(nombre=valores["nombre"], descripcion=valores.get("descripcion"))
+            for momento, resultado in escenas.items():
+                _guardar_escena(tema, momento, resultado)
+            item = ItemTienda.objects.create(tipo="FONDO", id_tema=tema.id_tema, asset_url=_vista_principal(tema), **valores)
+        return Response(_item_a_dict(item, _variantes_por_tema({tema.id_tema})), status=status.HTTP_201_CREATED)
 
 
 class AdminTiendaDetailView(APIView):
-    """PATCH /api/admin/tienda/<id>/ cambia nombre, descripcion, precio, nivel o activo. Quitar un producto
-    es {"activo": false}: no se borra, asi quienes ya lo compraron lo conservan y se puede reactivar."""
+    """PATCH /api/admin/tienda/<id>/ cambia nombre, descripcion, precio, nivel o activo, y puede reemplazar las
+    imagenes de dia, tarde o noche (multipart). Quitar un producto es {"activo": false}: no se borra, asi quienes
+    ya lo compraron lo conservan y se puede reactivar."""
+
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def patch(self, request, pk):
         if _admin_desde_request(request) is None:
@@ -359,15 +426,32 @@ class AdminTiendaDetailView(APIView):
         valores, error = _validar_item(request.data, parcial=True)
         if error:
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+        escenas, error = _procesar_escenas(request)
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
         if valores.get("activo") and item.tipo == "MACETA":
             return Response({"error": "Las macetas aun no estan disponibles"}, status=status.HTTP_400_BAD_REQUEST)
-        if valores.get("activo") and item.tipo == "FONDO" and not item.id_fondo:
-            return Response({"error": "Este fondo no tiene imagen: no se puede poner a la venta"}, status=status.HTTP_400_BAD_REQUEST)
-        for campo, valor in valores.items():
-            setattr(item, campo, valor)
-        if valores:
-            item.save(update_fields=list(valores))
-        return Response(_item_a_dict(item, _fondos_de([item])))
+        if valores.get("activo") and item.tipo == "FONDO" and not item.id_tema:
+            return Response({"error": "Este fondo no tiene escenas: no se puede poner a la venta"}, status=status.HTTP_400_BAD_REQUEST)
+        if escenas and not item.id_tema:
+            return Response({"error": "Este producto no tiene un tema de fondo"}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            for campo, valor in valores.items():
+                setattr(item, campo, valor)
+            tema = TemaFondo.objects.filter(pk=item.id_tema).first() if item.id_tema else None
+            if tema is not None and ("nombre" in valores or "descripcion" in valores):
+                tema.nombre = valores.get("nombre", tema.nombre)
+                tema.descripcion = valores.get("descripcion", tema.descripcion)
+                tema.save(update_fields=["nombre", "descripcion"])
+            for momento, resultado in escenas.items():
+                _guardar_escena(tema, momento, resultado)
+            campos = list(valores)
+            if escenas:
+                item.asset_url = _vista_principal(tema)
+                campos.append("asset_url")
+            if campos:
+                item.save(update_fields=campos)
+        return Response(_item_a_dict(item, _variantes_por_tema({item.id_tema} if item.id_tema else set())))
 
 
 class AdminEventoEfectosView(APIView):

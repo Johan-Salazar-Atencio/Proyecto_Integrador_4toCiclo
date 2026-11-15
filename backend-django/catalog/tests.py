@@ -1,4 +1,5 @@
 """Autenticacion del panel admin (admin_views.py). Sin base de datos: se simula el usuario."""
+import os
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -6,7 +7,7 @@ from django.test import SimpleTestCase
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
-from . import admin_views
+from . import admin_views, fondos_imagen
 from .models import Usuario
 
 TOKEN = "a" * 32
@@ -283,14 +284,114 @@ class EfectosDesastreTests(SimpleTestCase):
         self.assertEqual(respuesta.data["registros"], [])
 
 
-class AdminTiendaTests(SimpleTestCase):
-    """Tienda del admin: precios, activar o desactivar y agregar fondos; las macetas aun no."""
+def _png(ancho, alto, color=(200, 30, 30)):
+    import io
 
-    def _llamar(self, vista, metodo, datos=None, admin=True, **kwargs):
+    from PIL import Image
+
+    salida = io.BytesIO()
+    Image.new("RGB", (ancho, alto), color).save(salida, format="PNG")
+    return salida.getvalue()
+
+
+def _gif(cuadros=3, lado=(40, 30), duracion=200):
+    import io
+
+    from PIL import Image
+
+    imagenes = [Image.new("RGB", lado, (30 * i, 80, 200 - 30 * i)) for i in range(cuadros)]
+    salida = io.BytesIO()
+    imagenes[0].save(salida, format="GIF", save_all=True, append_images=imagenes[1:], duration=duracion, loop=0)
+    return salida.getvalue()
+
+
+class FondosImagenTests(SimpleTestCase):
+    """Conversion de lo que sube el admin a la tira de cuadros cuadrados del jardin."""
+
+    def _tira(self, resultado):
+        import io
+
+        from PIL import Image
+
+        return Image.open(io.BytesIO(resultado["tira"]))
+
+    def test_un_gif_animado_pasa_a_ser_una_tira_de_cuadros_cuadrados(self):
+        resultado = fondos_imagen.procesar(_gif(cuadros=3, lado=(40, 30), duracion=200))
+        self.assertEqual(resultado["cuadros"], 3)
+        self.assertEqual(resultado["lado"], 30)  # se recorta al centro
+        self.assertEqual(self._tira(resultado).size, (90, 30))
+        self.assertEqual(resultado["ms"], 200)  # sale de la duracion del GIF
+
+    def test_una_tira_png_se_parte_en_los_cuadros_indicados(self):
+        resultado = fondos_imagen.procesar(_png(64, 16), cuadros=4)
+        self.assertEqual((resultado["cuadros"], resultado["lado"]), (4, 16))
+        self.assertEqual(self._tira(resultado).size, (64, 16))
+        self.assertEqual(resultado["ms"], fondos_imagen.MS_DEFECTO)
+
+    def test_una_tira_mal_medida_da_error(self):
+        with self.assertRaises(fondos_imagen.ErrorImagen):
+            fondos_imagen.procesar(_png(65, 16), cuadros=4)
+        with self.assertRaises(fondos_imagen.ErrorImagen):
+            fondos_imagen.procesar(_png(100, 16), cuadros=4)  # cuadros de 25x16: no son cuadrados
+
+    def test_una_imagen_fija_queda_como_un_solo_cuadro(self):
+        resultado = fondos_imagen.procesar(_png(120, 80))
+        self.assertEqual((resultado["cuadros"], resultado["lado"]), (1, 80))
+
+    def test_un_archivo_que_no_es_imagen_da_error(self):
+        with self.assertRaises(fondos_imagen.ErrorImagen):
+            fondos_imagen.procesar(b"esto no es una imagen")
+
+    def test_un_archivo_muy_pesado_da_error(self):
+        with self.assertRaises(fondos_imagen.ErrorImagen):
+            fondos_imagen.procesar(b"0" * (fondos_imagen.MAX_BYTES + 1))
+
+    def test_los_cuadros_grandes_se_reducen_y_la_tira_no_pasa_el_limite(self):
+        grande = fondos_imagen.procesar(_gif(cuadros=4, lado=(400, 400)))
+        self.assertEqual(grande["lado"], fondos_imagen.LADO_MAX)
+        muchos = fondos_imagen.procesar(_png(96 * 200, 96), cuadros=200)
+        self.assertLessEqual(muchos["cuadros"], fondos_imagen.MAX_CUADROS)
+        self.assertLessEqual(self._tira(muchos).width, fondos_imagen.ANCHO_MAX_TIRA)
+
+    def test_la_vista_previa_mide_96(self):
+        import io
+
+        from PIL import Image
+
+        vista = Image.open(io.BytesIO(fondos_imagen.procesar(_gif(lado=(40, 40)))["vista"]))
+        self.assertEqual(vista.size, (96, 96))
+
+    def test_guardar_escribe_la_tira_y_la_vista_con_huella(self):
+        import tempfile
+
+        resultado = fondos_imagen.procesar(_gif())
+        with tempfile.TemporaryDirectory() as carpeta:
+            tira, vista = fondos_imagen.guardar(carpeta, "tema5_dia", resultado)
+            self.assertTrue(os.path.exists(os.path.join(carpeta, tira)))
+            self.assertTrue(os.path.exists(os.path.join(carpeta, vista)))
+        self.assertRegex(tira, r"^tema5_dia_[0-9a-f]{8}\.png$")
+        self.assertTrue(vista.endswith("_vista.png"))
+
+
+class AdminTiendaTests(SimpleTestCase):
+    """Tienda del admin: precios, activar o desactivar y agregar temas de fondo con sus imagenes."""
+
+    def _llamar(self, vista, metodo, datos=None, admin=True, formato="json", **kwargs):
         fabrica = getattr(APIRequestFactory(), metodo)
-        request = fabrica("/api/admin/tienda/", datos, format="json")
-        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario() if admin else None):
+        request = fabrica("/api/admin/tienda/", datos, format=formato)
+        from contextlib import nullcontext
+
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario() if admin else None),                 patch.object(admin_views.transaction, "atomic", return_value=nullcontext()):
             return vista.as_view()(request, **kwargs)
+
+    def _formulario(self, **extra):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        datos = {"nombre": "Cyber", "descripcion": "Neones", "precio_monedas": "250", "nivel_requerido": "3",
+                 "dia": SimpleUploadedFile("dia.gif", _gif(), content_type="image/gif"),
+                 "noche": SimpleUploadedFile("noche.png", _png(64, 16), content_type="image/png"), "cuadros_noche": "4"}
+        datos.update(extra)
+        return datos
 
     def test_sin_admin_devuelve_401(self):
         respuesta = self._llamar(admin_views.AdminTiendaListCreateView, "post", {}, admin=False)
@@ -302,36 +403,44 @@ class AdminTiendaTests(SimpleTestCase):
         self.assertEqual(respuesta.status_code, 400)
 
     def test_precio_negativo_o_nivel_cero_no_se_aceptan(self):
-        for cambios in ({"precio_monedas": -5}, {"nivel_requerido": 0}):
-            datos = dict({"nombre": "Fondo", "precio_monedas": 50, "id_fondo": 9}, **cambios)
-            respuesta = self._llamar(admin_views.AdminTiendaListCreateView, "post", datos)
+        for cambios in ({"precio_monedas": "-5"}, {"nivel_requerido": "0"}):
+            respuesta = self._llamar(admin_views.AdminTiendaListCreateView, "post", self._formulario(**cambios), formato="multipart")
             self.assertEqual(respuesta.status_code, 400, cambios)
 
-    def test_el_fondo_debe_existir_y_no_estar_ya_a_la_venta(self):
+    def test_hay_que_subir_al_menos_una_escena(self):
+        datos = {"nombre": "Cyber", "precio_monedas": "250", "nivel_requerido": "3"}
+        respuesta = self._llamar(admin_views.AdminTiendaListCreateView, "post", datos, formato="multipart")
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn("escena", respuesta.data["error"])
+
+    def test_una_imagen_que_no_sirve_da_400_con_el_momento(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        datos = self._formulario(tarde=SimpleUploadedFile("tarde.txt", b"hola", content_type="text/plain"))
+        respuesta = self._llamar(admin_views.AdminTiendaListCreateView, "post", datos, formato="multipart")
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn("tarde", respuesta.data["error"])
+
+    def test_agregar_un_fondo_crea_el_tema_sus_escenas_y_el_producto(self):
+        from contextlib import nullcontext
         from unittest.mock import MagicMock
 
-        datos = {"nombre": "Fondo", "precio_monedas": 50, "id_fondo": 9}
-        with patch.object(admin_views.FondoEscena.objects, "filter", return_value=MagicMock(first=lambda: None)):
-            self.assertEqual(self._llamar(admin_views.AdminTiendaListCreateView, "post", datos).status_code, 400)
-        fondo = admin_views.FondoEscena(id_fondo=9, momento="NOCHE", nombre="Cyber", imagen_url="/files/arte/fondos/x.png")
-        with patch.object(admin_views.FondoEscena.objects, "filter", return_value=MagicMock(first=lambda: fondo)), \
-                patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(exists=lambda: True)):
-            self.assertEqual(self._llamar(admin_views.AdminTiendaListCreateView, "post", datos).status_code, 400)
-
-    def test_agregar_un_fondo_guarda_su_vista_previa(self):
-        from unittest.mock import MagicMock
-
-        datos = {"nombre": "Cyber", "precio_monedas": 250, "nivel_requerido": 3, "id_fondo": 9}
-        fondo = admin_views.FondoEscena(id_fondo=9, momento="NOCHE", nombre="Cyber", imagen_url="/files/arte/fondos/cyberpunk.png")
-        creado = admin_views.ItemTienda(id_item=7, nombre="Cyber", tipo="FONDO", precio_monedas=250, nivel_requerido=3, id_fondo=9,
-                                        asset_url="/files/arte/fondos/cyberpunk_vista.png", activo=True)
-        with patch.object(admin_views.FondoEscena.objects, "filter", return_value=MagicMock(first=lambda: fondo)), \
-                patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(exists=lambda: False)), \
-                patch.object(admin_views.ItemTienda.objects, "create", return_value=creado) as crear:
-            respuesta = self._llamar(admin_views.AdminTiendaListCreateView, "post", datos)
+        tema = admin_views.TemaFondo(id_tema=9, nombre="Cyber")
+        creado = admin_views.ItemTienda(id_item=7, nombre="Cyber", tipo="FONDO", precio_monedas=250, nivel_requerido=3,
+                                        id_tema=9, asset_url="/files/fondos/x_vista.png", activo=True)
+        with patch.object(admin_views.transaction, "atomic", return_value=nullcontext()), \
+                patch.object(admin_views.TemaFondo.objects, "create", return_value=tema) as crear_tema, \
+                patch.object(admin_views, "_guardar_escena") as guardar, \
+                patch.object(admin_views, "_vista_principal", return_value="/files/fondos/x_vista.png"), \
+                patch.object(admin_views.ItemTienda.objects, "create", return_value=creado) as crear_item, \
+                patch.object(admin_views, "_variantes_por_tema", return_value={}):
+            respuesta = self._llamar(admin_views.AdminTiendaListCreateView, "post", self._formulario(), formato="multipart")
         self.assertEqual(respuesta.status_code, 201)
-        self.assertEqual(crear.call_args.kwargs["asset_url"], "/files/arte/fondos/cyberpunk_vista.png")
-        self.assertEqual(crear.call_args.kwargs["tipo"], "FONDO")
+        self.assertEqual(crear_tema.call_args.kwargs["nombre"], "Cyber")
+        self.assertEqual([c.args[1] for c in guardar.call_args_list], ["DIA", "NOCHE"])  # solo las que subio
+        self.assertEqual(guardar.call_args_list[1].args[2]["cuadros"], 4)  # la tira de la noche se partio en 4
+        kwargs = crear_item.call_args.kwargs
+        self.assertEqual((kwargs["tipo"], kwargs["id_tema"], kwargs["precio_monedas"], kwargs["nivel_requerido"]), ("FONDO", 9, 250, 3))
 
     def test_cambiar_el_precio_solo_guarda_el_precio(self):
         from unittest.mock import MagicMock
@@ -347,17 +456,51 @@ class AdminTiendaTests(SimpleTestCase):
     def test_desactivar_no_borra(self):
         from unittest.mock import MagicMock
 
-        item = admin_views.ItemTienda(id_item=2, nombre="Nevado", tipo="FONDO", precio_monedas=100, activo=True)
+        item = admin_views.ItemTienda(id_item=2, nombre="Nevado", tipo="FONDO", precio_monedas=100, id_tema=5, activo=True)
         item.save = MagicMock()
-        with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: item)):
+        with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: item)), \
+                patch.object(admin_views.TemaFondo.objects, "filter", return_value=MagicMock(first=lambda: None)), \
+                patch.object(admin_views, "_variantes_por_tema", return_value={}):
             respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"activo": False}, pk=2)
         self.assertFalse(respuesta.data["activo"])
         item.save.assert_called_once_with(update_fields=["activo"])
+
+    def test_reemplazar_una_escena_cambia_la_vista_del_producto(self):
+        from contextlib import nullcontext
+        from unittest.mock import MagicMock
+
+        item = admin_views.ItemTienda(id_item=2, nombre="Nevado", tipo="FONDO", precio_monedas=100, id_tema=5, asset_url="/viejo.png")
+        item.save = MagicMock()
+        tema = admin_views.TemaFondo(id_tema=5, nombre="Nevado")
+        with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: item)), \
+                patch.object(admin_views.TemaFondo.objects, "filter", return_value=MagicMock(first=lambda: tema)), \
+                patch.object(admin_views.transaction, "atomic", return_value=nullcontext()), \
+                patch.object(admin_views, "_guardar_escena") as guardar, \
+                patch.object(admin_views, "_vista_principal", return_value="/nueva_vista.png"), \
+                patch.object(admin_views, "_variantes_por_tema", return_value={}):
+            from django.core.files.uploadedfile import SimpleUploadedFile
+
+            datos = {"tarde": SimpleUploadedFile("t.gif", _gif(), content_type="image/gif")}
+            respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", datos, formato="multipart", pk=2)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(guardar.call_args.args[1], "TARDE")
+        item.save.assert_called_once_with(update_fields=["asset_url"])
+        self.assertEqual(item.asset_url, "/nueva_vista.png")
 
     def test_una_maceta_no_se_puede_activar_todavia(self):
         from unittest.mock import MagicMock
 
         item = admin_views.ItemTienda(id_item=3, nombre="Maceta", tipo="MACETA", precio_monedas=80, activo=False)
+        item.save = MagicMock()
+        with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: item)):
+            respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"activo": True}, pk=3)
+        self.assertEqual(respuesta.status_code, 400)
+        item.save.assert_not_called()
+
+    def test_un_fondo_sin_tema_no_se_puede_activar(self):
+        from unittest.mock import MagicMock
+
+        item = admin_views.ItemTienda(id_item=3, nombre="Fondo viejo", tipo="FONDO", precio_monedas=150, id_tema=None, activo=False)
         item.save = MagicMock()
         with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: item)):
             respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"activo": True}, pk=3)
@@ -370,13 +513,3 @@ class AdminTiendaTests(SimpleTestCase):
         with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: None)):
             respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"activo": False}, pk=99)
         self.assertEqual(respuesta.status_code, 404)
-
-    def test_un_fondo_sin_imagen_no_se_puede_activar(self):
-        from unittest.mock import MagicMock
-
-        item = admin_views.ItemTienda(id_item=3, nombre="Fondo viejo", tipo="FONDO", precio_monedas=150, id_fondo=None, activo=False)
-        item.save = MagicMock()
-        with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: item)):
-            respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"activo": True}, pk=3)
-        self.assertEqual(respuesta.status_code, 400)
-        item.save.assert_not_called()
