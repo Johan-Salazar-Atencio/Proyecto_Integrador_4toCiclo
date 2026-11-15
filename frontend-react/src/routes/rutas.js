@@ -19,4 +19,5 @@ export const RUTAS_ADMIN = {
   DASHBOARD: '/admin/dashboard',
   EVENTOS: '/admin/eventos',
   CATALOGO: '/admin/catalogo',
+  MISIONES: '/admin/misiones',
 }

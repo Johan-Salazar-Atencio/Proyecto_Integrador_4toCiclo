@@ -8,6 +8,7 @@ import './layout-admin.css'
 const MENU = [
   { ruta: RUTAS_ADMIN.DASHBOARD, icono: '📊', texto: 'Dashboard' },
   { ruta: RUTAS_ADMIN.EVENTOS, icono: '⚠️', texto: 'Lanzador de desastres' },
+  { ruta: RUTAS_ADMIN.MISIONES, icono: '🎯', texto: 'Misiones diarias' },
   { ruta: RUTAS_ADMIN.CATALOGO, icono: '📖', texto: 'Catálogo y moderación' },
 ]
 

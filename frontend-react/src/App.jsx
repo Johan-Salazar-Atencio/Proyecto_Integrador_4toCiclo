@@ -7,6 +7,7 @@ import { useSesionAdmin } from './store/SesionAdmin'
 import LoginAdmin from './pages/admin/login/LoginAdmin'
 import CatalogoAdmin from './pages/admin/catalogo/CatalogoAdmin'
 import Eventos from './pages/admin/eventos/Eventos'
+import Misiones from './pages/admin/misiones/Misiones'
 import Dashboard from './pages/admin/dashboard/Dashboard'
 import Auth from './pages/user/auth/Auth'
 import Catalogo from './pages/user/catalogo/Catalogo'
@@ -58,6 +59,7 @@ export default function App() {
       <Route element={<ProtegidaAdmin><LayoutAdmin /></ProtegidaAdmin>}>
         <Route path={RUTAS_ADMIN.DASHBOARD} element={<Dashboard />} />
         <Route path={RUTAS_ADMIN.EVENTOS} element={<Eventos />} />
+        <Route path={RUTAS_ADMIN.MISIONES} element={<Misiones />} />
         <Route path={RUTAS_ADMIN.CATALOGO} element={<CatalogoAdmin />} />
       </Route>
 
