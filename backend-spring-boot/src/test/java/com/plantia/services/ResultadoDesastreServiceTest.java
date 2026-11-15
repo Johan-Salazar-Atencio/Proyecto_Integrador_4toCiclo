@@ -18,11 +18,17 @@ import org.mockito.ArgumentCaptor;
 import com.plantia.models.EventoDesastre;
 import com.plantia.models.PlantaUsuario;
 import com.plantia.models.RegistroDesastreUsuario;
+import com.plantia.models.ReglaProgreso;
 import com.plantia.models.TipoDesastre;
+import com.plantia.models.Usuario;
 import com.plantia.repositories.EventoDesastreRepository;
+import com.plantia.repositories.HistorialProgresoRepository;
+import com.plantia.repositories.NivelRepository;
 import com.plantia.repositories.PlantaUsuarioRepository;
 import com.plantia.repositories.RegistroDesastreUsuarioRepository;
+import com.plantia.repositories.ReglaProgresoRepository;
 import com.plantia.repositories.TipoDesastreRepository;
+import com.plantia.repositories.UsuarioRepository;
 
 /** Resultado por planta al terminar un evento: SALVADA, DANADA o DESTRUIDA. */
 class ResultadoDesastreServiceTest {
@@ -33,6 +39,7 @@ class ResultadoDesastreServiceTest {
     private PlantaUsuarioRepository plantaRepo;
     private RegistroDesastreUsuarioRepository registroRepo;
     private TipoDesastreRepository tipoRepo;
+    private Usuario usuario;
     private ResultadoDesastreService service;
 
     @BeforeEach
@@ -41,7 +48,25 @@ class ResultadoDesastreServiceTest {
         plantaRepo = mock(PlantaUsuarioRepository.class);
         registroRepo = mock(RegistroDesastreUsuarioRepository.class);
         tipoRepo = mock(TipoDesastreRepository.class);
-        service = new ResultadoDesastreService(eventoRepo, plantaRepo, registroRepo, tipoRepo, 6);
+
+        // Progreso real con repositorios simulados: la regla REFUGIO da 40 de XP
+        usuario = new Usuario();
+        usuario.setIdUsuario(5);
+        usuario.setNivel(1);
+        usuario.setExperienciaXp(0);
+        usuario.setMonedas(0);
+        UsuarioRepository usuarioRepo = mock(UsuarioRepository.class);
+        when(usuarioRepo.findById(5)).thenReturn(Optional.of(usuario));
+        ReglaProgreso refugio = new ReglaProgreso();
+        refugio.setIdRegla(1);
+        refugio.setMotivo("REFUGIO");
+        refugio.setXp(40);
+        ReglaProgresoRepository reglaRepo = mock(ReglaProgresoRepository.class);
+        when(reglaRepo.findByMotivo("REFUGIO")).thenReturn(Optional.of(refugio));
+        ProgresoService progreso = new ProgresoService(usuarioRepo, mock(NivelRepository.class), reglaRepo,
+                mock(HistorialProgresoRepository.class));
+
+        service = new ResultadoDesastreService(eventoRepo, plantaRepo, registroRepo, tipoRepo, progreso, 6);
     }
 
     private static EventoDesastre evento(String severidad, LocalDateTime fin) {
@@ -57,6 +82,7 @@ class ResultadoDesastreServiceTest {
     private static PlantaUsuario planta(int id, int salud, boolean refugiada) {
         PlantaUsuario p = new PlantaUsuario();
         p.setIdPlantaUsuario(id);
+        p.setIdUsuario(5);
         p.setSaludPorcentaje(salud);
         p.setEstaRefugiada(refugiada);
         p.setEtapaCrecimiento("BROTE");
@@ -84,6 +110,29 @@ class ResultadoDesastreServiceTest {
         assertThat(p.getSaludPorcentaje()).isEqualTo(80);
         assertThat(p.getEstaRefugiada()).isFalse();
         assertThat(p.getRefugiadaDesde()).isNull();
+    }
+
+    @Test
+    void salvarUnaPlantaDaXpPeroNoCuentaComoActividadDelDia() {
+        PlantaUsuario p = planta(7, 80, true);
+        when(plantaRepo.findAll()).thenReturn(List.of(p));
+
+        service.procesar(evento("CRITICO", AHORA.minusMinutes(1)), AHORA);
+
+        assertThat(registroGuardado().getXpOtorgado()).isEqualTo(40);
+        assertThat(usuario.getExperienciaXp()).isEqualTo(40);
+        assertThat(usuario.getUltimaActividad()).isNull();
+    }
+
+    @Test
+    void unaPlantaDanadaNoDaXp() {
+        PlantaUsuario p = planta(7, 100, false);
+        when(plantaRepo.findAll()).thenReturn(List.of(p));
+
+        service.procesar(evento("CRITICO", AHORA.minusMinutes(1)), AHORA);
+
+        assertThat(registroGuardado().getXpOtorgado()).isZero();
+        assertThat(usuario.getExperienciaXp()).isZero();
     }
 
     @Test

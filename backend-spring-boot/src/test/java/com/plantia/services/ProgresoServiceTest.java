@@ -245,4 +245,18 @@ class ProgresoServiceTest {
         assertThat(p.xpGanado()).isZero();
         verify(historialRepo, never()).countByIdUsuarioAndIdReglaAndFechaGreaterThanEqual(anyInt(), anyInt(), any());
     }
+
+    @Test
+    void elPremioSinRachaSumaXpPeroNoTocaLaRachaNiLaActividad() {
+        usuario.setUltimaActividad(AHORA.toLocalDate().minusDays(1));
+        usuario.setRachaDias(4);
+        regla(3, "REFUGIO", 40, 0, null);
+        regla(9, "RACHA", 10, 0, 1);
+
+        ProgresoDto p = service.otorgarSinRacha(USER, "REFUGIO", 12, AHORA);
+
+        assertThat(p.xpGanado()).isEqualTo(40); // sin el bono de racha
+        assertThat(usuario.getRachaDias()).isEqualTo(4);
+        assertThat(usuario.getUltimaActividad()).isEqualTo(AHORA.toLocalDate().minusDays(1));
+    }
 }

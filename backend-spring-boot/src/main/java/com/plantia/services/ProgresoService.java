@@ -62,6 +62,20 @@ public class ProgresoService {
      */
     @Transactional
     public ProgresoDto otorgar(Integer userId, List<String> motivos, Integer idReferencia, LocalDateTime ahora) {
+        return aplicar(userId, motivos, idReferencia, ahora, true);
+    }
+
+    /**
+     * Premio que el usuario no provoca con una acción suya (salvar una planta cuando termina un
+     * desastre): suma XP, pero no cuenta como actividad del día ni toca la racha.
+     */
+    @Transactional
+    public ProgresoDto otorgarSinRacha(Integer userId, String motivo, Integer idReferencia, LocalDateTime ahora) {
+        return aplicar(userId, List.of(motivo), idReferencia, ahora, false);
+    }
+
+    private ProgresoDto aplicar(Integer userId, List<String> motivos, Integer idReferencia,
+                                LocalDateTime ahora, boolean conRacha) {
         Usuario u = usuarioRepo.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         List<Nivel> niveles = nivelRepo.findAll().stream()
@@ -70,7 +84,7 @@ public class ProgresoService {
         int nivelInicial = valor(u.getNivel(), 1);
 
         List<String> aplicar = new ArrayList<>();
-        if (actualizarRacha(u, ahora.toLocalDate())) {
+        if (conRacha && actualizarRacha(u, ahora.toLocalDate())) {
             aplicar.add(MOTIVO_RACHA);
         }
         aplicar.addAll(motivos);

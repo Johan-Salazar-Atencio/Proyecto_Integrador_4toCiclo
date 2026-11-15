@@ -36,17 +36,20 @@ public class ResultadoDesastreService {
     private final PlantaUsuarioRepository plantaRepo;
     private final RegistroDesastreUsuarioRepository registroRepo;
     private final TipoDesastreRepository tipoRepo;
+    private final ProgresoService progreso;
     private final Duration gracia;
 
     public ResultadoDesastreService(EventoDesastreRepository eventoRepo,
                                     PlantaUsuarioRepository plantaRepo,
                                     RegistroDesastreUsuarioRepository registroRepo,
                                     TipoDesastreRepository tipoRepo,
+                                    ProgresoService progreso,
                                     @Value("${app.eventos.gracia-horas:6}") long graciaHoras) {
         this.eventoRepo = eventoRepo;
         this.plantaRepo = plantaRepo;
         this.registroRepo = registroRepo;
         this.tipoRepo = tipoRepo;
+        this.progreso = progreso;
         this.gracia = Duration.ofHours(graciaHoras);
     }
 
@@ -93,6 +96,8 @@ public class ResultadoDesastreService {
                 r.setEstadoFinal("SALVADA");
                 p.setEstaRefugiada(false);
                 p.setRefugiadaDesde(null);
+                // La recompensa por haber refugiado a tiempo se da al terminar el evento
+                r.setXpOtorgado(progreso.otorgarSinRacha(p.getIdUsuario(), "REFUGIO", e.getIdDesastre(), ahora).xpGanado());
                 salvadas++;
             } else {
                 int salud = p.getSaludPorcentaje() == null ? 100 : p.getSaludPorcentaje();
