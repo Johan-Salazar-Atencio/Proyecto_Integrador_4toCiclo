@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Boton from '../../../components/Boton'
-import { REGIONES, SEVERIDADES, TIPOS } from '../../../services/admin/eventos'
+import { SEVERIDADES, TIPOS, listarRegiones } from '../../../services/admin/eventos'
 import VistaNotificacion from './VistaNotificacion'
 
 const MAX_MENSAJE = 200
@@ -8,13 +8,17 @@ const MAX_HORAS = 72
 
 // Formulario para lanzar un evento. Las columnas coinciden con la tabla eventos_desastre.
 export default function FormularioEvento({ hayActivo, onLanzar }) {
-  const [datos, setDatos] = useState({ tipo: TIPOS[0].valor, region: REGIONES[0], severidad: 'MODERADO', horas: 6, minutos: 0, mensaje: TIPOS[0].mensaje.slice(0, MAX_MENSAJE) })
+  const [datos, setDatos] = useState({ tipo: TIPOS[0].valor, region: 'GLOBAL', severidad: 'MODERADO', horas: 6, minutos: 0, mensaje: TIPOS[0].mensaje.slice(0, MAX_MENSAJE) })
+  const [regiones, setRegiones] = useState([{ codigo: 'GLOBAL', nombre: 'Global' }])
   const [mensajeEditado, setMensajeEditado] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const [lanzando, setLanzando] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => { listarRegiones().then(setRegiones) }, [])
+
   const poner = (campo, valor) => setDatos((d) => ({ ...d, [campo]: valor }))
+  const nombreRegion = (codigo) => (codigo === 'GLOBAL' ? 'Global' : regiones.find((r) => r.codigo === codigo)?.nombre || codigo)
 
   // Al cambiar de tipo se sugiere un mensaje, salvo que ya lo hayas escrito tu
   const elegirTipo = (tipo) => {
@@ -65,7 +69,7 @@ export default function FormularioEvento({ hayActivo, onLanzar }) {
             <label>
               <span>Región</span>
               <select value={datos.region} onChange={(e) => poner('region', e.target.value)}>
-                {REGIONES.map((r) => <option key={r} value={r}>{r === 'GLOBAL' ? 'Global (todas las regiones)' : r}</option>)}
+                {regiones.map((r) => <option key={r.codigo} value={r.codigo}>{r.codigo === 'GLOBAL' ? 'Global (todas las regiones)' : r.nombre}</option>)}
               </select>
             </label>
 
@@ -101,14 +105,14 @@ export default function FormularioEvento({ hayActivo, onLanzar }) {
           <Boton onClick={() => setConfirmando(true)} disabled={!valido}>⚡ Lanzar evento y notificar usuarios</Boton>
         </div>
 
-        <VistaNotificacion tipo={tipo} mensaje={datos.mensaje} region={datos.region} />
+        <VistaNotificacion tipo={tipo} mensaje={datos.mensaje} region={datos.region === 'GLOBAL' ? 'GLOBAL' : nombreRegion(datos.region)} />
       </div>
 
       {confirmando && (
         <div className="layout-fondo" onClick={() => !lanzando && setConfirmando(false)}>
           <div className="layout-dialogo aparece" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <h2>¿Lanzar el evento?</h2>
-            <p>{tipo.icono} {tipo.texto} · {datos.region} · {SEVERIDADES.find((s) => s.valor === datos.severidad).texto}. Se notificará a los usuarios y durará {datos.horas} h {datos.minutos} min.</p>
+            <p>{tipo.icono} {tipo.texto} · {nombreRegion(datos.region)} · {SEVERIDADES.find((s) => s.valor === datos.severidad).texto}. Se notificará a los usuarios y durará {datos.horas} h {datos.minutos} min.</p>
             <div className="layout-dialogo-botones">
               <Boton variante="suave" onClick={() => setConfirmando(false)} disabled={lanzando}>Volver</Boton>
               <Boton onClick={lanzar} cargando={lanzando}>Lanzar</Boton>

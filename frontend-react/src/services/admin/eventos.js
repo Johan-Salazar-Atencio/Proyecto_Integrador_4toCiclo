@@ -18,7 +18,19 @@ export const SEVERIDADES = [
   { valor: 'CRITICO', texto: 'Crítico', detalle: 'Peligro inminente de pérdida total si no se resguarda a tiempo.' },
 ]
 
-export const REGIONES = ['GLOBAL', 'Arequipa', 'Lima Metropolitana', 'Cusco y Altiplano', 'Costa norte', 'Selva central']
+// Las regiones salen de la tabla regiones (las mismas que el usuario elige en su perfil)
+const REGION_GLOBAL = { codigo: 'GLOBAL', nombre: 'Global' }
+
+export async function listarRegiones() {
+  try {
+    const respuesta = await fetch('/django/api/catalog/regiones/')
+    if (!respuesta.ok) return [REGION_GLOBAL]
+    const regiones = await respuesta.json()
+    return regiones.length > 0 ? regiones : [REGION_GLOBAL]
+  } catch {
+    return [REGION_GLOBAL]
+  }
+}
 
 export const etiquetaTipo = (valor) => TIPOS.find((t) => t.valor === valor)?.texto || valor
 export const iconoTipo = (valor) => TIPOS.find((t) => t.valor === valor)?.icono || '⚠️'
