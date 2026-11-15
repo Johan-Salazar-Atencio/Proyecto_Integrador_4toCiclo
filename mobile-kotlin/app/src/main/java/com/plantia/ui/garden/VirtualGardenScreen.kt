@@ -34,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -52,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.PlantSummary
+import com.plantia.data.model.TiendaItem
 import com.plantia.ui.garden.components.AnimatedStatBar
 import com.plantia.ui.garden.components.CareActionButton
 import com.plantia.ui.escena.Escena
@@ -95,6 +97,7 @@ internal fun consejo(planta: PlantSummary): String {
 fun VirtualGardenScreen(
     onBack: () -> Unit = {},
     onScan: () -> Unit = {},
+    onTienda: () -> Unit = {},
     viewModel: GardenViewModel = viewModel(factory = GardenViewModel.Factory),
     escenaViewModel: EscenaViewModel = viewModel(factory = EscenaViewModel.Factory)
 ) {
@@ -145,6 +148,16 @@ fun VirtualGardenScreen(
                 is GardenUiState.Success -> JardinContenido(
                     escena = escenaViewModel.escena,
                     planta = estado.planta,
+                    abono = viewModel.abono,
+                    onTienda = onTienda,
+                    onAbono = {
+                        viewModel.usarAbono { mensaje ->
+                            scope.launch {
+                                snackbar.currentSnackbarData?.dismiss()
+                                snackbar.showSnackbar(mensaje)
+                            }
+                        }
+                    },
                     onCuidar = { accion ->
                         viewModel.cuidar(accion) { mensaje ->
                             scope.launch {
@@ -161,7 +174,14 @@ fun VirtualGardenScreen(
 
 /** Contenido con planta. Vertical: apilado. Horizontal: marco a la izquierda, datos a la derecha. */
 @Composable
-internal fun JardinContenido(planta: PlantSummary, escena: Escena? = null, onCuidar: (AccionCuidado) -> Unit) {
+internal fun JardinContenido(
+    planta: PlantSummary,
+    escena: Escena? = null,
+    abono: TiendaItem? = null,
+    onAbono: () -> Unit = {},
+    onTienda: () -> Unit = {},
+    onCuidar: (AccionCuidado) -> Unit
+) {
     val config = LocalConfiguration.current
     val apaisado = config.screenWidthDp > config.screenHeightDp
 
@@ -198,6 +218,7 @@ internal fun JardinContenido(planta: PlantSummary, escena: Escena? = null, onCui
                 EncabezadoPlanta(planta)
                 TarjetaVital(planta)
                 TarjetaAcciones(onCuidar)
+                TarjetaAbono(abono, onAbono, onTienda)
                 TarjetaConsejo(consejo(planta))
                 Spacer(Modifier.height(4.dp))
             }
@@ -224,6 +245,7 @@ internal fun JardinContenido(planta: PlantSummary, escena: Escena? = null, onCui
             )
             TarjetaVital(planta)
             TarjetaAcciones(onCuidar)
+            TarjetaAbono(abono, onAbono, onTienda)
             TarjetaConsejo(consejo(planta))
             Spacer(Modifier.height(8.dp))
         }
@@ -300,6 +322,25 @@ private fun TarjetaAcciones(onCuidar: (AccionCuidado) -> Unit) {
             }
         }
     }
+}
+
+/** Abono de la tienda: +1 dia de crecimiento a cambio de monedas (maximo uno al dia por planta). */
+@Composable
+private fun TarjetaAbono(abono: TiendaItem?, onAbono: () -> Unit, onTienda: () -> Unit) {
+    if (abono != null) {
+        Card(
+            onClick = onAbono,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = GreenLight)
+        ) {
+            Column(Modifier.fillMaxWidth().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("🌿 ${abono.nombre}: +1 día de crecimiento", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text("${abono.precio} 🍃 · máximo 1 al día", fontSize = 12.sp, color = GreenDark, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+    TextButton(onClick = onTienda, modifier = Modifier.fillMaxWidth()) { Text("🛒 Ir a la tienda", color = GreenDark, fontWeight = FontWeight.Bold) }
 }
 
 @Composable

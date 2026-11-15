@@ -13,6 +13,7 @@ import com.plantia.data.remote.dto.DailyMissionDto
 import com.plantia.data.remote.dto.FondoDto
 import com.plantia.data.remote.dto.RegionDto
 import com.plantia.data.remote.dto.PlantSummaryDto
+import com.plantia.data.remote.dto.TiendaDto
 import com.plantia.data.remote.dto.QuickAccessDto
 import com.plantia.data.remote.dto.RecentScanDto
 import com.plantia.data.remote.dto.ScanResultDto
@@ -89,6 +90,26 @@ interface PlantiaApi {
     /** Fondos animados de la escena (dia, tarde, noche). */
     @GET("api/v1/fondos")
     suspend fun fondos(): Response<List<FondoDto>>
+
+    /** Tienda: monedas, nivel y articulos activos con su estado para el usuario. */
+    @GET("api/v1/tienda")
+    suspend fun tienda(): Response<TiendaDto>
+
+    /** Compra un fondo (402 sin monedas, 409 si ya lo tiene o falta nivel). */
+    @POST("api/v1/tienda/{id}/comprar")
+    suspend fun comprarItem(@Path("id") idItem: Int): Response<TiendaDto>
+
+    /** Pone el fondo comprado; quita el que habia en el mismo momento del dia. */
+    @POST("api/v1/tienda/{id}/equipar")
+    suspend fun equiparItem(@Path("id") idItem: Int): Response<TiendaDto>
+
+    /** Vuelve al fondo predeterminado de ese momento. */
+    @POST("api/v1/tienda/{id}/desequipar")
+    suspend fun desequiparItem(@Path("id") idItem: Int): Response<TiendaDto>
+
+    /** Compra y usa un abono: +1 dia de crecimiento de la planta (maximo uno al dia). */
+    @POST("api/v1/plantas/{id}/abono-tienda")
+    suspend fun abonoTienda(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
 
     /** Animaciones de desastre (aviso y pico) con sus frames. */
     @GET("api/v1/animaciones")

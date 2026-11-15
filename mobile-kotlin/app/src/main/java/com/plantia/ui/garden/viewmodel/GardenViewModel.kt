@@ -9,6 +9,10 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.PlantSummary
+import com.plantia.data.model.TiendaItem
+import com.plantia.data.repository.AbonoResultado
+import com.plantia.data.repository.TiendaRepository
+import com.plantia.data.repository.TiendaResultado
 import com.plantia.data.repository.GardenRepository
 import com.plantia.data.repository.PlantaActivaResultado
 import com.plantia.data.repository.PlantaResultado
@@ -22,7 +26,15 @@ sealed interface GardenUiState {
     data class Error(val mensaje: String) : GardenUiState
 }
 
-class GardenViewModel(private val garden: GardenRepository) : ViewModel() {
+class GardenViewModel(
+    private val garden: GardenRepository,
+    /** Tienda para el abono (+1 dia de crecimiento); sin ella el jardin no muestra ese boton. */
+    private val tienda: TiendaRepository? = null
+) : ViewModel() {
+
+    /** Abono de la tienda a la venta (con su precio), o null si no esta disponible. */
+    var abono: TiendaItem? by mutableStateOf(null)
+        private set
 
     var uiState: GardenUiState by mutableStateOf(GardenUiState.Loading)
         private set
@@ -31,6 +43,33 @@ class GardenViewModel(private val garden: GardenRepository) : ViewModel() {
 
     init {
         cargar()
+        cargarAbono()
+    }
+
+    private fun cargarAbono() {
+        val repo = tienda ?: return
+        viewModelScope.launch {
+            abono = (repo.cargar() as? TiendaResultado.Con)?.tienda?.abono
+        }
+    }
+
+    /** Compra un abono y lo usa en la planta del jardin; el servidor valida monedas, nivel y el tope diario. */
+    fun usarAbono(alTerminar: (String) -> Unit) {
+        val repo = tienda ?: return
+        val actual = (uiState as? GardenUiState.Success)?.planta ?: return
+        val id = actual.id ?: return
+        if (cuidando) return
+        cuidando = true
+        viewModelScope.launch {
+            when (val r = repo.usarAbono(id)) {
+                is AbonoResultado.Con -> {
+                    uiState = GardenUiState.Success(r.planta)
+                    alTerminar("Abono aplicado: ${r.planta.name} ganó un día 🌿")
+                }
+                is AbonoResultado.Fallo -> alTerminar(r.mensaje)
+            }
+            cuidando = false
+        }
     }
 
     fun cargar() {
@@ -80,6 +119,6 @@ class GardenViewModel(private val garden: GardenRepository) : ViewModel() {
         }
 
     companion object {
-        val Factory = viewModelFactory { initializer { GardenViewModel(AppContainer.garden) } }
+        val Factory = viewModelFactory { initializer { GardenViewModel(AppContainer.garden, AppContainer.tienda) } }
     }
 }

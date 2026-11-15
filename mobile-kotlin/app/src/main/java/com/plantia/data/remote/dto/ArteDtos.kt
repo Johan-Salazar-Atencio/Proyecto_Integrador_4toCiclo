@@ -10,7 +10,9 @@ data class FondoDto(
     val widthPx: Int = 0,
     val heightPx: Int = 0,
     val msPerFrame: Int = 200,
-    val isDefault: Boolean = false
+    val isDefault: Boolean = false,
+    /** El fondo de la tienda que el usuario tiene puesto: reemplaza al predeterminado de su momento. */
+    val equipado: Boolean = false
 )
 
 /** GET /api/v1/animaciones: frames con transparencia para dibujar encima de la escena. */

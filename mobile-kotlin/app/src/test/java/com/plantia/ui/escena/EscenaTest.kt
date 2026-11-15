@@ -103,6 +103,19 @@ class ElegirEscenaTest {
     }
 
     @Test
+    fun el_fondo_equipado_de_la_tienda_gana_al_predeterminado() {
+        val comprado = FondoEscena(
+            momento = "NOCHE", imageUrl = "http://x/cyberpunk.png", frames = 96, frameWidthPx = 96, frameHeightPx = 96,
+            msPerFrame = 120, esPredeterminado = false, equipado = true
+        )
+        val arte = Arte(fondos = listOf(fondo("DIA"), fondo("NOCHE"), comprado), animaciones = emptyList())
+        assertEquals("http://x/cyberpunk.png", elegirEscena(arte, 22, null, null)?.fondoUrl)
+        // La madrugada tambien es NOCHE, y en otro momento del dia sigue el predeterminado
+        assertEquals("http://x/cyberpunk.png", elegirEscena(arte, 3, null, null)?.fondoUrl)
+        assertEquals("http://x/DIA.png", elegirEscena(arte, 10, null, null)?.fondoUrl)
+    }
+
+    @Test
     fun sin_fondos_no_hay_escena() {
         assertNull(elegirEscena(Arte(emptyList(), emptyList()), 10, null, null))
     }

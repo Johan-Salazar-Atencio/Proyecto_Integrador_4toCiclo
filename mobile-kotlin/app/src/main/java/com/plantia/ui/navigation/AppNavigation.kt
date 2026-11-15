@@ -35,6 +35,7 @@ import com.plantia.ui.profile.viewmodel.PerfilViewModel
 import com.plantia.ui.scan.HistorialScreen
 import com.plantia.ui.scan.ScanScreen
 import com.plantia.ui.scan.viewmodel.HistorialViewModel
+import com.plantia.ui.tienda.TiendaScreen
 import com.plantia.ui.welcome.WelcomeScreen
 
 private const val DURACION_MS = 350
@@ -103,7 +104,8 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onNavigateToGarden = { navController.navigate(Routes.VIRTUAL_GARDEN) },
                 onNavigateToCollection = { navController.navigate(Routes.COLLECTION) },
                 onNavigateToCatalogo = { navController.navigate(Routes.CATALOGO) },
-                onNavigateToPerfil = { navController.navigate(Routes.PERFIL) }
+                onNavigateToPerfil = { navController.navigate(Routes.PERFIL) },
+                onNavigateToTienda = { navController.navigate(Routes.TIENDA) }
             )
         }
 
@@ -148,8 +150,14 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         composable(Routes.VIRTUAL_GARDEN) {
             VirtualGardenScreen(
                 onBack = { navController.popBackStack() },
-                onScan = { navController.navigate(Routes.SCAN) }
+                onScan = { navController.navigate(Routes.SCAN) },
+                onTienda = { navController.navigate(Routes.TIENDA) }
             )
+        }
+
+        // Tienda
+        composable(Routes.TIENDA) {
+            TiendaScreen(onBack = { navController.popBackStack() })
         }
 
         // Coleccion

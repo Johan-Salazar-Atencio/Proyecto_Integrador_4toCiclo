@@ -13,6 +13,9 @@ import kotlinx.coroutines.withContext
 interface ArteRepository {
     /** El arte, o null si no se pudo leer (la escena entonces usa su fondo de color). */
     suspend fun cargar(): Arte?
+
+    /** Olvida el arte guardado (tras equipar o quitar un fondo de la tienda). */
+    fun invalidar() {}
 }
 
 class RemoteArteRepository(
@@ -40,7 +43,8 @@ class RemoteArteRepository(
                     frameWidthPx = f.widthPx,
                     frameHeightPx = f.heightPx,
                     msPerFrame = f.msPerFrame.coerceAtLeast(MS_MINIMO),
-                    esPredeterminado = f.isDefault
+                    esPredeterminado = f.isDefault,
+                    equipado = f.equipado
                 )
             },
             animaciones = animaciones.orEmpty().filter { it.frames.isNotEmpty() }.map { a ->
@@ -54,6 +58,10 @@ class RemoteArteRepository(
         )
         cache = base to arte
         arte
+    }
+
+    override fun invalidar() {
+        cache = null
     }
 
     private fun absoluta(base: String, ruta: String): String =

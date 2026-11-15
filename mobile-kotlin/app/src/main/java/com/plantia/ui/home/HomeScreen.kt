@@ -76,7 +76,8 @@ fun HomeScreen(
     onNavigateToGarden: () -> Unit = {},
     onNavigateToCollection: () -> Unit = {},
     onNavigateToCatalogo: () -> Unit = {},
-    onNavigateToPerfil: () -> Unit = {}
+    onNavigateToPerfil: () -> Unit = {},
+    onNavigateToTienda: () -> Unit = {}
 ) {
     val bottomNavItems = listOf(
         BottomNavItem("Inicio", Icons.Default.Home),
@@ -112,9 +113,11 @@ fun HomeScreen(
                     )
                 },
                 actions = {
+                    // Las monedas abren la tienda
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = AmberLight,
+                        onClick = onNavigateToTienda,
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
                         Row(
@@ -278,7 +281,7 @@ fun HomeScreen(
                                 "encyclopedia" -> onNavigateToCatalogo()
                                 "garden" -> onNavigateToGarden()
                                 "jardin" -> onNavigateToGarden()
-                                // "store" todavía no tiene endpoint en el backend.
+                                "store" -> onNavigateToTienda()
                             }
                         }
                     )

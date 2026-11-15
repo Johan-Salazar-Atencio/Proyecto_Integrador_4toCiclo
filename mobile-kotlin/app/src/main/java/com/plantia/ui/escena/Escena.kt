@@ -1,6 +1,7 @@
 package com.plantia.ui.escena
 
 import com.plantia.data.model.Arte
+import com.plantia.data.model.FondoEscena
 
 /** Lo que se dibuja en la escena: el fondo del momento del dia y, si hay un desastre, su animacion. */
 data class Escena(
@@ -28,7 +29,8 @@ fun momentoDelDia(hora: Int): String = when (hora) {
 fun elegirEscena(arte: Arte?, hora: Int, tipoDesastre: String?, fase: String?): Escena? {
     if (arte == null) return null
     val momento = momentoDelDia(hora)
-    val fondo = arte.fondos.filter { it.momento == momento }.sortedByDescending { it.esPredeterminado }.firstOrNull()
+    val fondo = arte.fondos.filter { it.momento == momento }.sortedWith(compareByDescending<FondoEscena> { it.equipado }.thenByDescending { it.esPredeterminado })
+        .firstOrNull()
         ?: arte.fondos.firstOrNull()
         ?: return null
     val animacion = tipoDesastre?.takeIf { it.isNotBlank() }?.let { tipo ->

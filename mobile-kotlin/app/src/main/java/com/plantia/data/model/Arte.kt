@@ -8,7 +8,9 @@ data class FondoEscena(
     val frameWidthPx: Int,
     val frameHeightPx: Int,
     val msPerFrame: Int,
-    val esPredeterminado: Boolean
+    val esPredeterminado: Boolean,
+    /** Comprado en la tienda y puesto por el usuario. */
+    val equipado: Boolean = false
 )
 
 /** Animacion de un desastre en una fase: frames con transparencia, en orden. */

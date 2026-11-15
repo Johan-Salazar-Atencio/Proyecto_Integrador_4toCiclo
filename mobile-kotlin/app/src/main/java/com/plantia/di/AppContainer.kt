@@ -13,8 +13,10 @@ import com.plantia.data.repository.RemoteCollectionRepository
 import com.plantia.data.repository.RemoteGardenRepository
 import com.plantia.data.repository.RemoteHomeRepository
 import com.plantia.data.repository.RemoteScanRepository
+import com.plantia.data.repository.RemoteTiendaRepository
 import com.plantia.data.repository.RemoteUsuarioRepository
 import com.plantia.data.repository.ScanRepository
+import com.plantia.data.repository.TiendaRepository
 import com.plantia.data.repository.UsuarioRepository
 
 /**
@@ -29,5 +31,6 @@ object AppContainer {
     val home: HomeRepository by lazy { RemoteHomeRepository() }
     val usuario: UsuarioRepository by lazy { RemoteUsuarioRepository() }
     val arte: ArteRepository by lazy { RemoteArteRepository() }
+    val tienda: TiendaRepository by lazy { RemoteTiendaRepository(arte = { arte }) }
     val catalogo: CatalogoRepository by lazy { RemoteCatalogoRepository() }
 }
