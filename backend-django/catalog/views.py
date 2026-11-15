@@ -1,4 +1,6 @@
 """Endpoints de solo lectura del catalogo y eventos (para React / enciclopedia)."""
+from django.db.models import Q
+from django.utils import timezone
 from rest_framework import generics
 from rest_framework.response import Response
 
@@ -39,8 +41,20 @@ class EventoListView(generics.ListAPIView):
 
 
 class EventoActivoView(generics.GenericAPIView):
+    """Evento vigente: ACTIVO y dentro de su ventana de fechas (mismo criterio que Spring).
+
+    Con ?region=X solo cuentan los eventos GLOBAL o de esa region.
+    """
+
     def get(self, request):
-        evento = EventoDesastre.objects.filter(estado="ACTIVO").order_by("-fecha_inicio").first()
+        ahora = timezone.now()
+        qs = EventoDesastre.objects.filter(
+            estado="ACTIVO", fecha_inicio__lte=ahora, fecha_fin__gt=ahora
+        )
+        region = (request.query_params.get("region") or "").strip()
+        if region:
+            qs = qs.filter(Q(region="GLOBAL") | Q(region=region))
+        evento = qs.order_by("-fecha_inicio").first()
         if not evento:
             return Response(status=204)
         return Response(EventoDesastreSerializer(evento).data)

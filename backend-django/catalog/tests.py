@@ -113,3 +113,36 @@ class EventoSerializerTests(SimpleTestCase):
         datos = EventoDesastreSerializer(evento).data
         self.assertIsNone(datos["tipo_nombre"])
         self.assertEqual(datos["tipo_evento"], "HUAYCO")
+
+
+class EventoActivoVigenciaTests(SimpleTestCase):
+    """EventoActivoView solo devuelve eventos vigentes (estado, fechas y region)."""
+
+    def _get(self, query="", evento=None):
+        from unittest.mock import MagicMock
+
+        from . import views
+
+        qs = MagicMock()
+        qs.filter.return_value = qs
+        qs.order_by.return_value.first.return_value = evento
+        request = APIRequestFactory().get("/api/catalog/eventos/activo/" + query)
+        with patch.object(views.EventoDesastre.objects, "filter", return_value=qs) as filtrar:
+            respuesta = views.EventoActivoView.as_view()(request)
+        return respuesta, filtrar, qs
+
+    def test_filtra_por_estado_y_ventana_de_fechas(self):
+        respuesta, filtrar, _ = self._get()
+        argumentos = filtrar.call_args.kwargs
+        self.assertEqual(argumentos["estado"], "ACTIVO")
+        self.assertIn("fecha_inicio__lte", argumentos)
+        self.assertIn("fecha_fin__gt", argumentos)
+        self.assertEqual(respuesta.status_code, 204)
+
+    def test_sin_region_no_agrega_filtro_de_region(self):
+        _, _, qs = self._get()
+        qs.filter.assert_not_called()
+
+    def test_con_region_agrega_el_filtro(self):
+        _, _, qs = self._get("?region=Arequipa")
+        qs.filter.assert_called_once()
