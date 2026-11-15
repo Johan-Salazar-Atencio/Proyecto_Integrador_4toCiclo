@@ -75,3 +75,9 @@
 @media (prefers-reduced-motion: reduce) {
   .jardin-planta, .jardin-salta { animation: none; }
 }
+
+/* Con la escena en pixel art detras, el contenido del marco va por encima y legible */
+.jardin-marco > :not(.escena) { position: relative; z-index: 1; }
+.jardin-marco:has(.escena) .jardin-etapa,
+.jardin-marco:has(.escena) .jardin-animo { background: color-mix(in srgb, var(--superficie) 88%, transparent); padding: 8px 14px; border-radius: 16px; }
+.jardin-marco:has(.escena) .jardin-animo { position: absolute; top: 14px; left: 14px; z-index: 2; }

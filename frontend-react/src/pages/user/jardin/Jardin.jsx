@@ -4,6 +4,7 @@ import { RUTAS } from '../../../routes/rutas'
 import { urlImagen } from '../../../services/home'
 import { cuidarPlanta, obtenerPlantaJardin } from '../../../services/jardin'
 import PlantaPixel from '../../../components/PlantaPixel'
+import EscenaPixel from '../../../components/EscenaPixel'
 import { ACCIONES, mensajeCuidado } from './acciones'
 import { consejo, estadoAnimo, nivelBarra } from './animo'
 import { ETAPA_MARCHITA, etapaDe, etapasDe } from './etapas'
@@ -98,6 +99,7 @@ export default function Jardin() {
   return (
     <div className="jardin">
       <section className={`jardin-marco aparece ${marchita ? 'jardin-marco-marchita' : ''}`}>
+        <EscenaPixel />
         <div key={salto} className={`jardin-planta ${salto ? 'jardin-salta' : ''}`}>
           <PlantaPixel etapa={etapa.indice} apariencia={planta.apariencia} titulo={`${planta.name}: ${etapa.nombre}`} />
         </div>
