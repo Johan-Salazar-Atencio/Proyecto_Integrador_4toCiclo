@@ -42,7 +42,22 @@ public class EventoService {
                 e.getMensajeNotificacion(),
                 severidad(e.getSeveridad()),
                 restante(e.getFechaFin()),
-                "Refugiar Planta");
+                "Refugiar Planta",
+                e.getTipoEvento(),
+                fase(e.getFechaInicio(), e.getFechaFin(), LocalDateTime.now()));
+    }
+
+    /** Fraccion del evento que debe haber pasado para que la animacion deje de ser un aviso. */
+    static final double FRACCION_AVISO = 0.4;
+
+    /** AVISO durante el primer tramo del evento; PICO despues (y cuando no hay fechas fiables). */
+    static String fase(LocalDateTime inicio, LocalDateTime fin, LocalDateTime ahora) {
+        if (inicio == null || fin == null || !fin.isAfter(inicio)) {
+            return "PICO";
+        }
+        double total = Duration.between(inicio, fin).toMillis();
+        double pasado = Duration.between(inicio, ahora).toMillis();
+        return pasado < total * FRACCION_AVISO ? "AVISO" : "PICO";
     }
 
     private static String severidad(String s) {

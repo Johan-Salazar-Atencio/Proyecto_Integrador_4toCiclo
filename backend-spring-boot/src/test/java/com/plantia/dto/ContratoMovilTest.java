@@ -36,9 +36,9 @@ class ContratoMovilTest {
 
     @Test
     void weatherAlert() throws Exception {
-        assertThat(claves(new WeatherAlertDto("t", "d", "HIGH", "01h 20m", "Refugiar Planta")))
+        assertThat(claves(new WeatherAlertDto("t", "d", "HIGH", "01h 20m", "Refugiar Planta", "HUAYCO", "PICO")))
                 .containsExactlyInAnyOrder(
-                        "title", "description", "severity", "timeRemaining", "actionText");
+                        "title", "description", "severity", "timeRemaining", "actionText", "disasterType", "phase");
     }
 
     @Test
