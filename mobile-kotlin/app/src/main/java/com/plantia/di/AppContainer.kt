@@ -1,11 +1,13 @@
 package com.plantia.di
 
 import com.plantia.data.repository.ApiAuthRepository
+import com.plantia.data.repository.ArteRepository
 import com.plantia.data.repository.AuthRepository
 import com.plantia.data.repository.CatalogoRepository
 import com.plantia.data.repository.CollectionRepository
 import com.plantia.data.repository.GardenRepository
 import com.plantia.data.repository.HomeRepository
+import com.plantia.data.repository.RemoteArteRepository
 import com.plantia.data.repository.RemoteCatalogoRepository
 import com.plantia.data.repository.RemoteCollectionRepository
 import com.plantia.data.repository.RemoteGardenRepository
@@ -26,5 +28,6 @@ object AppContainer {
     val garden: GardenRepository by lazy { RemoteGardenRepository() }
     val home: HomeRepository by lazy { RemoteHomeRepository() }
     val usuario: UsuarioRepository by lazy { RemoteUsuarioRepository() }
+    val arte: ArteRepository by lazy { RemoteArteRepository() }
     val catalogo: CatalogoRepository by lazy { RemoteCatalogoRepository() }
 }

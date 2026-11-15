@@ -53,6 +53,8 @@ import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.PlantSummary
 import com.plantia.ui.garden.components.AnimatedStatBar
 import com.plantia.ui.garden.components.CareActionButton
+import com.plantia.ui.escena.Escena
+import com.plantia.ui.escena.EscenaViewModel
 import com.plantia.ui.garden.components.PlantFrame
 import com.plantia.ui.garden.viewmodel.GardenUiState
 import com.plantia.ui.garden.viewmodel.GardenViewModel
@@ -92,7 +94,8 @@ internal fun consejo(planta: PlantSummary): String {
 fun VirtualGardenScreen(
     onBack: () -> Unit = {},
     onScan: () -> Unit = {},
-    viewModel: GardenViewModel = viewModel(factory = GardenViewModel.Factory)
+    viewModel: GardenViewModel = viewModel(factory = GardenViewModel.Factory),
+    escenaViewModel: EscenaViewModel = viewModel(factory = EscenaViewModel.Factory)
 ) {
     IconosOscurosEnBarraDeEstado()
 
@@ -139,6 +142,7 @@ fun VirtualGardenScreen(
                     onBoton = viewModel::cargar
                 )
                 is GardenUiState.Success -> JardinContenido(
+                    escena = escenaViewModel.escena,
                     planta = estado.planta,
                     onCuidar = { accion ->
                         viewModel.cuidar(accion) { mensaje ->
@@ -156,7 +160,7 @@ fun VirtualGardenScreen(
 
 /** Contenido con planta. Vertical: apilado. Horizontal: marco a la izquierda, datos a la derecha. */
 @Composable
-internal fun JardinContenido(planta: PlantSummary, onCuidar: (AccionCuidado) -> Unit) {
+internal fun JardinContenido(planta: PlantSummary, escena: Escena? = null, onCuidar: (AccionCuidado) -> Unit) {
     val config = LocalConfiguration.current
     val apaisado = config.screenWidthDp > config.screenHeightDp
 
@@ -176,6 +180,7 @@ internal fun JardinContenido(planta: PlantSummary, onCuidar: (AccionCuidado) -> 
                     especie = planta.species,
                     animo = estadoAnimo(planta),
                     imageUrl = planta.imageUrl,
+                    escena = escena,
                     modifier = Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true)
                 )
             }
@@ -205,6 +210,7 @@ internal fun JardinContenido(planta: PlantSummary, onCuidar: (AccionCuidado) -> 
                 especie = planta.species,
                 animo = estadoAnimo(planta),
                 imageUrl = planta.imageUrl,
+                escena = escena,
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f)
             )
             TarjetaVital(planta)

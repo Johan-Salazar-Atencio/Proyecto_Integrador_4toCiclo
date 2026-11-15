@@ -1,5 +1,6 @@
 package com.plantia.data.remote
 
+import com.plantia.data.remote.dto.AnimacionDto
 import com.plantia.data.remote.dto.AuthLoginRequestDto
 import com.plantia.data.remote.dto.AuthRegistroRequestDto
 import com.plantia.data.remote.dto.AuthUsuarioResponseDto
@@ -9,6 +10,7 @@ import com.plantia.data.remote.dto.ColeccionItemDto
 import com.plantia.data.remote.dto.CuidadoSeccionDto
 import com.plantia.data.remote.dto.CambiarRegionRequest
 import com.plantia.data.remote.dto.DailyMissionDto
+import com.plantia.data.remote.dto.FondoDto
 import com.plantia.data.remote.dto.RegionDto
 import com.plantia.data.remote.dto.PlantSummaryDto
 import com.plantia.data.remote.dto.QuickAccessDto
@@ -83,6 +85,14 @@ interface PlantiaApi {
     /** Cambia la region del usuario y devuelve su resumen. */
     @PUT("api/v1/usuarios/me")
     suspend fun cambiarRegion(@Body cuerpo: CambiarRegionRequest): Response<UserSummaryDto>
+
+    /** Fondos animados de la escena (dia, tarde, noche). */
+    @GET("api/v1/fondos")
+    suspend fun fondos(): Response<List<FondoDto>>
+
+    /** Animaciones de desastre (aviso y pico) con sus frames. */
+    @GET("api/v1/animaciones")
+    suspend fun animaciones(): Response<List<AnimacionDto>>
 
     /** Todas las plantas digitales del usuario. */
     @GET("api/v1/plantas")

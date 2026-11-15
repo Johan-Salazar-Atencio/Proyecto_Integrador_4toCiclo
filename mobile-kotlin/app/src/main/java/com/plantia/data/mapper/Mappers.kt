@@ -76,7 +76,9 @@ fun WeatherAlertDto.toDomain(): WeatherAlert = WeatherAlert(
         else -> AlertSeverity.MEDIUM
     },
     timeRemaining = timeRemaining,
-    actionText = actionText
+    actionText = actionText,
+    disasterType = disasterType,
+    phase = phase
 )
 
 fun PlantSummaryDto.toDomain(): PlantSummary = PlantSummary(

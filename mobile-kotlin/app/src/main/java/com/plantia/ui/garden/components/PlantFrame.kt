@@ -2,6 +2,7 @@ package com.plantia.ui.garden.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -22,6 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
+import com.plantia.ui.escena.Escena
+import com.plantia.ui.escena.EscenaPixel
 import com.plantia.ui.theme.GreenDark
 import com.plantia.ui.theme.GreenLight
 import com.plantia.ui.theme.GreenPrimary
@@ -52,37 +55,42 @@ fun PlantFrame(
     animo: String,
     imageUrl: String?,
     modifier: Modifier = Modifier,
-    fondo: Brush = GardenBackgrounds.Neutro
+    fondo: Brush = GardenBackgrounds.Neutro,
+    /** Escena en pixel art (fondo animado y desastre); sin ella se usa el fondo de color. */
+    escena: Escena? = null
 ) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(28.dp))
             .background(fondo)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            if (imageUrl.isNullOrBlank()) {
-                PlantaDeRespaldo()
-            } else {
-                SubcomposeAsyncImage(
-                    model = imageUrl,
-                    contentDescription = nombre,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize(),
-                    loading = {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            CircularProgressIndicator(color = GreenPrimary, modifier = Modifier.size(32.dp))
-                        }
-                    },
-                    // Si la imagen no carga se dibuja una planta de respaldo.
-                    error = { PlantaDeRespaldo() }
-                )
+        val planta: @Composable BoxScope.() -> Unit = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (imageUrl.isNullOrBlank()) {
+                    PlantaDeRespaldo()
+                } else {
+                    SubcomposeAsyncImage(
+                        model = imageUrl,
+                        contentDescription = nombre,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                        loading = {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                CircularProgressIndicator(color = GreenPrimary, modifier = Modifier.size(32.dp))
+                            }
+                        },
+                        // Si la imagen no carga se dibuja una planta de respaldo.
+                        error = { PlantaDeRespaldo() }
+                    )
+                }
             }
         }
+        if (escena != null) EscenaPixel(escena, Modifier.fillMaxSize(), planta) else planta()
 
         // Nombre + estado de animo
         Box(

@@ -166,3 +166,13 @@ fun mision(id: String = "mission_1", progreso: Int = 0, meta: Int = 2) = DailyMi
     targetCount = meta,
     isCompleted = progreso >= meta
 )
+
+/** Arte falso: devuelve lo que se configure. */
+class FakeArteRepository(var arte: com.plantia.data.model.Arte? = null) : com.plantia.data.repository.ArteRepository {
+    var consultas = 0
+
+    override suspend fun cargar(): com.plantia.data.model.Arte? {
+        consultas++
+        return arte
+    }
+}

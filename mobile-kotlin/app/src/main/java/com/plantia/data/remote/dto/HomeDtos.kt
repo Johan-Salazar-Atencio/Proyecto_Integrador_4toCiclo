@@ -41,7 +41,9 @@ data class WeatherAlertDto(
     val description: String = "",
     val severity: String = "MEDIUM",
     val timeRemaining: String = "",
-    val actionText: String = ""
+    val actionText: String = "",
+    val disasterType: String = "",
+    val phase: String = "PICO"
 )
 
 /** GET /api/v1/plantas/activa (204 si no tiene plantas), GET /api/v1/plantas y acciones sobre una planta. */
