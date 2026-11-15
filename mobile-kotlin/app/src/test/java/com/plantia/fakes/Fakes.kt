@@ -1,12 +1,18 @@
 package com.plantia.fakes
 
 import com.plantia.data.model.AccionCuidado
+import com.plantia.data.model.AlertSeverity
 import com.plantia.data.model.PlantSummary
+import com.plantia.data.model.UserSummary
+import com.plantia.data.model.WeatherAlert
 import com.plantia.data.remote.dto.ScanResultDto
+import com.plantia.data.repository.AlertaResultado
 import com.plantia.data.repository.CollectionRepository
 import com.plantia.data.repository.ColeccionResultado
 import com.plantia.data.repository.DetalleColeccionResultado
 import com.plantia.data.repository.GardenRepository
+import com.plantia.data.repository.HomeDatos
+import com.plantia.data.repository.HomeRepository
 import com.plantia.data.repository.PlantaActivaResultado
 import com.plantia.data.repository.PlantaResultado
 import com.plantia.data.repository.PlantasResultado
@@ -32,6 +38,43 @@ fun planta(
     id = id,
     activa = activa
 )
+
+fun usuarioEjemplo(nivel: Int = 1, xp: Int = 0) = UserSummary(
+    name = "Johan",
+    level = nivel,
+    badge = "Aprendiz",
+    leaves = 100,
+    experience = xp,
+    experienceToNextLevel = 500
+)
+
+fun alerta() = WeatherAlert(
+    title = "Helada Inminente",
+    description = "Resguarda tus plantas",
+    severity = AlertSeverity.HIGH,
+    timeRemaining = "01h 00m",
+    actionText = "Refugiar Planta"
+)
+
+/** Home falso: la carga inicial y cada consulta del sondeo se configuran por separado. */
+class FakeHomeRepository : HomeRepository {
+    var datos = HomeDatos(
+        usuario = usuarioEjemplo(), alerta = null, planta = planta(), accesos = emptyList(),
+        mision = null, fallidas = 0, sinConexion = false
+    )
+    var alertaResultado: AlertaResultado = AlertaResultado.Sin
+    var usuarioResultado: UserSummary? = usuarioEjemplo()
+    var consultasAlerta = 0
+
+    override suspend fun cargar() = datos
+
+    override suspend fun alerta(): AlertaResultado {
+        consultasAlerta++
+        return alertaResultado
+    }
+
+    override suspend fun usuario() = usuarioResultado
+}
 
 /** Jardin falso: devuelve lo que se configure y recuerda las llamadas. */
 class FakeGardenRepository : GardenRepository {

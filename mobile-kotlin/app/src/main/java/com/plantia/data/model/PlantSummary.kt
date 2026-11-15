@@ -11,5 +11,7 @@ data class PlantSummary(
     /** Id de la planta digital en el backend; null en datos de ejemplo. */
     val id: Int? = null,
     /** Planta que se muestra en el jardin. */
-    val activa: Boolean = false
+    val activa: Boolean = false,
+    /** true mientras la planta esta a resguardo de un desastre. */
+    val refugiada: Boolean = false
 )

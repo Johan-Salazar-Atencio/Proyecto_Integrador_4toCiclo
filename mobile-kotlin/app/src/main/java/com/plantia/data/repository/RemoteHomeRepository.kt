@@ -33,6 +33,20 @@ class RemoteHomeRepository(
         )
     }
 
+    override suspend fun alerta(): AlertaResultado = withContext(Dispatchers.IO) {
+        val respuesta = intentar { api().eventoActivo() }
+        val cuerpo = respuesta.cuerpo()
+        when {
+            respuesta == null || !respuesta.isSuccessful -> AlertaResultado.Fallo
+            cuerpo == null -> AlertaResultado.Sin
+            else -> AlertaResultado.Con(cuerpo.toDomain())
+        }
+    }
+
+    override suspend fun usuario(): UserSummary? = withContext(Dispatchers.IO) {
+        intentar { api().usuarioMe() }.cuerpo()?.toDomain()
+    }
+
     /** Ejecuta la llamada y captura cualquier excepcion (red caida, timeout). */
     private suspend fun <T> intentar(llamada: suspend () -> Response<T>): Response<T>? = try {
         llamada()

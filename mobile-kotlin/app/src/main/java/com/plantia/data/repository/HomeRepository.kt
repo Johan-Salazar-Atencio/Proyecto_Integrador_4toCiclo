@@ -20,9 +20,23 @@ data class HomeDatos(
     val sinConexion: Boolean
 )
 
+/** Resultado de consultar solo la alerta: "no hay desastre" y "no se pudo consultar" son cosas distintas. */
+sealed interface AlertaResultado {
+    data class Con(val alerta: WeatherAlert) : AlertaResultado
+    /** El servidor respondio 204: no hay desastre activo. */
+    data object Sin : AlertaResultado
+    data object Fallo : AlertaResultado
+}
+
 interface HomeRepository {
     /** Pide todas las secciones de Home; una que falle no tumba al resto. */
     suspend fun cargar(): HomeDatos
+
+    /** Solo la alerta de desastre, para refrescarla mientras el Home esta abierto. */
+    suspend fun alerta(): AlertaResultado
+
+    /** Solo el perfil (XP, nivel, hojas), o null si no se pudo consultar. */
+    suspend fun usuario(): UserSummary?
 }
 
 /** Datos del usuario para la pantalla de perfil. */

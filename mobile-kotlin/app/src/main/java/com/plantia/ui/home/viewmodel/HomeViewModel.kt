@@ -13,10 +13,14 @@ import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.QuickAccessItem
 import com.plantia.data.model.UserSummary
 import com.plantia.data.model.WeatherAlert
+import com.plantia.data.repository.AlertaResultado
 import com.plantia.data.repository.ColeccionResultado
 import com.plantia.data.repository.CollectionRepository
+import com.plantia.data.repository.GardenRepository
 import com.plantia.data.repository.HomeRepository
+import com.plantia.data.repository.PlantaActivaResultado
 import com.plantia.di.AppContainer
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** Estado de la pantalla Home. Cada card se dibuja solo si tiene datos. */
@@ -49,9 +53,13 @@ data class HomeUiState(
     }
 }
 
+/** Cada cuanto se consulta el servidor mientras el Home esta visible. */
+const val INTERVALO_SONDEO_MS = 20_000L
+
 class HomeViewModel(
     private val home: HomeRepository,
-    private val collection: CollectionRepository
+    private val collection: CollectionRepository,
+    private val garden: GardenRepository
 ) : ViewModel() {
 
     var uiState by mutableStateOf(HomeUiState())
@@ -72,6 +80,57 @@ class HomeViewModel(
             uiState = uiState.copy(totalColeccion = totalColeccion())
         }
     }
+
+    /**
+     * Mantiene al dia la alerta, el perfil y la planta mientras el Home esta visible: un desastre que
+     * lanza el admin aparece solo, sin volver a abrir la app. Se cancela con la pantalla.
+     */
+    suspend fun sondear(intervaloMs: Long = INTERVALO_SONDEO_MS) {
+        while (true) {
+            actualizarEnVivo()
+            delay(intervaloMs)
+        }
+    }
+
+    /**
+     * Refresca solo lo que cambia con el tiempo. Un fallo de red no borra lo que ya se ve:
+     * se reintenta en el siguiente ciclo.
+     */
+    suspend fun actualizarEnVivo() {
+        if (uiState.cargando) return
+        val alerta = home.alerta()
+        val usuario = home.usuario()
+        val planta = garden.plantaActiva()
+
+        var nuevo = uiState
+        nuevo = when (alerta) {
+            is AlertaResultado.Con -> nuevo.copy(alerta = alerta.alerta)
+            AlertaResultado.Sin -> nuevo.copy(alerta = null)
+            AlertaResultado.Fallo -> nuevo
+        }
+        if (usuario != null) nuevo = nuevo.copy(usuario = usuario)
+        if (planta is PlantaActivaResultado.ConPlanta) {
+            nuevo = nuevo.copy(planta = fusionar(nuevo.planta, planta.planta))
+        }
+        uiState = nuevo
+    }
+
+    /**
+     * Misma planta: solo se copia lo que cambia (salud, agua, luz y refugio) y se conserva su imagen,
+     * que el Home resolvio con otra ruta. Otra planta: se reemplaza completa.
+     */
+    private fun fusionar(actual: PlantSummary?, remota: PlantSummary): PlantSummary =
+        if (actual != null && actual.id == remota.id) {
+            actual.copy(
+                healthPercent = remota.healthPercent,
+                humidityPercent = remota.humidityPercent,
+                lightPercent = remota.lightPercent,
+                lastWatered = remota.lastWatered,
+                refugiada = remota.refugiada
+            )
+        } else {
+            remota
+        }
 
     private fun cargar() {
         viewModelScope.launch {
@@ -99,7 +158,7 @@ class HomeViewModel(
 
     companion object {
         val Factory = viewModelFactory {
-            initializer { HomeViewModel(AppContainer.home, AppContainer.collection) }
+            initializer { HomeViewModel(AppContainer.home, AppContainer.collection, AppContainer.garden) }
         }
     }
 }

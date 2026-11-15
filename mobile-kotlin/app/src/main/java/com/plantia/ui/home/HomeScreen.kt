@@ -45,6 +45,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.ui.home.components.DailyMissionCard
 import com.plantia.ui.home.components.PlantSummaryCard
@@ -87,6 +90,12 @@ fun HomeScreen(
 
     // El total de la coleccion cambia al escanear o guardar: se actualiza cada vez que se vuelve al inicio.
     LaunchedEffect(Unit) { homeViewModel.refrescarColeccion() }
+
+    // Alerta, perfil y planta se refrescan solos mientras el Home esta a la vista (se pausa en segundo plano).
+    val ciclo = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(ciclo) {
+        ciclo.repeatOnLifecycle(Lifecycle.State.STARTED) { homeViewModel.sondear() }
+    }
     val accesosRapidos = state.accesos
 
     Scaffold(

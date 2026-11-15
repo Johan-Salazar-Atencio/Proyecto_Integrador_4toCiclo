@@ -83,7 +83,8 @@ fun PlantSummaryDto.toDomain(): PlantSummary = PlantSummary(
     lastWatered = lastWatered,
     imageUrl = imageUrl,
     id = id,
-    activa = activa
+    activa = activa,
+    refugiada = refugiada
 )
 
 fun DailyMissionDto.toDomain(): DailyMission = DailyMission(
