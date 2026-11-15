@@ -1,5 +1,6 @@
 package com.plantia.models;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -52,6 +53,17 @@ public class Usuario {
     @Column(name = "region")
     private String region;
 
+    /** Llave a regiones; si va vacia, la base la completa desde region (V13). */
+    @Column(name = "id_region")
+    private Integer idRegion;
+
+    /** Ultimo dia con actividad; base de la racha diaria. */
+    @Column(name = "ultima_actividad")
+    private LocalDate ultimaActividad;
+
+    @Column(name = "foto_url")
+    private String fotoUrl;
+
     @Column(name = "fecha_registro")
     private LocalDateTime fechaRegistro;
 
@@ -82,6 +94,12 @@ public class Usuario {
     public void setRachaDias(Integer rachaDias) { this.rachaDias = rachaDias; }
     public String getRegion() { return region; }
     public void setRegion(String region) { this.region = region; }
+    public Integer getIdRegion() { return idRegion; }
+    public void setIdRegion(Integer idRegion) { this.idRegion = idRegion; }
+    public LocalDate getUltimaActividad() { return ultimaActividad; }
+    public void setUltimaActividad(LocalDate ultimaActividad) { this.ultimaActividad = ultimaActividad; }
+    public String getFotoUrl() { return fotoUrl; }
+    public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }
     public LocalDateTime getFechaRegistro() { return fechaRegistro; }
     public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

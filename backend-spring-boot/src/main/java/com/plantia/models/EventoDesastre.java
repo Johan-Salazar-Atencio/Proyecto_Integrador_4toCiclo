@@ -27,6 +27,17 @@ public class EventoDesastre {
     @Column(name = "region")
     private String region;
 
+    /** Llaves a tipos_desastre y regiones; si van vacias, la base las completa desde el texto (V13). */
+    @Column(name = "id_tipo_desastre")
+    private Integer idTipoDesastre;
+
+    @Column(name = "id_region")
+    private Integer idRegion;
+
+    /** true cuando el scheduler ya registro el resultado en las plantas. */
+    @Column(name = "procesado", nullable = false)
+    private Boolean procesado = false;
+
     @Column(name = "mensaje_notificacion", nullable = false)
     private String mensajeNotificacion;
 
@@ -53,6 +64,12 @@ public class EventoDesastre {
     public void setTipoEvento(String tipoEvento) { this.tipoEvento = tipoEvento; }
     public String getRegion() { return region; }
     public void setRegion(String region) { this.region = region; }
+    public Integer getIdTipoDesastre() { return idTipoDesastre; }
+    public void setIdTipoDesastre(Integer idTipoDesastre) { this.idTipoDesastre = idTipoDesastre; }
+    public Integer getIdRegion() { return idRegion; }
+    public void setIdRegion(Integer idRegion) { this.idRegion = idRegion; }
+    public Boolean getProcesado() { return procesado; }
+    public void setProcesado(Boolean procesado) { this.procesado = procesado; }
     public String getMensajeNotificacion() { return mensajeNotificacion; }
     public void setMensajeNotificacion(String mensajeNotificacion) { this.mensajeNotificacion = mensajeNotificacion; }
     public LocalDateTime getFechaInicio() { return fechaInicio; }

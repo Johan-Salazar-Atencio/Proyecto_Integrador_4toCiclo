@@ -45,6 +45,10 @@ public class PlantaUsuario {
     @Column(name = "esta_refugiada")
     private Boolean estaRefugiada;
 
+    /** Momento en que se refugio; null si no esta refugiada. */
+    @Column(name = "refugiada_desde")
+    private LocalDateTime refugiadaDesde;
+
     @Column(name = "ultimo_riego")
     private LocalDateTime ultimoRiego;
 
@@ -95,6 +99,8 @@ public class PlantaUsuario {
     public void setModoTiempo(String modoTiempo) { this.modoTiempo = modoTiempo; }
     public Boolean getEstaRefugiada() { return estaRefugiada; }
     public void setEstaRefugiada(Boolean estaRefugiada) { this.estaRefugiada = estaRefugiada; }
+    public LocalDateTime getRefugiadaDesde() { return refugiadaDesde; }
+    public void setRefugiadaDesde(LocalDateTime refugiadaDesde) { this.refugiadaDesde = refugiadaDesde; }
     public LocalDateTime getUltimoRiego() { return ultimoRiego; }
     public void setUltimoRiego(LocalDateTime ultimoRiego) { this.ultimoRiego = ultimoRiego; }
     public LocalDateTime getUltimoSol() { return ultimoSol; }
