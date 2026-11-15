@@ -30,17 +30,20 @@ public class PlantasService {
     private final PlantaCatalogoRepository catalogoRepo;
     private final EscaneoHistorialRepository escaneoRepo;
     private final ProgresoService progresoService;
+    private final EventoService eventoService;
     private final ObjectMapper json;
 
     public PlantasService(PlantaUsuarioRepository plantaRepo,
                           PlantaCatalogoRepository catalogoRepo,
                           EscaneoHistorialRepository escaneoRepo,
                           ProgresoService progresoService,
+                          EventoService eventoService,
                           ObjectMapper json) {
         this.plantaRepo = plantaRepo;
         this.catalogoRepo = catalogoRepo;
         this.escaneoRepo = escaneoRepo;
         this.progresoService = progresoService;
+        this.eventoService = eventoService;
         this.json = json;
     }
 
@@ -192,6 +195,29 @@ public class PlantasService {
         return util ? dto.conProgreso(progresoService.otorgar(userId, "CUIDAR", p.getIdPlantaUsuario())) : dto;
     }
 
+    /**
+     * Pone la planta a resguardo del desastre en curso. Solo se puede con un desastre activo para la
+     * region del usuario, y repetirlo es inofensivo. El resultado (SALVADA o DANADA) y la recompensa
+     * llegan cuando el evento termina (ResultadoDesastreService), por eso aqui no se da XP.
+     */
+    @Transactional
+    public PlantSummaryDto refugiar(Integer userId, Integer idPlantaUsuario) {
+        PlantaUsuario p = propia(userId, idPlantaUsuario);
+        if ("MUERTA".equals(p.getEtapaCrecimiento())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La planta ya no se puede refugiar");
+        }
+        if (!Boolean.TRUE.equals(p.getEstaRefugiada())) {
+            if (eventoService.activo(userId).isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "No hay un desastre activo");
+            }
+            // updated_at no se toca: envejecer() lo usa para contar las horas de desgaste
+            p.setEstaRefugiada(true);
+            p.setRefugiadaDesde(LocalDateTime.now());
+            plantaRepo.save(p);
+        }
+        return map(p);
+    }
+
     /** Activa una planta digital (avanza su etapa: SEMILLA -> BROTE -> ADULTA). */
     @Transactional
     public PlantSummaryDto activar(Integer userId, Integer idPlantaUsuario) {
@@ -300,7 +326,8 @@ public class PlantasService {
                 valor(p.getCrecimiento()),
                 deJson(p.getApariencia()),
                 p.getFotoUrl(),
-                Boolean.TRUE.equals(p.getEsActiva()));
+                Boolean.TRUE.equals(p.getEsActiva()),
+                Boolean.TRUE.equals(p.getEstaRefugiada()));
     }
 
     private static String etapaUrl(PlantaCatalogo cat, String etapa) {

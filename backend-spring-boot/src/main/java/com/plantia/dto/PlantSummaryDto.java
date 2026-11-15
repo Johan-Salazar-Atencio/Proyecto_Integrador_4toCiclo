@@ -21,26 +21,29 @@ public record PlantSummaryDto(
         Map<String, Object> apariencia,
         String fotoUrl,
         boolean activa,
+        /** true mientras la planta esta a resguardo de un desastre. */
+        boolean refugiada,
         /** XP y nivel ganados con la accion (digitalizar, cuidar); no se envia en las consultas. */
         @JsonInclude(JsonInclude.Include.NON_NULL) ProgresoDto progreso
 ) {
     /** Sin progreso: consultas del jardin. */
     public PlantSummaryDto(String name, String species, int healthPercent, int humidityPercent,
                            int lightPercent, String lastWatered, String imageUrl, Integer id,
-                           int crecimiento, Map<String, Object> apariencia, String fotoUrl, boolean activa) {
+                           int crecimiento, Map<String, Object> apariencia, String fotoUrl,
+                           boolean activa, boolean refugiada) {
         this(name, species, healthPercent, humidityPercent, lightPercent, lastWatered, imageUrl,
-                id, crecimiento, apariencia, fotoUrl, activa, null);
+                id, crecimiento, apariencia, fotoUrl, activa, refugiada, null);
     }
 
     /** Solo los campos del contrato con el movil. */
     public PlantSummaryDto(String name, String species, int healthPercent, int humidityPercent,
                            int lightPercent, String lastWatered, String imageUrl) {
         this(name, species, healthPercent, humidityPercent, lightPercent, lastWatered, imageUrl,
-                null, 0, null, null, false, null);
+                null, 0, null, null, false, false, null);
     }
 
     public PlantSummaryDto conProgreso(ProgresoDto progreso) {
         return new PlantSummaryDto(name, species, healthPercent, humidityPercent, lightPercent, lastWatered,
-                imageUrl, id, crecimiento, apariencia, fotoUrl, activa, progreso);
+                imageUrl, id, crecimiento, apariencia, fotoUrl, activa, refugiada, progreso);
     }
 }

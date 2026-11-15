@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -17,9 +18,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.plantia.models.EscaneoHistorial;
+import com.plantia.models.EventoDesastre;
 import com.plantia.models.PlantaUsuario;
 import com.plantia.models.Usuario;
 import com.plantia.repositories.EscaneoHistorialRepository;
+import com.plantia.repositories.EventoDesastreRepository;
 import com.plantia.repositories.HistorialProgresoRepository;
 import com.plantia.repositories.NivelRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
@@ -35,6 +38,7 @@ class PlantasServiceTest {
 
     private PlantaUsuarioRepository plantaRepo;
     private EscaneoHistorialRepository escaneoRepo;
+    private EventoDesastreRepository eventoRepo;
     private PlantasService service;
 
     @BeforeEach
@@ -46,7 +50,9 @@ class PlantasServiceTest {
         when(usuarioRepo.findById(any())).thenReturn(Optional.of(new Usuario()));
         ProgresoService progreso = new ProgresoService(usuarioRepo, mock(NivelRepository.class),
                 mock(ReglaProgresoRepository.class), mock(HistorialProgresoRepository.class));
-        service = new PlantasService(plantaRepo, mock(PlantaCatalogoRepository.class), escaneoRepo, progreso, new ObjectMapper());
+        eventoRepo = mock(EventoDesastreRepository.class);
+        EventoService eventos = new EventoService(eventoRepo, usuarioRepo);
+        service = new PlantasService(plantaRepo, mock(PlantaCatalogoRepository.class), escaneoRepo, progreso, eventos, new ObjectMapper());
 
         PlantaUsuario planta = new PlantaUsuario();
         planta.setIdUsuario(DUENO);
@@ -122,5 +128,75 @@ class PlantasServiceTest {
         assertThat(dto.crecimiento()).isEqualTo(3);
         assertThat(PlantasService.etapaSegun(3)).isEqualTo("BROTE");
         assertThat(PlantasService.etapaSegun(9)).isEqualTo("ADULTA");
+    }
+
+    // --- Refugio ---
+
+    private void hayDesastreActivo() {
+        when(eventoRepo.activosParaRegion("GLOBAL")).thenReturn(List.of(new EventoDesastre()));
+    }
+
+    @Test
+    void refugiarConUnDesastreActivoMarcaLaPlantaYNoDaXp() {
+        hayDesastreActivo();
+
+        var dto = service.refugiar(DUENO, 10);
+
+        assertThat(dto.refugiada()).isTrue();
+        assertThat(dto.progreso()).isNull();
+        verify(plantaRepo).save(any());
+    }
+
+    @Test
+    void sinDesastreActivoDa409YNoGuarda() {
+        assertThatThrownBy(() -> service.refugiar(DUENO, 10))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+        verify(plantaRepo, never()).save(any());
+    }
+
+    @Test
+    void refugiarUnaPlantaYaRefugiadaEsInofensivoAunSinDesastre() {
+        hayDesastreActivo();
+        service.refugiar(DUENO, 10);
+        when(eventoRepo.activosParaRegion("GLOBAL")).thenReturn(List.of());
+
+        var dto = service.refugiar(DUENO, 10);
+
+        assertThat(dto.refugiada()).isTrue();
+        verify(plantaRepo, org.mockito.Mockito.times(1)).save(any());
+    }
+
+    @Test
+    void refugiarPlantaAjenaDa404() {
+        hayDesastreActivo();
+
+        assertThatThrownBy(() -> service.refugiar(OTRO, 10))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
+        verify(plantaRepo, never()).save(any());
+    }
+
+    @Test
+    void unaPlantaMuertaNoSePuedeRefugiar() {
+        hayDesastreActivo();
+        plantaRepo.findById(10).get().setEtapaCrecimiento("MUERTA");
+
+        assertThatThrownBy(() -> service.refugiar(DUENO, 10))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    @Test
+    void refugiarNoReiniciaElRelojDeDesgaste() {
+        hayDesastreActivo();
+        var planta = plantaRepo.findById(10).get();
+        var antes = java.time.LocalDateTime.now().minusHours(3);
+        planta.setUpdatedAt(antes);
+
+        service.refugiar(DUENO, 10);
+
+        assertThat(planta.getUpdatedAt()).isEqualTo(antes);
+        assertThat(planta.getRefugiadaDesde()).isNotNull();
     }
 }

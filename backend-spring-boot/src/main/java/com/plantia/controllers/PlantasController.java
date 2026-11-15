@@ -78,6 +78,14 @@ public class PlantasController {
         return ResponseEntity.ok(actualizado);
     }
 
+    /** Refugia la planta del desastre activo (409 si no hay desastre o la planta ya murio). */
+    @PostMapping("/{id}/refugio")
+    public ResponseEntity<PlantSummaryDto> refugiar(
+            @RequestHeader("X-User-Id") Integer userId,
+            @PathVariable("id") Integer idPlantaUsuario) {
+        return ResponseEntity.ok(plantasService.refugiar(userId, idPlantaUsuario));
+    }
+
     /** Activa una planta digital (cambia su etapa). */
     @PostMapping("/{id}/activar")
     public ResponseEntity<PlantSummaryDto> activar(
