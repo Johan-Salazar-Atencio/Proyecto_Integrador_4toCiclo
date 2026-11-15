@@ -17,7 +17,8 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val RUTA_SALUD = "/api/v1/usuarios/me"
+    // Publica a proposito: /api/v1/* exige sesion y, antes de iniciar sesion, daria 401 en todos los hosts
+    private const val RUTA_SALUD = "/api/health"
 
     /** URL base que se esta usando ahora mismo. */
     private val _baseUrl = MutableStateFlow<String?>(null)
