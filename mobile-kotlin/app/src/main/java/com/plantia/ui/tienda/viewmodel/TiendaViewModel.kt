@@ -52,11 +52,10 @@ class TiendaViewModel(
         aviso = null
     }
 
-    fun comprar(item: TiendaItem) = accion { aplicar(tienda.comprar(item.id), "Compraste «${item.nombre}»") }
-
-    fun equipar(item: TiendaItem) = accion { aplicar(tienda.equipar(item.id), "Ahora usas «${item.nombre}»") }
-
-    fun desequipar(item: TiendaItem) = accion { aplicar(tienda.desequipar(item.id), "Volviste al fondo de siempre") }
+    /** Compra un fondo; se pone a cada planta desde el icono de fondos del jardin. */
+    fun comprar(item: TiendaItem) = accion {
+        aplicar(tienda.comprar(item.id), "Compraste «${item.nombre}». Ponlo desde el icono de fondos de tu jardín")
+    }
 
     /** Compra un abono y lo usa en la planta del jardin. */
     fun usarAbono() = accion {

@@ -16,9 +16,24 @@ data class TiendaItemDto(
     val precio: Int = 0,
     val nivelRequerido: Int = 1,
     val previewUrl: String? = null,
-    /** Solo fondos: DIA, TARDE o NOCHE. */
-    val momento: String? = null,
+    /** Solo fondos: la escena de cada momento del dia del tema. */
+    val variantes: List<VarianteDto> = emptyList(),
     val comprado: Boolean = false,
-    val equipado: Boolean = false,
     val bloqueado: Boolean = false
+)
+
+/** Escena de un momento del dia (DIA, TARDE o NOCHE) con su vista previa. */
+data class VarianteDto(
+    val momento: String = "",
+    val vistaUrl: String = ""
+)
+
+/** GET /api/v1/plantas/{id}/fondos: un tema de fondo que se le puede poner a la planta. */
+data class TemaFondoDto(
+    val id: Int = 0,
+    val nombre: String = "",
+    val descripcion: String = "",
+    val predeterminado: Boolean = false,
+    val enUso: Boolean = false,
+    val variantes: List<VarianteDto> = emptyList()
 )

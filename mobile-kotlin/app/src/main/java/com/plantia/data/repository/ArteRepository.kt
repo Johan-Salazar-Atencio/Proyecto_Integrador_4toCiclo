@@ -23,12 +23,14 @@ class RemoteArteRepository(
     private val baseUrl: () -> String = { (RetrofitClient.baseUrl.value ?: BuildConfig.API_BASE_URL).trimEnd('/') }
 ) : ArteRepository {
 
-    // El arte casi no cambia: se lee una vez por servidor y se reutiliza (las URLs dependen del host)
-    private var cache: Pair<String, Arte>? = null
+    // Se reutiliza unos segundos por servidor (las URLs dependen del host). Los fondos dependen de la planta del
+    // jardin y de su tema, asi que no se guarda para siempre.
+    private var cache: Triple<String, Long, Arte>? = null
 
     override suspend fun cargar(): Arte? = withContext(Dispatchers.IO) {
         val base = baseUrl()
-        cache?.takeIf { it.first == base }?.let { return@withContext it.second }
+        val ahora = System.currentTimeMillis()
+        cache?.takeIf { it.first == base && ahora - it.second < VIGENCIA_MS }?.let { return@withContext it.third }
         val servicio = api()
         val fondos = runCatching { servicio.fondos() }.getOrNull()?.takeIf { it.isSuccessful }?.body()
         val animaciones = runCatching { servicio.animaciones() }.getOrNull()?.takeIf { it.isSuccessful }?.body()
@@ -56,7 +58,7 @@ class RemoteArteRepository(
                 )
             }
         )
-        cache = base to arte
+        cache = Triple(base, ahora, arte)
         arte
     }
 
@@ -70,5 +72,8 @@ class RemoteArteRepository(
     private companion object {
         /** Nunca menos de 50 ms por cuadro: un valor raro del servidor no debe saturar la pantalla. */
         const val MS_MINIMO = 50
+
+        /** Tiempo que se reutiliza el arte antes de pedirlo de nuevo. */
+        const val VIGENCIA_MS = 15_000L
     }
 }

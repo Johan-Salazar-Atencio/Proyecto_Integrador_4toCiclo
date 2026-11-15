@@ -3,6 +3,7 @@ package com.plantia.ui.tienda
 import com.plantia.data.model.Tienda
 import com.plantia.data.model.TiendaItem
 import com.plantia.data.repository.AbonoResultado
+import com.plantia.data.repository.FondosResultado
 import com.plantia.data.repository.PlantaActivaResultado
 import com.plantia.data.repository.TiendaRepository
 import com.plantia.data.repository.TiendaResultado
@@ -17,29 +18,33 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-private fun item(id: Int, tipo: String, precio: Int, comprado: Boolean = false, equipado: Boolean = false) = TiendaItem(
+private fun item(id: Int, tipo: String, precio: Int, comprado: Boolean = false) = TiendaItem(
     id = id, nombre = "Item $id", tipo = tipo, descripcion = "", precio = precio, nivelRequerido = 1,
-    previewUrl = null, momento = if (tipo == TiendaItem.FONDO) "DIA" else null,
-    comprado = comprado, equipado = equipado, bloqueado = false
+    previewUrl = null, variantes = emptyList(), comprado = comprado, bloqueado = false
 )
 
-private class FakeTiendaRepository : TiendaRepository {
+internal class FakeTiendaRepository : TiendaRepository {
     var tienda = Tienda(300, 2, listOf(item(1, TiendaItem.ABONO, 30), item(2, TiendaItem.FONDO, 100)))
     var respuesta: TiendaResultado = TiendaResultado.Con(tienda)
     var abono: AbonoResultado = AbonoResultado.Con(planta())
     val compras = mutableListOf<Int>()
     val usosDeAbono = mutableListOf<Int>()
+    var fondos: FondosResultado = FondosResultado.Con(emptyList())
+    val fondosPuestos = mutableListOf<Pair<Int, Int?>>()
 
     override suspend fun cargar() = respuesta
     override suspend fun comprar(idItem: Int): TiendaResultado {
         compras += idItem
         return respuesta
     }
-    override suspend fun equipar(idItem: Int) = respuesta
-    override suspend fun desequipar(idItem: Int) = respuesta
     override suspend fun usarAbono(idPlanta: Int): AbonoResultado {
         usosDeAbono += idPlanta
         return abono
+    }
+    override suspend fun fondosDePlanta(idPlanta: Int) = fondos
+    override suspend fun ponerFondo(idPlanta: Int, idTema: Int?): FondosResultado {
+        fondosPuestos += idPlanta to idTema
+        return fondos
     }
 }
 
@@ -75,7 +80,7 @@ class TiendaViewModelTest {
 
         assertEquals(listOf(2), repo.compras)
         assertEquals(200, (vm.uiState as TiendaUiState.Listo).tienda.monedas)
-        assertEquals("Compraste «Item 2»", vm.aviso)
+        assertTrue(vm.aviso!!.startsWith("Compraste «Item 2»"))
     }
 
     @Test

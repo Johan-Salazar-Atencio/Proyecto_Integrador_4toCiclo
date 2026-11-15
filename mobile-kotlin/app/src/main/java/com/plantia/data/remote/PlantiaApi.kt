@@ -13,6 +13,7 @@ import com.plantia.data.remote.dto.DailyMissionDto
 import com.plantia.data.remote.dto.FondoDto
 import com.plantia.data.remote.dto.RegionDto
 import com.plantia.data.remote.dto.PlantSummaryDto
+import com.plantia.data.remote.dto.TemaFondoDto
 import com.plantia.data.remote.dto.TiendaDto
 import com.plantia.data.remote.dto.QuickAccessDto
 import com.plantia.data.remote.dto.RecentScanDto
@@ -99,13 +100,13 @@ interface PlantiaApi {
     @POST("api/v1/tienda/{id}/comprar")
     suspend fun comprarItem(@Path("id") idItem: Int): Response<TiendaDto>
 
-    /** Pone el fondo comprado; quita el que habia en el mismo momento del dia. */
-    @POST("api/v1/tienda/{id}/equipar")
-    suspend fun equiparItem(@Path("id") idItem: Int): Response<TiendaDto>
+    /** Temas de fondo que se le pueden poner a la planta (el predeterminado y los comprados). */
+    @GET("api/v1/plantas/{id}/fondos")
+    suspend fun fondosPlanta(@Path("id") idPlanta: Int): Response<List<TemaFondoDto>>
 
-    /** Vuelve al fondo predeterminado de ese momento. */
-    @POST("api/v1/tienda/{id}/desequipar")
-    suspend fun desequiparItem(@Path("id") idItem: Int): Response<TiendaDto>
+    /** Pone un tema de fondo a la planta. Body: { "idTema": n }; sin idTema vuelve al de siempre. */
+    @PUT("api/v1/plantas/{id}/fondo")
+    suspend fun ponerFondo(@Path("id") idPlanta: Int, @Body body: Map<String, Int>): Response<List<TemaFondoDto>>
 
     /** Compra y usa un abono: +1 dia de crecimiento de la planta (maximo uno al dia). */
     @POST("api/v1/plantas/{id}/abono-tienda")

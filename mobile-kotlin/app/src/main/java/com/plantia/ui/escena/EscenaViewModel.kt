@@ -48,8 +48,14 @@ class EscenaViewModel(
         }
     }
 
+    /** Vuelve a leer el arte ya (por ejemplo, despues de poner otro fondo a la planta). */
+    fun recargar() {
+        viewModelScope.launch { actualizar() }
+    }
+
     suspend fun actualizar() {
-        if (arte == null) arte = arteRepo.cargar()
+        // El arte depende de la planta del jardin y de su tema de fondo: se vuelve a pedir (el repositorio lo guarda unos segundos)
+        arte = arteRepo.cargar() ?: arte
         // Si la consulta de la alerta falla se conserva el desastre que ya se veia
         when (val alerta = home.alerta()) {
             is AlertaResultado.Con -> {

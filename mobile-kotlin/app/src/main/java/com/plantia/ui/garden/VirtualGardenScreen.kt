@@ -58,6 +58,7 @@ import com.plantia.ui.garden.components.AnimatedStatBar
 import com.plantia.ui.garden.components.CareActionButton
 import com.plantia.ui.escena.Escena
 import com.plantia.ui.escena.EscenaViewModel
+import com.plantia.ui.garden.components.FondosPlantaSheet
 import com.plantia.ui.garden.components.PlantFrame
 import com.plantia.ui.garden.viewmodel.GardenUiState
 import com.plantia.ui.garden.viewmodel.GardenViewModel
@@ -126,6 +127,32 @@ fun VirtualGardenScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            val temas = viewModel.fondos
+            val plantaActual = (viewModel.uiState as? GardenUiState.Success)?.planta
+            if (temas != null && plantaActual != null) {
+                FondosPlantaSheet(
+                    nombrePlanta = plantaActual.name,
+                    temas = temas,
+                    cargando = viewModel.cargandoFondos,
+                    onElegir = { tema ->
+                        viewModel.elegirFondo(
+                            tema,
+                            alTerminar = { mensaje ->
+                                scope.launch {
+                                    snackbar.currentSnackbarData?.dismiss()
+                                    snackbar.showSnackbar(mensaje)
+                                }
+                            },
+                            alCambiar = escenaViewModel::recargar
+                        )
+                    },
+                    onTienda = {
+                        viewModel.cerrarFondos()
+                        onTienda()
+                    },
+                    onCerrar = viewModel::cerrarFondos
+                )
+            }
             when (val estado = viewModel.uiState) {
                 GardenUiState.Loading -> CircularProgressIndicator(
                     color = GreenPrimary,
@@ -150,6 +177,14 @@ fun VirtualGardenScreen(
                     planta = estado.planta,
                     abono = viewModel.abono,
                     onTienda = onTienda,
+                    onFondos = {
+                        viewModel.abrirFondos { mensaje ->
+                            scope.launch {
+                                snackbar.currentSnackbarData?.dismiss()
+                                snackbar.showSnackbar(mensaje)
+                            }
+                        }
+                    },
                     onAbono = {
                         viewModel.usarAbono { mensaje ->
                             scope.launch {
@@ -180,6 +215,7 @@ internal fun JardinContenido(
     abono: TiendaItem? = null,
     onAbono: () -> Unit = {},
     onTienda: () -> Unit = {},
+    onFondos: (() -> Unit)? = null,
     onCuidar: (AccionCuidado) -> Unit
 ) {
     val config = LocalConfiguration.current
@@ -205,6 +241,7 @@ internal fun JardinContenido(
                     diasCuidados = planta.diasCuidados,
                     diasTotales = planta.diasTotales,
                     marchita = planta.healthPercent < 30,
+                    onFondos = onFondos,
                     modifier = Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true)
                 )
             }
@@ -241,6 +278,7 @@ internal fun JardinContenido(
                 diasCuidados = planta.diasCuidados,
                 diasTotales = planta.diasTotales,
                 marchita = planta.healthPercent < 30,
+                onFondos = onFondos,
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f)
             )
             TarjetaVital(planta)

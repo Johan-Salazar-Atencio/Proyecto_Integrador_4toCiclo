@@ -9,8 +9,10 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.PlantSummary
+import com.plantia.data.model.TemaFondo
 import com.plantia.data.model.TiendaItem
 import com.plantia.data.repository.AbonoResultado
+import com.plantia.data.repository.FondosResultado
 import com.plantia.data.repository.TiendaRepository
 import com.plantia.data.repository.TiendaResultado
 import com.plantia.data.repository.GardenRepository
@@ -39,6 +41,13 @@ class GardenViewModel(
     var uiState: GardenUiState by mutableStateOf(GardenUiState.Loading)
         private set
 
+    /** Temas de fondo que se le pueden poner a la planta del jardin; null mientras el panel esta cerrado. */
+    var fondos: List<TemaFondo>? by mutableStateOf(null)
+        private set
+
+    var cargandoFondos: Boolean by mutableStateOf(false)
+        private set
+
     private var cuidando = false
 
     init {
@@ -50,6 +59,46 @@ class GardenViewModel(
         val repo = tienda ?: return
         viewModelScope.launch {
             abono = (repo.cargar() as? TiendaResultado.Con)?.tienda?.abono
+        }
+    }
+
+    /** Abre el panel de fondos de la planta: el de siempre y los que compro el usuario. */
+    fun abrirFondos(alTerminar: (String) -> Unit) {
+        val repo = tienda ?: return
+        val id = (uiState as? GardenUiState.Success)?.planta?.id ?: return
+        fondos = emptyList()
+        cargandoFondos = true
+        viewModelScope.launch {
+            when (val r = repo.fondosDePlanta(id)) {
+                is FondosResultado.Con -> fondos = r.temas
+                is FondosResultado.Fallo -> {
+                    fondos = null
+                    alTerminar(r.mensaje)
+                }
+            }
+            cargandoFondos = false
+        }
+    }
+
+    fun cerrarFondos() {
+        fondos = null
+    }
+
+    /** Pone un tema a esta planta (las demas no cambian); `alCambiar` avisa para volver a armar la escena. */
+    fun elegirFondo(tema: TemaFondo, alTerminar: (String) -> Unit, alCambiar: () -> Unit) {
+        val repo = tienda ?: return
+        val planta = (uiState as? GardenUiState.Success)?.planta ?: return
+        val id = planta.id ?: return
+        if (tema.enUso) return
+        viewModelScope.launch {
+            when (val r = repo.ponerFondo(id, if (tema.predeterminado) null else tema.id)) {
+                is FondosResultado.Con -> {
+                    fondos = r.temas
+                    alTerminar("${planta.name} ahora usa «${tema.nombre}»")
+                    alCambiar()
+                }
+                is FondosResultado.Fallo -> alTerminar(r.mensaje)
+            }
         }
     }
 

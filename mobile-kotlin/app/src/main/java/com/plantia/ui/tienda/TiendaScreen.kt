@@ -66,13 +66,6 @@ import com.plantia.ui.tienda.viewmodel.TiendaUiState
 import com.plantia.ui.tienda.viewmodel.TiendaViewModel
 import com.plantia.util.IconosOscurosEnBarraDeEstado
 
-private fun nombreMomento(momento: String?): String? = when (momento) {
-    "DIA" -> "☀️ Día"
-    "TARDE" -> "🌇 Tarde"
-    "NOCHE" -> "🌙 Noche"
-    else -> null
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TiendaScreen(
@@ -123,8 +116,6 @@ fun TiendaScreen(
                     onPestana = { pestana = it },
                     ocupado = viewModel.ocupado,
                     onComprar = viewModel::comprar,
-                    onEquipar = viewModel::equipar,
-                    onDesequipar = viewModel::desequipar,
                     onAbono = viewModel::usarAbono
                 )
             }
@@ -140,8 +131,6 @@ private fun Contenido(
     onPestana: (String) -> Unit,
     ocupado: Boolean,
     onComprar: (TiendaItem) -> Unit,
-    onEquipar: (TiendaItem) -> Unit,
-    onDesequipar: (TiendaItem) -> Unit,
     onAbono: () -> Unit
 ) {
     LazyColumn(
@@ -176,7 +165,7 @@ private fun Contenido(
                 item { Text("Aún no hay fondos a la venta.", color = TextSecondary, fontSize = 14.sp) }
             }
             items(tienda.fondos, key = { it.id }) { fondo ->
-                TarjetaFondo(fondo, tienda.monedas, ocupado, onComprar, onEquipar, onDesequipar)
+                TarjetaFondo(fondo, tienda.monedas, ocupado, onComprar)
             }
         } else {
             val abono = tienda.abono
@@ -195,43 +184,27 @@ private fun TarjetaFondo(
     fondo: TiendaItem,
     monedas: Int,
     ocupado: Boolean,
-    onComprar: (TiendaItem) -> Unit,
-    onEquipar: (TiendaItem) -> Unit,
-    onDesequipar: (TiendaItem) -> Unit
+    onComprar: (TiendaItem) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite)
     ) {
-        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            AsyncImage(
-                model = fondo.previewUrl,
-                contentDescription = "Vista previa de ${fondo.nombre}",
-                contentScale = ContentScale.Crop,
-                filterQuality = FilterQuality.None,
-                modifier = Modifier.size(104.dp).clip(RoundedCornerShape(14.dp)).background(GreenLight)
-            )
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(fondo.nombre, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    nombreMomento(fondo.momento)?.let { Etiqueta(it, GreenLight, TextPrimary) }
-                    if (fondo.equipado) Etiqueta("✓ En uso", GreenPrimary, SurfaceWhite)
-                }
-                Text(fondo.descripcion, fontSize = 12.sp, lineHeight = 16.sp, color = TextSecondary, fontStyle = FontStyle.Normal)
-                Spacer(Modifier.height(4.dp))
-                when {
-                    fondo.comprado && fondo.equipado ->
-                        OutlinedButton(onClick = { onDesequipar(fondo) }, enabled = !ocupado, modifier = Modifier.fillMaxWidth()) { Text("Quitar fondo") }
-                    fondo.comprado ->
-                        Button(onClick = { onEquipar(fondo) }, enabled = !ocupado, modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)) { Text("Equipar") }
-                    fondo.bloqueado ->
-                        OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) { Text("🔒 Nivel ${fondo.nivelRequerido}") }
-                    else ->
-                        Button(onClick = { onComprar(fondo) }, enabled = !ocupado && monedas >= fondo.precio, modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)) { Text("Comprar · ${fondo.precio} 🍃") }
-                }
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            EscenasDelTema(fondo.variantes)
+            Text(fondo.nombre, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text(fondo.descripcion, fontSize = 12.sp, lineHeight = 16.sp, color = TextSecondary)
+            when {
+                fondo.comprado ->
+                    OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
+                        Text("✓ Lo tienes · elígelo en el icono de fondos del jardín")
+                    }
+                fondo.bloqueado ->
+                    OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) { Text("🔒 Nivel ${fondo.nivelRequerido}") }
+                else ->
+                    Button(onClick = { onComprar(fondo) }, enabled = !ocupado && monedas >= fondo.precio, modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)) { Text("Comprar · ${fondo.precio} 🍃") }
             }
         }
     }
@@ -261,15 +234,4 @@ private fun TarjetaAbono(abono: TiendaItem, monedas: Int, ocupado: Boolean, onAb
             Text("Se aplica a la planta de tu jardín. Máximo un abono al día por planta.", fontSize = 12.sp, color = TextSecondary)
         }
     }
-}
-
-@Composable
-private fun Etiqueta(texto: String, fondo: androidx.compose.ui.graphics.Color, color: androidx.compose.ui.graphics.Color) {
-    Text(
-        text = texto,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
-        color = color,
-        modifier = Modifier.clip(CircleShape).background(fondo).padding(horizontal = 8.dp, vertical = 2.dp)
-    )
 }

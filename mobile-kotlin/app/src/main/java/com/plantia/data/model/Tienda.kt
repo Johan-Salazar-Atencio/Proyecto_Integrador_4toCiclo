@@ -18,10 +18,9 @@ data class TiendaItem(
     val precio: Int,
     val nivelRequerido: Int,
     val previewUrl: String?,
-    /** DIA, TARDE o NOCHE: el fondo del jardin al que reemplaza. */
-    val momento: String?,
+    /** Solo fondos: la escena de dia, tarde y noche del tema. */
+    val variantes: List<VarianteFondo>,
     val comprado: Boolean,
-    val equipado: Boolean,
     val bloqueado: Boolean
 ) {
     companion object {
@@ -29,3 +28,16 @@ data class TiendaItem(
         const val ABONO = "ABONO"
     }
 }
+
+/** Escena de un momento del dia (DIA, TARDE o NOCHE) con su vista previa (URL absoluta). */
+data class VarianteFondo(val momento: String, val vistaUrl: String)
+
+/** Tema de fondo que se le puede poner a una planta: el de siempre o uno que compro el usuario. */
+data class TemaFondo(
+    val id: Int,
+    val nombre: String,
+    val descripcion: String,
+    val predeterminado: Boolean,
+    val enUso: Boolean,
+    val variantes: List<VarianteFondo>
+)

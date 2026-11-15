@@ -1,6 +1,7 @@
 package com.plantia.ui.garden.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Arrangement
@@ -10,7 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -66,7 +70,9 @@ fun PlantFrame(
     apariencia: Apariencia? = null,
     diasCuidados: Int = 0,
     diasTotales: Int = 0,
-    marchita: Boolean = false
+    marchita: Boolean = false,
+    /** Si se da, aparece arriba a la derecha el icono que abre los fondos de esta planta. */
+    onFondos: (() -> Unit)? = null
 ) {
     val sprites = rememberSprites()
     Box(
@@ -122,6 +128,20 @@ fun PlantFrame(
             marchita = marchita,
             modifier = Modifier.align(Alignment.TopStart).padding(10.dp)
         )
+        if (onFondos != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(10.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(SurfaceWhite.copy(alpha = 0.92f))
+                    .clickable(onClickLabel = "Fondos de $nombre", onClick = onFondos),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Image, contentDescription = "Fondos de $nombre", tint = TextPrimary, modifier = Modifier.size(22.dp))
+            }
+        }
     }
 }
 
