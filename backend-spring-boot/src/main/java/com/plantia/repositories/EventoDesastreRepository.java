@@ -1,5 +1,6 @@
 package com.plantia.repositories;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,4 +20,8 @@ public interface EventoDesastreRepository extends JpaRepository<EventoDesastre, 
             ORDER BY e.fechaInicio DESC
             """)
     List<EventoDesastre> activosParaRegion(@Param("region") String region);
+
+    List<EventoDesastre> findByEstadoAndFechaInicioLessThanEqual(String estado, LocalDateTime limite);
+
+    List<EventoDesastre> findByEstadoAndFechaFinLessThanEqual(String estado, LocalDateTime limite);
 }
