@@ -8,4 +8,6 @@ urlpatterns = [
     path("eventos/", admin_views.AdminEventoCreateView.as_view(), name="admin-evento-create"),
     path("eventos/<int:pk>/", admin_views.AdminEventoFinalizarView.as_view(), name="admin-evento-finalize"),
     path("stats/", admin_views.AdminStatsView.as_view(), name="admin-stats"),
+    path("misiones/", admin_views.AdminMisionListCreateView.as_view(), name="admin-mision-list"),
+    path("misiones/<int:pk>/", admin_views.AdminMisionDetailView.as_view(), name="admin-mision-detail"),
 ]

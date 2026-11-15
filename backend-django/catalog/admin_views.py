@@ -18,7 +18,7 @@ from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import EventoDesastre, PlantaCatalogo, Region, TipoDesastre, Usuario
+from .models import EventoDesastre, Mision, PlantaCatalogo, Region, TipoDesastre, Usuario
 
 # Hash BCrypt valido para comparar cuando el correo no existe: asi el tiempo de
 # respuesta no revela si esta registrado (mismo criterio que AuthService de Spring).
@@ -184,3 +184,77 @@ class AdminStatsView(APIView):
             "eventos_total": EventoDesastre.objects.count(),
             "usuarios": Usuario.objects.count(),
         })
+
+
+def _mision_a_dict(m):
+    return {
+        "id_mision": m.id_mision, "titulo": m.titulo, "descripcion": m.descripcion, "tipo": m.tipo,
+        "meta": m.meta, "recompensa_monedas": m.recompensa_monedas, "recompensa_xp": m.recompensa_xp,
+        "activa": m.activa, "predeterminada": m.predeterminada, "orden": m.orden,
+    }
+
+
+def _validar_mision(data, parcial):
+    """Devuelve (valores, error). Con parcial=True solo valida los campos que llegan."""
+    valores = {}
+    if not parcial or "titulo" in data:
+        titulo = str(data.get("titulo") or "").strip()
+        if not titulo or len(titulo) > 100:
+            return None, "El titulo es obligatorio (maximo 100 caracteres)"
+        valores["titulo"] = titulo
+    if not parcial or "tipo" in data:
+        if data.get("tipo") not in Mision.TIPOS:
+            return None, "Tipo de mision no valido: " + ", ".join(Mision.TIPOS)
+        valores["tipo"] = data["tipo"]
+    enteros = (("meta", 1), ("recompensa_monedas", 0), ("recompensa_xp", 0), ("orden", 0))
+    for campo, minimo in enteros:
+        if campo in data or (not parcial and campo == "meta"):
+            valor = data.get(campo)
+            if isinstance(valor, bool) or not isinstance(valor, int) or valor < minimo:
+                return None, f"{campo} debe ser un entero >= {minimo}"
+            valores[campo] = valor
+    if "descripcion" in data:
+        valores["descripcion"] = data["descripcion"] or None
+    if "activa" in data:
+        if not isinstance(data["activa"], bool):
+            return None, "activa debe ser verdadero o falso"
+        valores["activa"] = data["activa"]
+    return valores, None
+
+
+class AdminMisionListCreateView(APIView):
+    """GET /api/admin/misiones/ lista todas (activas e inactivas); POST crea una mision."""
+
+    def get(self, request):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response([_mision_a_dict(m) for m in Mision.objects.order_by("orden", "id_mision")])
+
+    def post(self, request):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        valores, error = _validar_mision(request.data, parcial=False)
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+        mision = Mision.objects.create(**valores)
+        return Response(_mision_a_dict(mision), status=status.HTTP_201_CREATED)
+
+
+class AdminMisionDetailView(APIView):
+    """PATCH /api/admin/misiones/<id>/ edita; para quitarla se envia {"activa": false} (no se borra,
+    asi se conserva el progreso de los usuarios y se puede reactivar)."""
+
+    def patch(self, request, pk):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        mision = Mision.objects.filter(pk=pk).first()
+        if mision is None:
+            return Response({"error": "Mision no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        valores, error = _validar_mision(request.data, parcial=True)
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+        for campo, valor in valores.items():
+            setattr(mision, campo, valor)
+        if valores:
+            mision.save(update_fields=list(valores))
+        return Response(_mision_a_dict(mision))

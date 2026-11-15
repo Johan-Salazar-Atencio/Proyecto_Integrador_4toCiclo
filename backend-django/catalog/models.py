@@ -246,3 +246,30 @@ class Logro(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class Mision(models.Model):
+    """Mision diaria que ve cada usuario. Las predeterminadas vienen de Flyway V16; el admin las
+    edita, las desactiva (activa=False) o crea mas."""
+
+    TIPOS = ["RIEGO", "ESCANEO", "SOL", "ABONO", "COLECCION", "REFUGIO", "DIGITALIZAR"]
+
+    id_mision = models.AutoField(primary_key=True)
+    titulo = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
+    tipo = models.CharField(max_length=30)
+    meta = models.IntegerField()
+    recompensa_monedas = models.IntegerField(default=0)
+    recompensa_xp = models.IntegerField(default=0)
+    activa = models.BooleanField(default=True)
+    predeterminada = models.BooleanField(default=False)
+    orden = models.IntegerField(default=0)
+
+    class Meta:
+        managed = False
+        db_table = "misiones"
+        verbose_name = "Mision"
+        verbose_name_plural = "Misiones"
+
+    def __str__(self):
+        return self.titulo

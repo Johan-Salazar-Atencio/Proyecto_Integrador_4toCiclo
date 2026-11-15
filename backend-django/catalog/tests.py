@@ -146,3 +146,60 @@ class EventoActivoVigenciaTests(SimpleTestCase):
     def test_con_region_agrega_el_filtro(self):
         _, _, qs = self._get("?region=Arequipa")
         qs.filter.assert_called_once()
+
+
+class AdminMisionesTests(SimpleTestCase):
+    """CRUD de misiones del admin: validacion, permisos y desactivar en lugar de borrar."""
+
+    DATOS = {"titulo": "Cuidador", "tipo": "RIEGO", "meta": 3, "recompensa_xp": 15}
+
+    def _llamar(self, vista, metodo, datos=None, admin=True, **kwargs):
+        fabrica = getattr(APIRequestFactory(), metodo)
+        request = fabrica("/api/admin/misiones/", datos, format="json")
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario() if admin else None):
+            return vista.as_view()(request, **kwargs)
+
+    def test_sin_admin_devuelve_401(self):
+        respuesta = self._llamar(admin_views.AdminMisionListCreateView, "post", self.DATOS, admin=False)
+        self.assertEqual(respuesta.status_code, 401)
+
+    def test_crear_valida_tipo(self):
+        datos = dict(self.DATOS, tipo="VOLAR")
+        respuesta = self._llamar(admin_views.AdminMisionListCreateView, "post", datos)
+        self.assertEqual(respuesta.status_code, 400)
+
+    def test_crear_exige_meta_positiva(self):
+        respuesta = self._llamar(admin_views.AdminMisionListCreateView, "post", dict(self.DATOS, meta=0))
+        self.assertEqual(respuesta.status_code, 400)
+
+    def test_crear_rechaza_recompensa_negativa(self):
+        respuesta = self._llamar(admin_views.AdminMisionListCreateView, "post", dict(self.DATOS, recompensa_xp=-1))
+        self.assertEqual(respuesta.status_code, 400)
+
+    def test_crear_guarda_la_mision(self):
+        from unittest.mock import MagicMock
+
+        mision = admin_views.Mision(id_mision=7, titulo="Cuidador", tipo="RIEGO", meta=3)
+        with patch.object(admin_views.Mision.objects, "create", return_value=mision) as crear:
+            respuesta = self._llamar(admin_views.AdminMisionListCreateView, "post", self.DATOS)
+        self.assertEqual(respuesta.status_code, 201)
+        self.assertEqual(crear.call_args.kwargs["meta"], 3)
+        self.assertNotIn("predeterminada", crear.call_args.kwargs)
+
+    def test_desactivar_solo_cambia_activa(self):
+        from unittest.mock import MagicMock
+
+        mision = admin_views.Mision(id_mision=1, titulo="Riego", tipo="RIEGO", meta=2, activa=True)
+        mision.save = MagicMock()
+        with patch.object(admin_views.Mision.objects, "filter", return_value=MagicMock(first=lambda: mision)):
+            respuesta = self._llamar(admin_views.AdminMisionDetailView, "patch", {"activa": False}, pk=1)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertFalse(respuesta.data["activa"])
+        mision.save.assert_called_once_with(update_fields=["activa"])
+
+    def test_editar_mision_inexistente_devuelve_404(self):
+        from unittest.mock import MagicMock
+
+        with patch.object(admin_views.Mision.objects, "filter", return_value=MagicMock(first=lambda: None)):
+            respuesta = self._llamar(admin_views.AdminMisionDetailView, "patch", {"activa": False}, pk=99)
+        self.assertEqual(respuesta.status_code, 404)
