@@ -7,7 +7,7 @@ import PlantaPixel from '../../../components/PlantaPixel'
 import EscenaPixel from '../../../components/EscenaPixel'
 import { ACCIONES, mensajeCuidado } from './acciones'
 import { consejo, estadoAnimo, nivelBarra } from './animo'
-import { ETAPA_MARCHITA, etapaDe, etapasDe } from './etapas'
+import { etapaDe } from './etapas'
 import './jardin.css'
 
 const ESTADISTICAS = [
@@ -53,9 +53,9 @@ export default function Jardin() {
       const despues = etapaDe(planta)
       setEstado((e) => ({ ...e, planta }))
       setSalto((s) => s + 1)
-      if (antes.indice === ETAPA_MARCHITA && despues.indice !== ETAPA_MARCHITA) {
+      if (antes.marchita && !despues.marchita) {
         avisar(`¡${planta.name} se recuperó! 🌱`)
-      } else if (despues.indice > antes.indice && despues.indice !== ETAPA_MARCHITA) {
+      } else if (despues.indice > antes.indice && !despues.marchita) {
         avisar(`¡${planta.name} creció! Ahora es: ${despues.nombre} 🎉`)
       } else {
         avisar(mensajeCuidado(previa, planta, accion))
@@ -94,7 +94,7 @@ export default function Jardin() {
   const animo = estadoAnimo(planta)
   const foto = urlImagen(planta.fotoUrl)
   const etapa = etapaDe(planta)
-  const marchita = etapa.indice === ETAPA_MARCHITA
+  const marchita = etapa.marchita
 
   return (
     <div className="jardin">
@@ -103,25 +103,19 @@ export default function Jardin() {
         <div key={salto} className={`jardin-planta ${salto ? 'jardin-salta' : ''}`}>
           <PlantaPixel etapa={etapa.indice} apariencia={planta.apariencia} titulo={`${planta.name}: ${etapa.nombre}`} />
         </div>
-        <span className={`jardin-animo ${animo.clase}`}>{animo.cara} {animo.texto}</span>
-        <div className="jardin-etapa">
-          <b>{etapa.nombre}</b>
-          <small>
-            {marchita
-              ? 'Cuídala para que se recupere'
-              : etapa.siguiente
-                ? `${etapa.faltan} ${etapa.faltan === 1 ? 'cuidado' : 'cuidados'} para: ${etapa.siguiente}`
-                : '¡Llegó a su máximo esplendor!'}
-          </small>
-          <ol className="jardin-etapas" aria-label="Etapas de crecimiento">
-            {etapasDe(planta).map((e, i) => (
-              <li
-                key={e.nombre}
-                title={e.nombre}
-                className={marchita ? '' : i < etapa.indice ? 'etapa-hecha' : i === etapa.indice ? 'etapa-actual' : ''}
-              />
-            ))}
-          </ol>
+        <div
+          className={`jardin-chip ${animo.clase}`}
+          aria-label={`Ánimo ${animo.texto}${etapa.total > 0 ? `, día ${etapa.dias} de ${etapa.total}, fase ${etapa.fase} de 3` : ''}${marchita ? ', marchita' : ''}`}
+        >
+          <span className="jardin-chip-cara">{animo.cara}</span>
+          {etapa.total > 0 && (
+            <b>{marchita ? 'Marchita' : etapa.dias >= etapa.total ? 'Madura' : `Día ${etapa.dias}/${etapa.total}`}</b>
+          )}
+          {etapa.total > 0 && !marchita && (
+            <span className="jardin-puntos" aria-hidden="true">
+              {[1, 2, 3].map((n) => <i key={n} className={n <= etapa.fase ? 'punto-hecho' : ''} />)}
+            </span>
+          )}
         </div>
       </section>
 
