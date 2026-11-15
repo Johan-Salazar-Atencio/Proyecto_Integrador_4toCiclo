@@ -15,10 +15,10 @@ export async function obtenerArte() {
   }
 }
 
-// DIA de 6 a 16, TARDE de 17 a 18 y NOCHE el resto (igual que el movil)
+// DIA de 6:00 a 11:59, TARDE de 12:00 a 17:59 y NOCHE de 18:00 a 5:59 (igual que el movil)
 export function momentoDelDia(hora) {
-  if (hora >= 6 && hora <= 16) return 'DIA'
-  if (hora >= 17 && hora <= 18) return 'TARDE'
+  if (hora >= 6 && hora <= 11) return 'DIA'
+  if (hora >= 12 && hora <= 17) return 'TARDE'
   return 'NOCHE'
 }
 
