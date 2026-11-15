@@ -273,3 +273,44 @@ class Mision(models.Model):
 
     def __str__(self):
         return self.titulo
+
+
+class PlantaUsuario(models.Model):
+    """Planta digital de un usuario (solo los campos que lee el panel admin)."""
+
+    id_planta_usuario = models.AutoField(primary_key=True)
+    id_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, db_column="id_usuario")
+    apodo = models.CharField(max_length=50, null=True, blank=True)
+    etapa_crecimiento = models.CharField(max_length=20, default="SEMILLA")
+    esta_refugiada = models.BooleanField(default=False)
+
+    class Meta:
+        managed = False
+        db_table = "plantas_usuario"
+        verbose_name = "Planta de usuario"
+        verbose_name_plural = "Plantas de usuarios"
+
+    def __str__(self):
+        return self.apodo or f"Planta {self.id_planta_usuario}"
+
+
+class RegistroDesastreUsuario(models.Model):
+    """Resultado de un desastre para una planta (lo escribe Spring al terminar el evento)."""
+
+    id_registro = models.AutoField(primary_key=True)
+    id_desastre = models.ForeignKey(EventoDesastre, on_delete=models.CASCADE, db_column="id_desastre")
+    id_planta_usuario = models.ForeignKey(PlantaUsuario, on_delete=models.CASCADE, db_column="id_planta_usuario")
+    estado_final = models.CharField(max_length=30)
+    dano_salud_aplicado = models.IntegerField(default=0)
+    fecha_procesado = models.DateTimeField(null=True, blank=True)
+    estaba_refugiada = models.BooleanField(default=False)
+    xp_otorgado = models.IntegerField(default=0)
+
+    class Meta:
+        managed = False
+        db_table = "registros_desastre_usuario"
+        verbose_name = "Registro de desastre"
+        verbose_name_plural = "Registros de desastre"
+
+    def __str__(self):
+        return f"{self.id_desastre_id} / {self.id_planta_usuario_id}: {self.estado_final}"

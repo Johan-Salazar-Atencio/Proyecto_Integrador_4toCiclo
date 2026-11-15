@@ -224,3 +224,60 @@ class RegionListTests(SimpleTestCase):
         filtrar.assert_called_once_with(activa=True)
         self.assertEqual(respuesta.status_code, 200)
         self.assertEqual(respuesta.data[1], {"codigo": "LIMA", "nombre": "Lima Metropolitana"})
+
+
+class EfectosDesastreTests(SimpleTestCase):
+    """Efecto de un desastre en el panel admin: resumen y una fila por planta."""
+
+    @staticmethod
+    def _registro(id_, estado, refugiada, xp, apodo="Mi planta", usuario="Ana", dano=0):
+        from .models import PlantaUsuario, RegistroDesastreUsuario, Usuario
+
+        planta = PlantaUsuario(id_planta_usuario=id_, apodo=apodo)
+        planta.id_usuario = Usuario(id_usuario=1, nombre=usuario)
+        return RegistroDesastreUsuario(
+            id_registro=id_, id_planta_usuario=planta, estado_final=estado,
+            estaba_refugiada=refugiada, xp_otorgado=xp, dano_salud_aplicado=dano,
+        )
+
+    def test_resumen_cuenta_estados_refugios_y_xp(self):
+        registros = [
+            self._registro(1, "SALVADA", True, 40),
+            self._registro(2, "DANADA", False, 0, dano=25),
+            self._registro(3, "DESTRUIDA", False, 0, dano=100),
+            self._registro(4, "SALVADA", True, 40),
+        ]
+
+        resumen = admin_views._resumen_efectos(registros)["resumen"]
+
+        self.assertEqual(resumen, {"total": 4, "salvadas": 2, "danadas": 1, "destruidas": 1,
+                                   "refugiadas": 2, "xp_total": 80})
+
+    def test_cada_fila_trae_usuario_planta_y_dano(self):
+        fila = admin_views._resumen_efectos([self._registro(2, "DANADA", False, 0, "Helecho", "Luis", 25)])["registros"][0]
+
+        self.assertEqual((fila["usuario"], fila["planta"], fila["dano_salud"]), ("Luis", "Helecho", 25))
+
+    def test_sin_registros_el_resumen_es_cero(self):
+        self.assertEqual(admin_views._resumen_efectos([])["resumen"]["total"], 0)
+
+    def _get(self, admin=True, existe=True):
+        from unittest.mock import MagicMock
+
+        request = APIRequestFactory().get("/api/admin/eventos/5/efectos/")
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario() if admin else None), \
+                patch.object(admin_views.EventoDesastre.objects, "filter", return_value=MagicMock(exists=lambda: existe)), \
+                patch.object(admin_views.RegistroDesastreUsuario.objects, "filter") as registros:
+            registros.return_value.select_related.return_value.order_by.return_value = []
+            return admin_views.AdminEventoEfectosView.as_view()(request, pk=5)
+
+    def test_sin_admin_devuelve_401(self):
+        self.assertEqual(self._get(admin=False).status_code, 401)
+
+    def test_evento_inexistente_devuelve_404(self):
+        self.assertEqual(self._get(existe=False).status_code, 404)
+
+    def test_evento_sin_registros_devuelve_resumen_vacio(self):
+        respuesta = self._get()
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.data["registros"], [])

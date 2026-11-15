@@ -18,7 +18,9 @@ from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import EventoDesastre, Mision, PlantaCatalogo, Region, TipoDesastre, Usuario
+from .models import (
+    EventoDesastre, Mision, PlantaCatalogo, Region, RegistroDesastreUsuario, TipoDesastre, Usuario,
+)
 
 # Hash BCrypt valido para comparar cuando el correo no existe: asi el tiempo de
 # respuesta no revela si esta registrado (mismo criterio que AuthService de Spring).
@@ -258,3 +260,47 @@ class AdminMisionDetailView(APIView):
         if valores:
             mision.save(update_fields=list(valores))
         return Response(_mision_a_dict(mision))
+
+
+class AdminEventoEfectosView(APIView):
+    """GET /api/admin/eventos/<id>/efectos/  que le paso a cada planta cuando termino el desastre:
+    resumen (salvadas, danadas, destruidas, refugiadas, XP dado) y una fila por planta."""
+
+    def get(self, request, pk):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        if not EventoDesastre.objects.filter(pk=pk).exists():
+            return Response({"error": "Evento no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+        registros = list(
+            RegistroDesastreUsuario.objects.filter(id_desastre=pk)
+            .select_related("id_planta_usuario__id_usuario")
+            .order_by("id_registro")
+        )
+        return Response(_resumen_efectos(registros))
+
+
+def _resumen_efectos(registros):
+    filas = [
+        {
+            "id_registro": r.id_registro,
+            "usuario": r.id_planta_usuario.id_usuario.nombre,
+            "planta": r.id_planta_usuario.apodo or f"Planta {r.id_planta_usuario_id}",
+            "estado_final": r.estado_final,
+            "estaba_refugiada": r.estaba_refugiada,
+            "dano_salud": r.dano_salud_aplicado,
+            "xp_otorgado": r.xp_otorgado,
+        }
+        for r in registros
+    ]
+    contar = lambda estado: sum(1 for f in filas if f["estado_final"] == estado)  # noqa: E731
+    return {
+        "resumen": {
+            "total": len(filas),
+            "salvadas": contar("SALVADA"),
+            "danadas": contar("DANADA"),
+            "destruidas": contar("DESTRUIDA"),
+            "refugiadas": sum(1 for f in filas if f["estaba_refugiada"]),
+            "xp_total": sum(f["xp_otorgado"] for f in filas),
+        },
+        "registros": filas,
+    }
