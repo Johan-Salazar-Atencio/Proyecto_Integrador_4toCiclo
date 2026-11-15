@@ -51,7 +51,7 @@ public class AbonoService {
         if (hoy.equals(p.getUltimoDiaAbonoTienda())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya usaste un abono con esta planta hoy");
         }
-        ItemTienda abono = itemRepo.findFirstByTipoOrderByPrecioMonedasAsc("ABONO")
+        ItemTienda abono = itemRepo.findFirstByTipoAndActivoTrueOrderByPrecioMonedasAsc("ABONO")
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "La tienda no tiene abono"));
         Usuario u = usuarioRepo.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));

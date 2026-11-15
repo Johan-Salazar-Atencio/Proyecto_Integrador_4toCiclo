@@ -93,6 +93,22 @@ class ArteServiceTest {
     }
 
     @Test
+    void losFondosDeUnUsuarioSonLosPredeterminadosYLosEquipados() {
+        FondoEscena normal = fondo(1, "DIA", 96, true);
+        FondoEscena comprado = fondo(2, "DIA", 96, false);
+        FondoEscena ajeno = fondo(3, "NOCHE", 96, false);
+        when(fondoRepo.findByActivoTrueOrderByMomentoAscEsPredeterminadoDescIdFondoAsc())
+                .thenReturn(List.of(normal, comprado, ajeno));
+
+        List<FondoDto> fondos = service.fondos(java.util.Set.of(2));
+
+        // El equipado va primero dentro de su momento y el que no es suyo no se envia
+        assertThat(fondos).extracting(FondoDto::id).containsExactly("fondo_2", "fondo_1");
+        assertThat(fondos.get(0).equipado()).isTrue();
+        assertThat(fondos.get(1).equipado()).isFalse();
+    }
+
+    @Test
     void unFondoSinFramesNiTamanoNoRompeNiDividePorCero() {
         FondoEscena f = fondo(2, "NOCHE", 0, false);
         f.setAnchoPx(null);

@@ -13,6 +13,8 @@ public record FondoDto(
         int widthPx,
         int heightPx,
         int msPerFrame,
-        boolean isDefault
+        boolean isDefault,
+        /** true si el usuario compro este fondo y lo tiene puesto: reemplaza al predeterminado de su momento. */
+        boolean equipado
 ) {
 }

@@ -51,7 +51,7 @@ class AbonoServiceTest {
 
         ItemTienda abono = new ItemTienda();
         ReflectionTestUtils.setField(abono, "precioMonedas", 30);
-        when(itemRepo.findFirstByTipoOrderByPrecioMonedasAsc("ABONO")).thenReturn(Optional.of(abono));
+        when(itemRepo.findFirstByTipoAndActivoTrueOrderByPrecioMonedasAsc("ABONO")).thenReturn(Optional.of(abono));
 
         usuario = new Usuario();
         usuario.setMonedas(100);

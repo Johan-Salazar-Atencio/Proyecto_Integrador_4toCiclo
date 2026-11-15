@@ -41,7 +41,21 @@ public class ArteService {
     @Transactional(readOnly = true)
     public List<FondoDto> fondos() {
         return fondoRepo.findByActivoTrueOrderByMomentoAscEsPredeterminadoDescIdFondoAsc().stream()
-                .map(ArteService::aDto)
+                .map(f -> aDto(f, false))
+                .toList();
+    }
+
+    /**
+     * Fondos que le tocan a un usuario: los predeterminados y los de la tienda que tiene equipados.
+     * Dentro de cada momento va primero el equipado y luego el predeterminado.
+     */
+    @Transactional(readOnly = true)
+    public List<FondoDto> fondos(java.util.Set<Integer> equipados) {
+        return fondoRepo.findByActivoTrueOrderByMomentoAscEsPredeterminadoDescIdFondoAsc().stream()
+                .filter(f -> Boolean.TRUE.equals(f.getEsPredeterminado()) || equipados.contains(f.getIdFondo()))
+                .sorted(Comparator.comparing(FondoEscena::getMomento)
+                        .thenComparing(f -> !equipados.contains(f.getIdFondo())))
+                .map(f -> aDto(f, equipados.contains(f.getIdFondo())))
                 .toList();
     }
 
@@ -72,7 +86,7 @@ public class ArteService {
                 .toList();
     }
 
-    static FondoDto aDto(FondoEscena f) {
+    static FondoDto aDto(FondoEscena f, boolean equipado) {
         int frames = f.getTotalFrames() != null && f.getTotalFrames() > 0 ? f.getTotalFrames() : 1;
         return new FondoDto(
                 "fondo_" + f.getIdFondo(),
@@ -83,6 +97,7 @@ public class ArteService {
                 f.getAnchoPx() != null ? f.getAnchoPx() : 0,
                 f.getAltoPx() != null ? f.getAltoPx() : 0,
                 f.getMsPorFrame() != null ? f.getMsPorFrame() : 200,
-                Boolean.TRUE.equals(f.getEsPredeterminado()));
+                Boolean.TRUE.equals(f.getEsPredeterminado()),
+                equipado);
     }
 }
