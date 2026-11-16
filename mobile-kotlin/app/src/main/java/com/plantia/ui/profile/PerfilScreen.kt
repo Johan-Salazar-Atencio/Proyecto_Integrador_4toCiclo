@@ -22,6 +22,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -105,7 +107,10 @@ fun PerfilScreen(
     onVerTerminos: () -> Unit,
     onCerrarSesion: () -> Unit,
     onVolver: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    subiendoFoto: Boolean = false,
+    errorFoto: String? = null,
+    onCambiarFoto: (java.io.File) -> Unit = {}
 ) {
     IconosOscurosEnBarraDeEstado()
     var confirmarSalida by remember { mutableStateOf(false) }
@@ -159,7 +164,7 @@ fun PerfilScreen(
                 }
                 usuario == null -> AvisoError(error ?: "No se pudo cargar el perfil", onReintentar)
                 else -> {
-                    TarjetaUsuario(usuario)
+                    TarjetaUsuario(usuario, subiendoFoto, errorFoto, onCambiarFoto)
                     FilaEstadisticas(escaneadas, digitales)
                     if (regiones.isNotEmpty()) {
                         SeccionRegion(regiones, usuario.regionCode, cambiandoRegion, errorRegion, onCambiarRegion)
@@ -185,7 +190,25 @@ fun PerfilScreen(
 }
 
 @Composable
-private fun TarjetaUsuario(usuario: UserSummary) {
+private fun TarjetaUsuario(
+    usuario: UserSummary,
+    subiendoFoto: Boolean,
+    errorFoto: String?,
+    onCambiarFoto: (java.io.File) -> Unit
+) {
+    val contexto = androidx.compose.ui.platform.LocalContext.current
+    val alcance = androidx.compose.runtime.rememberCoroutineScope()
+    val selector = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) alcance.launch {
+            // Copiar la foto elegida a la cache es lectura de disco: fuera del hilo principal
+            val imagen = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                com.plantia.util.ImagenLocal.desdeUri(contexto, uri)
+            }
+            if (imagen != null) onCambiarFoto(imagen.archivo)
+        }
+    }
     val objetivo = usuario.progresoNivel
     var arranque by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { arranque = true }
@@ -201,17 +224,32 @@ private fun TarjetaUsuario(usuario: UserSummary) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Box {
+            Box(
+                Modifier.clickable(onClickLabel = "Cambiar foto de perfil") {
+                    if (!subiendoFoto) {
+                        selector.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    }
+                }
+            ) {
                 Box(
                     modifier = Modifier.size(92.dp).clip(CircleShape).background(GreenPrimary),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = usuario.name.trim().firstOrNull()?.uppercase() ?: "?",
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.surface
-                    )
+                    val inicial: @Composable () -> Unit = {
+                        Text(
+                            text = usuario.name.trim().firstOrNull()?.uppercase() ?: "?",
+                            fontSize = 40.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.surface
+                        )
+                    }
+                    if (usuario.profileImageUrl.isNullOrBlank()) inicial()
+                    else com.plantia.ui.components.FotoPerfil(usuario.profileImageUrl, "Foto de ${usuario.name}", respaldo = inicial)
+                    if (subiendoFoto) androidx.compose.material3.CircularProgressIndicator(color = MaterialTheme.colorScheme.surface, modifier = Modifier.size(36.dp))
                 }
                 Box(
                     modifier = Modifier
@@ -224,9 +262,10 @@ private fun TarjetaUsuario(usuario: UserSummary) {
                         .background(GreenDark),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Filled.Eco, contentDescription = null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(16.dp))
                 }
             }
+            if (errorFoto != null) Text(errorFoto, fontSize = 12.sp, color = RojoTexto)
 
             Text(usuario.name, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
 

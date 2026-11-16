@@ -66,12 +66,16 @@ fun UserHeaderCard(
                         .background(GreenLight),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Perfil",
-                        tint = GreenPrimary,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    val icono: @Composable () -> Unit = {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Perfil",
+                            tint = GreenPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    if (user.profileImageUrl.isNullOrBlank()) icono()
+                    else com.plantia.ui.components.FotoPerfil(user.profileImageUrl, "Foto de ${user.name}", respaldo = icono)
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))

@@ -21,6 +21,7 @@ import com.plantia.data.repository.PlantasResultado
 import com.plantia.data.repository.ScanRepository
 import com.plantia.data.repository.UsuarioRepository
 import com.plantia.di.AppContainer
+import java.io.File
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -63,6 +64,13 @@ class PerfilViewModel(
     var errorRegion: String? by mutableStateOf(null)
         private set
 
+    /** Se esta subiendo la foto de perfil: evita el doble toque. */
+    var subiendoFoto: Boolean by mutableStateOf(false)
+        private set
+
+    var errorFoto: String? by mutableStateOf(null)
+        private set
+
     /** Plantas digitales del jardin (null si aun no se sabe o no se pudo leer). */
     var digitales: Int? by mutableStateOf(null)
         private set
@@ -84,6 +92,18 @@ class PerfilViewModel(
             val actualizado = runCatching { usuarios.cambiarRegion(codigo) }.getOrNull()
             if (actualizado != null) usuario = actualizado else errorRegion = "No se pudo cambiar la región"
             cambiandoRegion = false
+        }
+    }
+
+    /** Sube la foto de perfil elegida; si el servidor la rechaza (no es JPG, PNG o WEBP) se avisa y queda la anterior. */
+    fun cambiarFoto(foto: File) {
+        if (subiendoFoto) return
+        viewModelScope.launch {
+            subiendoFoto = true
+            errorFoto = null
+            val actualizado = runCatching { usuarios.cambiarFoto(foto) }.getOrNull()
+            if (actualizado != null) usuario = actualizado else errorFoto = "No se pudo cambiar la foto"
+            subiendoFoto = false
         }
     }
 
