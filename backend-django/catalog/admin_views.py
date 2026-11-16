@@ -273,6 +273,8 @@ PARAMETROS_JUEGO = {
     "HORAS_RECUPERACION": (1, 720),
     "ABONO_RECUPERACION": (1, 100),
     "SALUD_REVIVIDA": (1, 100),
+    # Plantas virtuales activas; una pantalla de la coleccion tiene 6, asi que va de a una pantalla
+    "MAX_PLANTAS_ACTIVAS": (6, 60),
 }
 
 

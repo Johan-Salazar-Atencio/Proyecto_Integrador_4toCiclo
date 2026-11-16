@@ -575,6 +575,16 @@ class AdminParametrosTests(SimpleTestCase):
         self.assertEqual(respuesta.status_code, 400)
         fila.save.assert_not_called()
 
+    def test_el_tope_de_plantas_activas_acepta_de_6_a_60(self):
+        fila = self._fila("MAX_PLANTAS_ACTIVAS", 12)
+        with self._con(fila):
+            bien = self._llamar(admin_views.AdminParametroDetailView, "patch", {"valor": 18},
+                                clave="MAX_PLANTAS_ACTIVAS")
+            mal = self._llamar(admin_views.AdminParametroDetailView, "patch", {"valor": 3},
+                               clave="MAX_PLANTAS_ACTIVAS")
+        self.assertEqual(bien.status_code, 200)
+        self.assertEqual(mal.status_code, 400)
+
     def test_un_valor_que_no_es_entero_da_400(self):
         fila = self._fila()
         for malo in ("300", 3.5, True, None):
