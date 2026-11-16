@@ -82,6 +82,23 @@ class CrearEventoTiposTests(SimpleTestCase):
         "fecha_fin": "2026-11-15T16:00:00Z",
     }
 
+    def test_fin_antes_del_inicio_devuelve_400(self):
+        from .models import TipoDesastre
+
+        tipo = TipoDesastre(id_tipo_desastre=1, codigo="HUAYCO", nombre="Huayco")
+        datos = {**self.DATOS, "fecha_inicio": "2026-11-15T16:00:00Z", "fecha_fin": "2026-11-15T10:00:00Z"}
+        respuesta, crear = self._post(datos, tipo=tipo)
+        self.assertEqual(respuesta.status_code, 400)
+        crear.assert_not_called()
+
+    def test_fecha_que_no_es_fecha_devuelve_400(self):
+        from .models import TipoDesastre
+
+        tipo = TipoDesastre(id_tipo_desastre=1, codigo="HUAYCO", nombre="Huayco")
+        respuesta, crear = self._post({**self.DATOS, "fecha_inicio": "ayer"}, tipo=tipo)
+        self.assertEqual(respuesta.status_code, 400)
+        crear.assert_not_called()
+
     def test_tipo_inexistente_devuelve_400(self):
         respuesta, crear = self._post(self.DATOS, tipo=None)
         self.assertEqual(respuesta.status_code, 400)

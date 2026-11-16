@@ -15,6 +15,7 @@ import bcrypt
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
@@ -139,6 +140,17 @@ class AdminEventoCreateView(APIView):
                     {"error": f"Tipo de desastre no valido: {codigo_tipo}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+            inicio = parse_datetime(str(data["fecha_inicio"]))
+            fin = parse_datetime(str(data["fecha_fin"]))
+            if inicio is None or fin is None:
+                return Response({"error": "fecha_inicio y fecha_fin deben ser fechas ISO validas"},
+                                status=status.HTTP_400_BAD_REQUEST)
+            if timezone.is_naive(inicio) != timezone.is_naive(fin):
+                return Response({"error": "fecha_inicio y fecha_fin deben llevar zona horaria las dos o ninguna"},
+                                status=status.HTTP_400_BAD_REQUEST)
+            if fin <= inicio:
+                return Response({"error": "fecha_fin debe ser posterior a fecha_inicio"},
+                                status=status.HTTP_400_BAD_REQUEST)
             codigo_region = data.get("region") or "GLOBAL"
             # Si la region no existe todavia, se crea: el panel ofrece nombres libres
             region, _ = Region.objects.get_or_create(codigo=codigo_region, defaults={"nombre": codigo_region})

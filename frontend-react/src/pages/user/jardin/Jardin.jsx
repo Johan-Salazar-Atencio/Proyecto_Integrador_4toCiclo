@@ -200,8 +200,8 @@ export default function Jardin() {
   return (
     <div className="jardin">
       <section className={`jardin-marco aparece ${marchita ? 'jardin-marco-marchita' : ''}`}>
-        <EscenaPixel key={claveEscena} />
-        <div key={salto} className={`jardin-planta ${salto ? 'jardin-salta' : ''}`}>
+        <EscenaPixel key={`escena-${claveEscena}`} />
+        <div key={`planta-${salto}`} className={`jardin-planta ${salto ? 'jardin-salta' : ''}`}>
           <PlantaPixel etapa={etapa.indice} apariencia={planta.apariencia} maceta={planta.macetaCodigo} titulo={`${planta.name}: ${etapa.nombre}`} />
         </div>
         {escudo > 0 && <span key={`escudo-${escudo}`} className="jardin-escudo" aria-hidden="true">🛡️</span>}
