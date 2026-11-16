@@ -63,6 +63,12 @@ class EscaneoServiceTest {
     }
 
     @Test
+    void unaEspecieNuevaPagaMasQueRepetirUnaYaEscaneada() {
+        assertThat(EscaneoService.motivosDeEscaneo(true)).containsExactly("ESCANEO_NUEVA");
+        assertThat(EscaneoService.motivosDeEscaneo(false)).containsExactly("ESCANEO_REPETIDO");
+    }
+
+    @Test
     void siFallaElGuardadoSeBorraLaFoto() {
         when(escaneoRepo.save(any())).thenThrow(new IllegalStateException("BD caida"));
         assertThatThrownBy(() -> service.escanear(1, foto)).isInstanceOf(IllegalStateException.class);

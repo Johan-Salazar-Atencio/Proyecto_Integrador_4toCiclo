@@ -193,8 +193,22 @@ public class PlantasService {
         }
         plantaRepo.save(p);
         PlantSummaryDto dto = map(p);
-        // Solo un cuidado util da XP (regar una planta al 100 % no cuenta); la regla CUIDAR tiene tope diario
-        return util ? dto.conProgreso(progresoService.otorgar(userId, List.of("CUIDAR"), List.of(misionDeCuidado(accion)), p.getIdPlantaUsuario())) : dto;
+        // Solo un cuidado util da hojas y XP (regar una planta al 100 % no cuenta); cada regla tiene su tope diario
+        return util ? dto.conProgreso(progresoService.otorgar(userId, List.of(motivoDeCuidado(accion)), accionesDeCuidado(accion), p.getIdPlantaUsuario())) : dto;
+    }
+
+    /** Regla de progreso que paga cada cuidado: son pocas hojas y XP, para que no se abuse. */
+    static String motivoDeCuidado(String accion) {
+        return switch (accion) {
+            case "REGAR" -> "REGAR";
+            case "SOL" -> "SOL";
+            default -> "ABONAR";
+        };
+    }
+
+    /** Tipos de mision que avanza un cuidado: el suyo y CUIDADO, que cuenta cualquiera de los tres. */
+    static List<String> accionesDeCuidado(String accion) {
+        return List.of(misionDeCuidado(accion), "CUIDADO");
     }
 
     /**

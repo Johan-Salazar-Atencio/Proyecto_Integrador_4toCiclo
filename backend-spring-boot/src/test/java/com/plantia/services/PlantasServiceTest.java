@@ -134,6 +134,16 @@ class PlantasServiceTest {
     }
 
     @Test
+    void cadaCuidadoTieneSuReglaYAvanzaLaMisionDeCuidadoCompleto() {
+        assertThat(PlantasService.motivoDeCuidado("REGAR")).isEqualTo("REGAR");
+        assertThat(PlantasService.motivoDeCuidado("SOL")).isEqualTo("SOL");
+        assertThat(PlantasService.motivoDeCuidado("ABONAR")).isEqualTo("ABONAR");
+        assertThat(PlantasService.accionesDeCuidado("REGAR")).containsExactly("RIEGO", "CUIDADO");
+        assertThat(PlantasService.accionesDeCuidado("SOL")).containsExactly("SOL", "CUIDADO");
+        assertThat(PlantasService.accionesDeCuidado("ABONAR")).containsExactly("ABONO", "CUIDADO");
+    }
+
+    @Test
     void laDuracionDependeDeLaForma() {
         assertThat(CrecimientoPlanta.diasTotales("cactus")).isEqualTo(5);
         assertThat(CrecimientoPlanta.diasTotales("monstera")).isEqualTo(7);

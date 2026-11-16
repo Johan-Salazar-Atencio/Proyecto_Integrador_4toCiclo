@@ -86,7 +86,7 @@ public class MisionService {
         return new DailyMissionDto(
                 "mission_" + mision.getIdMision(),
                 mision.getTitulo(),
-                "+" + xp + " XP · +" + monedas + " gotas de rocio",
+                "+" + xp + " XP · +" + monedas + " hojas",
                 avance,
                 Math.min(progreso, meta),
                 meta,

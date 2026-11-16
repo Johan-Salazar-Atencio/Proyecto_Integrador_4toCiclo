@@ -122,11 +122,10 @@ public class EscaneoService {
         // Ya no insertamos automáticamente en coleccion - eso lo hace el endpoint dedicado
         // Si no está identificado, tampoco insertamos en coleccion desde aquí
 
-        // Solo un escaneo identificado da XP; una especie nueva suma ademas su propia regla
+        // Solo un escaneo identificado da hojas y XP: una especie nueva paga mucho mas que repetir una ya vista
         ProgresoDto progreso = null;
         if (identificado) {
-            List<String> motivos = especieNueva ? List.of("ESCANEO", "ESPECIE_NUEVA") : List.of("ESCANEO");
-            progreso = progresoService.otorgar(userId, motivos, List.of("ESCANEO"), escaneo.getIdEscaneo());
+            progreso = progresoService.otorgar(userId, motivosDeEscaneo(especieNueva), List.of("ESCANEO"), escaneo.getIdEscaneo());
         }
 
         String nombreComun = catalogo != null ? catalogo.getNombreComun() : "Planta desconocida";
@@ -146,6 +145,14 @@ public class EscaneoService {
                 identificado ? ia.apariencia() : null,
                 progreso
         );
+    }
+
+    /**
+     * Regla que paga un escaneo identificado. ESCANEO_NUEVA (especie que el usuario nunca habia escaneado)
+     * da mucho mas que ESCANEO_REPETIDO, que ademas tiene un tope diario: repetir la misma planta no rinde.
+     */
+    static List<String> motivosDeEscaneo(boolean especieNueva) {
+        return List.of(especieNueva ? "ESCANEO_NUEVA" : "ESCANEO_REPETIDO");
     }
 
     // Método upsertColeccion eliminado: la inserción en coleccion ahora corre por POST /api/v1/coleccion
