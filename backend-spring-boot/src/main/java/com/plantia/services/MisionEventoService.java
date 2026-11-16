@@ -81,7 +81,8 @@ public class MisionEventoService {
                 prevenidas >= total,
                 "EVENT",
                 e.getTipoEvento(),
-                segundos));
+                segundos,
+                null));
     }
 
     private String nombre(EventoDesastre e) {

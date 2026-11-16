@@ -90,6 +90,10 @@ public class MisionService {
                 avance,
                 Math.min(progreso, meta),
                 meta,
-                Boolean.TRUE.equals(a.estado().getCompletada()));
+                Boolean.TRUE.equals(a.estado().getCompletada()),
+                null,
+                null,
+                null,
+                mision.getTipo());
     }
 }

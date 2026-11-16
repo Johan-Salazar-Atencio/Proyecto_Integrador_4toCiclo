@@ -121,18 +121,6 @@ public class PlantasController {
         return ResponseEntity.ok(plantasService.prevenir(userId, idPlantaUsuario));
     }
 
-    /** Previene el evento en varias plantas. Body: { "ids": [n, ...] }. */
-    @PostMapping("/prevenir")
-    public ResponseEntity<List<PlantSummaryDto>> prevenirVarias(
-            @RequestHeader("X-User-Id") Integer userId,
-            @RequestBody Map<String, List<Integer>> body) {
-        List<Integer> ids = body.get("ids");
-        if (ids == null || ids.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-        return ResponseEntity.ok(plantasService.prevenirVarias(userId, ids));
-    }
-
     /** Nombre anterior de /prevenir; se conserva para las apps que aun lo usan. */
     @PostMapping("/{id}/refugio")
     public ResponseEntity<PlantSummaryDto> refugiar(

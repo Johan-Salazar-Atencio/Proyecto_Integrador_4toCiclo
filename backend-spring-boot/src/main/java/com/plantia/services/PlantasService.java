@@ -261,12 +261,6 @@ public class PlantasService {
         return map(p);
     }
 
-    /** Previene el evento en varias plantas a la vez (la tarjeta roja de Misiones). Falla entera si una no sirve. */
-    @Transactional
-    public List<PlantSummaryDto> prevenirVarias(Integer userId, List<Integer> ids) {
-        return ids.stream().distinct().map(id -> prevenir(userId, id)).toList();
-    }
-
     /** Nombre anterior de {@link #prevenir}; se conserva para las apps que aun llaman a /refugio. */
     @Transactional
     public PlantSummaryDto refugiar(Integer userId, Integer idPlantaUsuario) {

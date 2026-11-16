@@ -120,4 +120,14 @@ class MisionServiceTest {
 
         assertThat(service.diaria(USER)).get().extracting(DailyMissionDto::id).isEqualTo("mission_1");
     }
+
+    @Test
+    void cadaMisionDiariaViajaConSuTipo() {
+        Mision m = mision(1, "Riego", "RIEGO", 2, 20, 50);
+        MisionUsuario estado = new MisionUsuario();
+        estado.setProgreso(0);
+        estado.setCompletada(false);
+
+        assertThat(MisionService.aDto(new MisionService.Asignada(m, estado)).type()).isEqualTo("RIEGO");
+    }
 }

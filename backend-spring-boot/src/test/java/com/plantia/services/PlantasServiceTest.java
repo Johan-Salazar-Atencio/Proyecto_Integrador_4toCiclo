@@ -272,24 +272,6 @@ class PlantasServiceTest {
     }
 
     @Test
-    void prevenirVariasPlantasMarcaCadaUnaYNoRepiteLasRepetidas() {
-        hayDesastreActivo();
-
-        var resultado = service.prevenirVarias(DUENO, List.of(10, 10));
-
-        assertThat(resultado).hasSize(1);
-        assertThat(resultado.get(0).refugiada()).isTrue();
-    }
-
-    @Test
-    void prevenirVariasFallaSiUnaNoEsDelUsuario() {
-        hayDesastreActivo();
-
-        assertThatThrownBy(() -> service.prevenirVarias(OTRO, List.of(10)))
-                .isInstanceOf(ResponseStatusException.class);
-    }
-
-    @Test
     void elNombreAnteriorSigueFuncionando() {
         hayDesastreActivo();
 
