@@ -31,6 +31,8 @@ class UsuarioServiceTest {
     private NivelRepository nivelRepo;
     private UsuarioRepository usuarioRepo;
     private RegionRepository regionRepo;
+    private com.plantia.repositories.ItemTiendaRepository itemRepo;
+    private com.plantia.repositories.InventarioUsuarioRepository inventarioRepo;
     private UsuarioService service;
 
     @BeforeEach
@@ -41,7 +43,9 @@ class UsuarioServiceTest {
         when(nivelRepo.findById(3)).thenReturn(Optional.of(nivel(3, 1000)));
 
         regionRepo = mock(RegionRepository.class);
-        service = new UsuarioService(usuarioRepo, nivelRepo, regionRepo);
+        itemRepo = mock(com.plantia.repositories.ItemTiendaRepository.class);
+        inventarioRepo = mock(com.plantia.repositories.InventarioUsuarioRepository.class);
+        service = new UsuarioService(usuarioRepo, nivelRepo, regionRepo, itemRepo, inventarioRepo);
     }
 
     private static Nivel nivel(int n, int xp) {
@@ -148,5 +152,62 @@ class UsuarioServiceTest {
 
         assertThat(service.regiones()).extracting(RegionDto::code).containsExactly("GLOBAL", "LIMA");
         assertThat(service.regiones().get(1).name()).isEqualTo("Lima Metropolitana");
+    }
+
+    // --- Invernadero de la coleccion ---
+
+    private static com.plantia.models.ItemTienda invernadero(int id, int precio, String codigo, boolean activo) {
+        com.plantia.models.ItemTienda i = new com.plantia.models.ItemTienda();
+        i.setIdItem(id);
+        i.setTipo("INVERNADERO");
+        i.setPrecioMonedas(precio);
+        i.setCodigo(codigo);
+        i.setActivo(activo);
+        return i;
+    }
+
+    private Usuario usuarioSimple() {
+        Usuario u = new Usuario();
+        u.setIdUsuario(1);
+        u.setNombre("Johan");
+        when(usuarioRepo.findById(1)).thenReturn(Optional.of(u));
+        when(inventarioRepo.findByIdUsuario(1)).thenReturn(List.of());
+        return u;
+    }
+
+    @Test
+    void sinEleccionElInvernaderoEsLaSelvaTropical() {
+        usuarioSimple();
+
+        assertThat(service.me(1).greenhouseCode()).isEqualTo("SELVA");
+    }
+
+    @Test
+    void sePuedeElegirUnInvernaderoGratisOComprado() {
+        Usuario u = usuarioSimple();
+        when(itemRepo.findById(30)).thenReturn(Optional.of(invernadero(30, 0, "SELVA", true)));
+        when(itemRepo.findById(31)).thenReturn(Optional.of(invernadero(31, 150, "VICTORIANO", true)));
+        com.plantia.models.InventarioUsuario compra = new com.plantia.models.InventarioUsuario();
+        compra.setIdItem(31);
+        when(inventarioRepo.findByIdUsuario(1)).thenReturn(List.of(compra));
+
+        assertThat(service.cambiarInvernadero(1, 30).greenhouseCode()).isEqualTo("SELVA");
+        assertThat(service.cambiarInvernadero(1, 31).greenhouseCode()).isEqualTo("VICTORIANO");
+        assertThat(u.getIdInvernadero()).isEqualTo(31);
+    }
+
+    @Test
+    void unInvernaderoQueNoSeCompro409YUnoQueNoExisteOEstaApagado404() {
+        Usuario u = usuarioSimple();
+        when(itemRepo.findById(32)).thenReturn(Optional.of(invernadero(32, 200, "LUCES", true)));
+        when(itemRepo.findById(33)).thenReturn(Optional.of(invernadero(33, 0, "X", false)));
+
+        assertThatThrownBy(() -> service.cambiarInvernadero(1, 32))
+                .isInstanceOfSatisfying(ResponseStatusException.class, e -> assertThat(e.getStatusCode().value()).isEqualTo(409));
+        assertThatThrownBy(() -> service.cambiarInvernadero(1, 33))
+                .isInstanceOfSatisfying(ResponseStatusException.class, e -> assertThat(e.getStatusCode().value()).isEqualTo(404));
+        assertThatThrownBy(() -> service.cambiarInvernadero(1, 99))
+                .isInstanceOfSatisfying(ResponseStatusException.class, e -> assertThat(e.getStatusCode().value()).isEqualTo(404));
+        assertThat(u.getIdInvernadero()).isNull();
     }
 }

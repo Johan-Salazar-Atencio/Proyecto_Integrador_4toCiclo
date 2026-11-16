@@ -29,6 +29,14 @@ public class UsuarioController {
         return usuarioService.me(userId);
     }
 
+    /** Elige el invernadero de la coleccion virtual. Body: { "idItem": n }. 409 si todavia no lo compro. */
+    @PutMapping("/me/invernadero")
+    public UserSummaryDto cambiarInvernadero(
+            @RequestHeader("X-User-Id") Integer userId,
+            @RequestBody java.util.Map<String, Integer> body) {
+        return usuarioService.cambiarInvernadero(userId, body.get("idItem"));
+    }
+
     /** Cambia la region del usuario (decide que desastres le llegan) y devuelve su resumen. */
     @PutMapping("/me")
     public UserSummaryDto cambiarRegion(

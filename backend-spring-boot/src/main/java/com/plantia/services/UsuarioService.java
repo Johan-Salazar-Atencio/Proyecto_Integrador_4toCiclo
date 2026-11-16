@@ -9,8 +9,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.plantia.dto.RegionDto;
 import com.plantia.dto.UserSummaryDto;
+import com.plantia.models.InventarioUsuario;
+import com.plantia.models.ItemTienda;
 import com.plantia.models.Region;
 import com.plantia.models.Usuario;
+import com.plantia.repositories.InventarioUsuarioRepository;
+import com.plantia.repositories.ItemTiendaRepository;
 import com.plantia.repositories.NivelRepository;
 import com.plantia.repositories.RegionRepository;
 import com.plantia.repositories.UsuarioRepository;
@@ -21,11 +25,16 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepo;
     private final NivelRepository nivelRepo;
     private final RegionRepository regionRepo;
+    private final ItemTiendaRepository itemRepo;
+    private final InventarioUsuarioRepository inventarioRepo;
 
-    public UsuarioService(UsuarioRepository usuarioRepo, NivelRepository nivelRepo, RegionRepository regionRepo) {
+    public UsuarioService(UsuarioRepository usuarioRepo, NivelRepository nivelRepo, RegionRepository regionRepo,
+                          ItemTiendaRepository itemRepo, InventarioUsuarioRepository inventarioRepo) {
         this.usuarioRepo = usuarioRepo;
         this.nivelRepo = nivelRepo;
         this.regionRepo = regionRepo;
+        this.itemRepo = itemRepo;
+        this.inventarioRepo = inventarioRepo;
     }
 
     @Transactional(readOnly = true)
@@ -59,6 +68,34 @@ public class UsuarioService {
         return resumen(u);
     }
 
+    /**
+     * Elige el invernadero de la coleccion virtual entre los que el usuario tiene (el predeterminado y los comprados).
+     * 404 si no existe o esta desactivado; 409 si todavia no lo compro.
+     */
+    @Transactional
+    public UserSummaryDto cambiarInvernadero(Integer userId, Integer idItem) {
+        Usuario u = usuarioRepo.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        ItemTienda item = itemRepo.findById(idItem == null ? -1 : idItem)
+                .filter(i -> Boolean.TRUE.equals(i.getActivo()) && TiendaService.INVERNADERO.equals(i.getTipo()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invernadero no encontrado"));
+        List<Integer> comprados = inventarioRepo.findByIdUsuario(userId).stream().map(InventarioUsuario::getIdItem).toList();
+        if (!TiendaService.esSuyo(item, comprados)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Primero compra este invernadero en la tienda");
+        }
+        u.setIdInvernadero(item.getIdItem());
+        usuarioRepo.save(u);
+        return resumen(u);
+    }
+
+    /** Codigo del invernadero elegido; SELVA (el predeterminado) si no eligio otro o ya no existe. */
+    private String invernadero(Usuario u) {
+        if (u.getIdInvernadero() == null) {
+            return "SELVA";
+        }
+        return itemRepo.findById(u.getIdInvernadero()).map(ItemTienda::getCodigo).orElse("SELVA");
+    }
+
     private UserSummaryDto resumen(Usuario u) {
         int nivel = u.getNivel() != null ? u.getNivel() : 1;
         int xp = u.getExperienciaXp() != null ? u.getExperienciaXp() : 0;
@@ -82,7 +119,8 @@ public class UsuarioService {
                 email,
                 streakDays,
                 base,
-                region);
+                region,
+                invernadero(u));
     }
 
     private static String badge(int nivel) {

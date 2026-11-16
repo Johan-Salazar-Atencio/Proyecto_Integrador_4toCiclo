@@ -64,6 +64,10 @@ public class Usuario {
     @Column(name = "foto_url")
     private String fotoUrl;
 
+    /** Invernadero (articulo de la tienda tipo INVERNADERO) que eligio para su coleccion; null = Selva tropical. */
+    @Column(name = "id_invernadero")
+    private Integer idInvernadero;
+
     @Column(name = "fecha_registro")
     private LocalDateTime fechaRegistro;
 
@@ -98,6 +102,8 @@ public class Usuario {
     public void setIdRegion(Integer idRegion) { this.idRegion = idRegion; }
     public LocalDate getUltimaActividad() { return ultimaActividad; }
     public void setUltimaActividad(LocalDate ultimaActividad) { this.ultimaActividad = ultimaActividad; }
+    public Integer getIdInvernadero() { return idInvernadero; }
+    public void setIdInvernadero(Integer idInvernadero) { this.idInvernadero = idInvernadero; }
     public String getFotoUrl() { return fotoUrl; }
     public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }
     public LocalDateTime getFechaRegistro() { return fechaRegistro; }
