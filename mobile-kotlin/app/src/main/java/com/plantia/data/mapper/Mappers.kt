@@ -106,7 +106,8 @@ fun PlantSummaryDto.toDomain(): PlantSummary = PlantSummary(
     fase = fase.orEmpty(),
     enRecuperacion = enRecuperacion,
     recuperacionSegundos = recuperacionSegundos?.coerceAtLeast(0),
-    golpeTipo = golpeTipo
+    golpeTipo = golpeTipo,
+    costoRevivir = costoRevivir
 )
 
 fun DailyMissionDto.toDomain(): DailyMission = DailyMission(

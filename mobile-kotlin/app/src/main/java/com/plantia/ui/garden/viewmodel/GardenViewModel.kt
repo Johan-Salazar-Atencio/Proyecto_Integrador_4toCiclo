@@ -54,6 +54,28 @@ class GardenViewModel(
             return evento != null && !planta.refugiada && !planta.muerta && !planta.enRecuperacion
         }
 
+    /** Hay una peticion de revivir en curso: evita el doble toque (y el doble cobro). */
+    var reviviendo: Boolean by mutableStateOf(false)
+        private set
+
+    /** Revive la planta muerta del jardin a cambio de hojas; entrega el mensaje para el usuario. */
+    fun revivir(alTerminar: (String) -> Unit) {
+        val actual = (uiState as? GardenUiState.Success)?.planta ?: return
+        val id = actual.id ?: return
+        if (reviviendo || !actual.muerta) return
+        reviviendo = true
+        viewModelScope.launch {
+            when (val r = garden.revivir(id)) {
+                is PlantaResultado.Con -> {
+                    uiState = GardenUiState.Success(r.planta)
+                    alTerminar("${actual.name} volvio a la vida. Cuidala bien")
+                }
+                is PlantaResultado.Fallo -> alTerminar(r.mensaje)
+            }
+            reviviendo = false
+        }
+    }
+
     /** Consulta si hay un evento activo. Un fallo de red conserva lo que ya se sabia. */
     suspend fun actualizarEvento() {
         val repo = home ?: return

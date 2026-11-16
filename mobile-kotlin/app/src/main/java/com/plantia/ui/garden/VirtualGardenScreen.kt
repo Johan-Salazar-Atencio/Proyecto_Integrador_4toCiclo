@@ -3,6 +3,7 @@ package com.plantia.ui.garden
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -41,6 +42,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -84,6 +88,7 @@ import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
 import com.plantia.util.IconosOscurosEnBarraDeEstado
+import com.plantia.util.formatoCuentaRegresiva
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -200,6 +205,15 @@ fun VirtualGardenScreen(
                     abono = viewModel.abono,
                     evento = if (viewModel.puedePrevenir || estado.planta.refugiada) viewModel.evento else null,
                     previniendo = viewModel.previniendo,
+                    reviviendo = viewModel.reviviendo,
+                    onRevivir = {
+                        viewModel.revivir { mensaje ->
+                            scope.launch {
+                                snackbar.currentSnackbarData?.dismiss()
+                                snackbar.showSnackbar(mensaje)
+                            }
+                        }
+                    },
                     onPrevenir = {
                         viewModel.prevenir { mensaje ->
                             scope.launch {
@@ -249,6 +263,9 @@ internal fun JardinContenido(
     evento: WeatherAlert? = null,
     previniendo: Boolean = false,
     onPrevenir: () -> Unit = {},
+    /** La planta murio: se ofrece revivirla a cambio de hojas. */
+    reviviendo: Boolean = false,
+    onRevivir: () -> Unit = {},
     onAbono: () -> Unit = {},
     onTienda: () -> Unit = {},
     onFondos: (() -> Unit)? = null,
@@ -276,7 +293,7 @@ internal fun JardinContenido(
                     apariencia = planta.apariencia,
                     diasCuidados = planta.diasCuidados,
                     diasTotales = planta.diasTotales,
-                    marchita = planta.healthPercent < 30,
+                    marchita = planta.healthPercent < 30 || planta.muerta,
                     onFondos = onFondos,
                     modifier = Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true)
                 )
@@ -289,10 +306,7 @@ internal fun JardinContenido(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 EncabezadoPlanta(planta)
-                TarjetaVital(planta)
-                TarjetaAcciones(planta, evento, previniendo, onPrevenir, onCuidar)
-                TarjetaAbono(abono, onAbono, onTienda)
-                TarjetaConsejo(consejo(planta))
+                CuerpoJardin(planta, evento, previniendo, onPrevenir, abono, onAbono, onTienda, reviviendo, onRevivir, onCuidar)
                 Spacer(Modifier.height(4.dp))
             }
         }
@@ -313,15 +327,120 @@ internal fun JardinContenido(
                 apariencia = planta.apariencia,
                 diasCuidados = planta.diasCuidados,
                 diasTotales = planta.diasTotales,
-                marchita = planta.healthPercent < 30,
+                marchita = planta.healthPercent < 30 || planta.muerta,
                 onFondos = onFondos,
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f)
             )
-            TarjetaVital(planta)
-            TarjetaAcciones(planta, evento, previniendo, onPrevenir, onCuidar)
-            TarjetaAbono(abono, onAbono, onTienda)
-            TarjetaConsejo(consejo(planta))
+            CuerpoJardin(planta, evento, previniendo, onPrevenir, abono, onAbono, onTienda, reviviendo, onRevivir, onCuidar)
             Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+/**
+ * Lo que va debajo del marco segun el estado de la planta: muerta (solo se ofrece revivirla), golpeada por
+ * un evento (aviso con la cuenta regresiva y los cuidados) o normal.
+ */
+@Composable
+private fun ColumnScope.CuerpoJardin(
+    planta: PlantSummary,
+    evento: WeatherAlert?,
+    previniendo: Boolean,
+    onPrevenir: () -> Unit,
+    abono: TiendaItem?,
+    onAbono: () -> Unit,
+    onTienda: () -> Unit,
+    reviviendo: Boolean,
+    onRevivir: () -> Unit,
+    onCuidar: (AccionCuidado) -> Unit
+) {
+    if (planta.muerta) {
+        TarjetaMuerta(planta, reviviendo, onRevivir)
+        TextButton(onClick = onTienda, modifier = Modifier.fillMaxWidth()) { Text("🛒 Ir a la tienda", color = GreenDark, fontWeight = FontWeight.Bold) }
+        return
+    }
+    if (planta.enRecuperacion) TarjetaRecuperacion(planta)
+    TarjetaVital(planta)
+    TarjetaAcciones(planta, evento, previniendo, onPrevenir, onCuidar)
+    TarjetaAbono(abono, onAbono, onTienda)
+    TarjetaConsejo(consejo(planta))
+}
+
+/** Segundos que quedan, contando hacia atras cada segundo a partir del valor que mando el servidor. */
+@Composable
+private fun rememberSegundosRestantes(inicial: Long?): Long? {
+    var restante by remember(inicial) { mutableStateOf(inicial) }
+    LaunchedEffect(inicial) {
+        while ((restante ?: 0L) > 0L) {
+            delay(1_000)
+            restante = restante?.minus(1)
+        }
+    }
+    return restante
+}
+
+/** La planta fue golpeada por un evento: solo el abono la salva y el tiempo corre. */
+@Composable
+private fun TarjetaRecuperacion(planta: PlantSummary) {
+    val restante = rememberSegundosRestantes(planta.recuperacionSegundos)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = RojoClaro)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("${planta.name} esta muy débil", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = RojoTexto)
+            Text(
+                "Un evento la golpeó. Solo el abono la recupera: abónala antes de que se acabe el tiempo o morirá.",
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                color = TextPrimary
+            )
+            if (restante != null) {
+                Text(
+                    "Tiempo restante  ${formatoCuentaRegresiva(restante)}",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = RojoTexto
+                )
+            }
+        }
+    }
+}
+
+/** La planta murio por no abonarla a tiempo: se puede revivir a cambio de hojas. */
+@Composable
+private fun TarjetaMuerta(planta: PlantSummary, reviviendo: Boolean, onRevivir: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = RojoClaro)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("🥀 ${planta.name} murió", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = RojoTexto)
+            Text(
+                "No se abonó a tiempo después del evento. Puedes revivirla y sigue creciendo desde donde iba.",
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                color = TextPrimary
+            )
+            Button(
+                onClick = onRevivir,
+                enabled = !reviviendo,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+            ) {
+                Text(
+                    text = when {
+                        reviviendo -> "Reviviendo..."
+                        planta.costoRevivir != null -> "Revivir · ${planta.costoRevivir} hojas"
+                        else -> "Revivir"
+                    },
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
@@ -391,7 +510,7 @@ private fun TarjetaAcciones(
                 }
                 CareActionButton(
                     etiqueta = accion.etiqueta,
-                    pista = accion.pista,
+                    pista = if (accion == AccionCuidado.ABONAR && planta.enRecuperacion) "Recupera" else accion.pista,
                     icono = icono,
                     colorIcono = Color.White,
                     colorFondo = color,

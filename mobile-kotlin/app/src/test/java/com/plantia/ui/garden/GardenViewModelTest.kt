@@ -232,4 +232,46 @@ class GardenViewModelTest {
 
         assertTrue(vm.evento != null)
     }
+
+    // --- Revivir ---
+
+    private fun muerta() = planta(salud = 0).copy(fase = "MUERTA", costoRevivir = 250)
+
+    @Test
+    fun revivir_a_una_planta_muerta_la_devuelve_a_la_vida_y_avisa() {
+        garden.activa = PlantaActivaResultado.ConPlanta(muerta())
+        garden.alRevivir = PlantaResultado.Con(planta(salud = 50).copy(fase = "BROTE"))
+        val vm = GardenViewModel(garden)
+        var mensaje = ""
+
+        vm.revivir { mensaje = it }
+
+        assertEquals(listOf(1), garden.revividos)
+        assertFalse((vm.uiState as GardenUiState.Success).planta.muerta)
+        assertEquals("Monstera volvio a la vida. Cuidala bien", mensaje)
+        assertFalse(vm.reviviendo)
+    }
+
+    @Test
+    fun si_no_alcanzan_las_hojas_muestra_el_mensaje_y_la_planta_sigue_muerta() {
+        garden.activa = PlantaActivaResultado.ConPlanta(muerta())
+        garden.alRevivir = PlantaResultado.Fallo("No te alcanzan las hojas para revivirla")
+        val vm = GardenViewModel(garden)
+        var mensaje = ""
+
+        vm.revivir { mensaje = it }
+
+        assertEquals("No te alcanzan las hojas para revivirla", mensaje)
+        assertTrue((vm.uiState as GardenUiState.Success).planta.muerta)
+        assertFalse(vm.reviviendo)
+    }
+
+    @Test
+    fun una_planta_viva_no_se_manda_a_revivir() {
+        val vm = GardenViewModel(garden)
+
+        vm.revivir {}
+
+        assertTrue(garden.revividos.isEmpty())
+    }
 }

@@ -26,7 +26,9 @@ data class PlantSummary(
     /** Segundos que quedan para abonarla; null si no esta en recuperacion. */
     val recuperacionSegundos: Long? = null,
     /** Evento que la golpeo y cuya animacion aun no se vio (null = ninguna pendiente). */
-    val golpeTipo: String? = null
+    val golpeTipo: String? = null,
+    /** Hojas que cuesta revivirla; solo llega cuando la planta esta muerta. */
+    val costoRevivir: Int? = null
 ) {
     /** Murio por no abonarla a tiempo: se puede revivir a cambio de hojas. */
     val muerta: Boolean get() = fase == "MUERTA"

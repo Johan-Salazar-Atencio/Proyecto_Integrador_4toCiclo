@@ -70,7 +70,8 @@ data class PlantSummaryDto(
     val fase: String? = null,
     val enRecuperacion: Boolean = false,
     val recuperacionSegundos: Long? = null,
-    val golpeTipo: String? = null
+    val golpeTipo: String? = null,
+    val costoRevivir: Int? = null
 )
 
 data class AparienciaDto(
