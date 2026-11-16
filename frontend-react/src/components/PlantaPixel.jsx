@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { LADO, TIERRA, paletaDe, spritesDe, tramos } from './plantaPixelSprites'
+import { COLUMNAS, celdasDeMaceta } from './macetas'
 import './planta-pixel.css'
 
 // Planta en pixel art (SVG, 32x32) con 7 etapas de crecimiento. Su dibujo y sus colores salen
@@ -9,7 +10,8 @@ const MARCHITA = 6
 const rects = (lista) =>
   lista.map((t) => <rect key={`${t.x}-${t.y}`} x={t.x} y={t.y} width={t.ancho} height="1" fill={t.color} />)
 
-export default function PlantaPixel({ etapa = 0, apariencia = null, titulo, animar = true, className = '' }) {
+// `maceta` es el codigo de la maceta puesta (AZUL, ROSA...): con ella se dibuja la maceta en lugar del monton de tierra.
+export default function PlantaPixel({ etapa = 0, apariencia = null, titulo, animar = true, className = '', maceta = null }) {
   const indice = Math.max(0, Math.min(MARCHITA, etapa))
   const { planta, suelo } = useMemo(() => {
     const paleta = paletaDe(apariencia)
@@ -26,7 +28,12 @@ export default function PlantaPixel({ etapa = 0, apariencia = null, titulo, anim
     >
       {titulo && <title>{titulo}</title>}
       <g className="planta-pixel-tallo">{rects(planta)}</g>
-      {rects(suelo)}
+      {maceta ? (
+        // 13 de 32 de ancho, apoyada en la fila de tierra (27) como en la app
+        <g transform={`translate(${(LADO - 13) / 2} 27) scale(${13 / COLUMNAS})`}>
+          {celdasDeMaceta(maceta).map((c) => <rect key={`${c.x}-${c.y}`} x={c.x} y={c.y} width="1.03" height="1.03" fill={c.color} />)}
+        </g>
+      ) : rects(suelo)}
     </svg>
   )
 }

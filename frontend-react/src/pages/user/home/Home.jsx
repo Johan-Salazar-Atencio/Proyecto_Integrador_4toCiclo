@@ -1,5 +1,4 @@
 import AlertaClima from './components/AlertaClima'
-import Accesos from './components/Accesos'
 import MisionDiaria from './components/MisionDiaria'
 import TarjetaPlanta from './components/TarjetaPlanta'
 import TarjetaUsuario from './components/TarjetaUsuario'
@@ -7,7 +6,7 @@ import useHome from './useHome'
 import './home.css'
 
 export default function Home() {
-  const { cargando, usuario, alerta, planta, mision, error, recargar } = useHome()
+  const { cargando, usuario, alerta, planta, plantas, mision, error, aviso, ocupado, mover, cuidar, recargar } = useHome()
 
   if (cargando) {
     return <div className="home-cargando"><span className="home-giro" aria-label="Cargando" /></div>
@@ -23,10 +22,11 @@ export default function Home() {
       )}
 
       {usuario && <TarjetaUsuario usuario={usuario} />}
+      {planta && <TarjetaPlanta planta={planta} plantas={plantas} ocupado={ocupado} onMover={mover} onCuidar={cuidar} />}
       {alerta && <AlertaClima alerta={alerta} />}
-      {planta && <TarjetaPlanta planta={planta} />}
-      <Accesos />
       {mision && <MisionDiaria mision={mision} />}
+
+      {aviso && <div className="jardin-aviso" role="status">{aviso}</div>}
     </div>
   )
 }
