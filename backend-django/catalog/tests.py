@@ -803,3 +803,54 @@ class AdminReglasTests(SimpleTestCase):
     def test_regla_inexistente_devuelve_404(self):
         respuesta, _ = self._llamar(admin_views.AdminReglaDetailView, "patch", {"xp": 1}, regla=None, pk=99)
         self.assertEqual(respuesta.status_code, 404)
+
+
+class TipoDesastreEnElAdminTests(SimpleTestCase):
+    """La imagen del evento se ve en el admin y se puede subir desde ahi."""
+
+    def _admin(self):
+        from django.contrib import admin as django_admin
+        from .admin import TipoDesastreAdmin
+        from .models import TipoDesastre
+
+        return TipoDesastreAdmin(TipoDesastre, django_admin.site), TipoDesastre(id_tipo_desastre=3, codigo="OLA_DE_CALOR", nombre="Ola de calor")
+
+    def test_sin_imagen_dice_sin_imagen(self):
+        modelo, tipo = self._admin()
+        self.assertEqual(modelo.vista_imagen(tipo), "Sin imagen")
+
+    def test_con_imagen_muestra_la_miniatura_desde_spring(self):
+        modelo, tipo = self._admin()
+        tipo.imagen_url = "/files/eventos/ola_de_calor_ab12cd34.jpg"
+        html = str(modelo.vista_imagen(tipo))
+        self.assertIn("<img", html)
+        self.assertIn("/files/eventos/ola_de_calor_ab12cd34.jpg", html)
+
+    def test_subir_la_imagen_la_guarda_y_deja_su_direccion(self):
+        import tempfile
+        from unittest.mock import MagicMock
+
+        from django.test import override_settings
+
+        modelo, tipo = self._admin()
+        form = MagicMock()
+        form.cleaned_data = {"subir_imagen": object()}
+        form.imagen_procesada = b"\xff\xd8jpg-de-prueba"
+        with tempfile.TemporaryDirectory() as carpeta, override_settings(STORAGE_IMAGES_DIR=carpeta), \
+                patch("django.contrib.admin.ModelAdmin.save_model") as guardar_modelo:
+            modelo.save_model(MagicMock(), tipo, form, change=True)
+            self.assertTrue(tipo.imagen_url.startswith("/files/eventos/ola_de_calor_"))
+            self.assertTrue(os.path.exists(os.path.join(carpeta, "eventos", os.path.basename(tipo.imagen_url))))
+            guardar_modelo.assert_called_once()
+
+    def test_una_imagen_muy_chica_se_rechaza_en_el_formulario(self):
+        from .admin import TipoDesastreForm
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+        import io
+
+        buf = io.BytesIO()
+        Image.new("RGB", (100, 60)).save(buf, "PNG")
+        form = TipoDesastreForm(data={}, files={"subir_imagen": SimpleUploadedFile("chica.png", buf.getvalue())})
+        form.is_valid()
+        self.assertIn("subir_imagen", form.errors)

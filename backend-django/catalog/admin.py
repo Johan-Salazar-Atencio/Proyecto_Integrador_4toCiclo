@@ -1,5 +1,12 @@
 """Panel de administracion de Plantia (curacion del catalogo y cuidados)."""
+import os
+
+from django import forms
+from django.conf import settings
 from django.contrib import admin
+from django.utils.html import format_html
+
+from . import eventos_imagen
 
 from .models import (
     CuidadoSeccion,
@@ -155,12 +162,58 @@ class RegionAdmin(admin.ModelAdmin):
     search_fields = ("codigo", "nombre")
 
 
+class TipoDesastreForm(forms.ModelForm):
+    """Deja subir la imagen del evento (la de la tarjeta del Inicio) sin escribir su direccion a mano."""
+
+    subir_imagen = forms.FileField(
+        required=False,
+        label="Subir imagen del evento",
+        help_text="PNG, JPG o WebP, de al menos 400 px de ancho. Se reduce y reemplaza la actual.",
+    )
+
+    class Meta:
+        model = TipoDesastre
+        fields = "__all__"
+
+    def clean_subir_imagen(self):
+        archivo = self.cleaned_data.get("subir_imagen")
+        if archivo is None:
+            return None
+        try:
+            self.imagen_procesada = eventos_imagen.procesar(archivo.read())
+        except eventos_imagen.ErrorImagen as exc:
+            raise forms.ValidationError(str(exc))
+        return archivo
+
+
+def url_de_imagen(ruta):
+    """Direccion completa de una imagen que Spring sirve en /files (None si no hay)."""
+    if not ruta:
+        return None
+    return ruta if ruta.startswith("http") else f"{settings.SPRING_PUBLIC_URL}{ruta}"
+
+
 @admin.register(TipoDesastre)
 class TipoDesastreAdmin(admin.ModelAdmin):
-    list_display = ("id_tipo_desastre", "codigo", "nombre", "color_hex", "activo")
+    form = TipoDesastreForm
+    list_display = ("id_tipo_desastre", "vista_imagen", "codigo", "nombre", "color_hex", "activo")
     list_filter = ("activo",)
     search_fields = ("codigo", "nombre", "descripcion")
-    readonly_fields = ("fecha_creacion",)
+    readonly_fields = ("fecha_creacion", "vista_imagen")
+
+    @admin.display(description="Imagen")
+    def vista_imagen(self, obj):
+        url = url_de_imagen(obj.imagen_url) if obj else None
+        if not url:
+            return "Sin imagen"
+        return format_html('<img src="{}" alt="Imagen del evento" style="max-height:80px;border-radius:6px">', url)
+
+    def save_model(self, request, obj, form, change):
+        jpg = getattr(form, "imagen_procesada", None) if form.cleaned_data.get("subir_imagen") else None
+        if jpg is not None:
+            nombre = eventos_imagen.guardar(os.path.join(settings.STORAGE_IMAGES_DIR, "eventos"), obj.codigo, jpg)
+            obj.imagen_url = f"/files/eventos/{nombre}"
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(TemaFondo)

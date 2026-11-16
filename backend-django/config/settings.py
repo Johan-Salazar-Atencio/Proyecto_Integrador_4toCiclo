@@ -155,6 +155,8 @@ IA_PROVIDER = os.getenv("IA_PROVIDER", "auto")
 
 # Carpeta que Spring sirve en /files/**: aqui se guardan las imagenes de los fondos que sube el admin
 # (en desarrollo, la misma carpeta de Spring; en un servidor, un volumen compartido).
+# Direccion desde donde se ven las imagenes que Spring sirve en /files/** (el admin las muestra desde ahi)
+SPRING_PUBLIC_URL = os.getenv("SPRING_PUBLIC_URL", "http://localhost:8080").rstrip("/")
 STORAGE_IMAGES_DIR = os.getenv(
     "STORAGE_IMAGES_DIR", str(BASE_DIR.parent / "backend-spring-boot" / "storage" / "images"))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
