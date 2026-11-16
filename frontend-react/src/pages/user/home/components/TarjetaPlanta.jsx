@@ -53,6 +53,12 @@ export default function TarjetaPlanta({ planta, plantas, ocupado, onMover, onCui
         <button className="inicio-nombre-boton" onClick={entrar}>{planta.name}</button>
         <span className="planta-especie">{planta.species}</span>
       </div>
+      {planta.fase === 'MUERTA' ? (
+        // Murio por no abonarla a tiempo: no se cuida, se revive (en el jardin, a cambio de hojas)
+        <button className="inicio-murio" onClick={entrar}>
+          💀 Murió · Revivir en el jardín{planta.costoRevivir != null ? ` (${planta.costoRevivir} 🍃)` : ''}
+        </button>
+      ) : (
       <div className="inicio-cuidados">
         {BOTONES.map(({ accion, texto, icono, clase }) => (
           <button key={accion} className={`inicio-cuidado ${clase}`} onClick={() => onCuidar(accion)} disabled={ocupado} title={ACCIONES[accion].pista}>
@@ -61,6 +67,7 @@ export default function TarjetaPlanta({ planta, plantas, ocupado, onMover, onCui
           </button>
         ))}
       </div>
+      )}
     </section>
   )
 }

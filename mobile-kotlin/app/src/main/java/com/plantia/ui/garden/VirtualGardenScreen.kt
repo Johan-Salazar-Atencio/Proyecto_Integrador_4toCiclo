@@ -95,6 +95,7 @@ import kotlinx.coroutines.launch
 
 // El backend no manda animo ni consejos: se derivan de los porcentajes.
 internal fun estadoAnimo(planta: PlantSummary): String = when {
+    planta.muerta || planta.enRecuperacion -> "Triste"
     planta.healthPercent >= 70 -> "Feliz"
     planta.healthPercent >= 40 -> "Regular"
     else -> "Triste"

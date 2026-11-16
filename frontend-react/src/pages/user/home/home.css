@@ -80,3 +80,5 @@
 
 .mision-enlace { color: inherit; }
 .mision-evento-etiqueta { padding: 4px 10px; background: var(--rojo); color: #fff; border-radius: 999px; font-size: 0.75rem; font-weight: 800; }
+
+.inicio-murio { margin: 0 8px 6px; padding: 12px; border: 0; border-radius: 14px; background: var(--rojo-claro); color: var(--rojo); font: inherit; font-weight: 700; cursor: pointer; }

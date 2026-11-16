@@ -49,6 +49,8 @@ import com.plantia.ui.theme.FuentePixel
 import com.plantia.ui.theme.GreenDark
 import com.plantia.ui.theme.GreenLight
 import com.plantia.ui.theme.GreenPrimary
+import com.plantia.ui.theme.RojoClaro
+import com.plantia.ui.theme.RojoTexto
 import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
@@ -137,10 +139,23 @@ fun PlantSummaryCard(
                     )
                 }
                 Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BotonCuidado("Regar", Icons.Default.Opacity, BlueLight, BlueInfo) { onCuidar(AccionCuidado.REGAR) }
-                    BotonCuidado("Luz", Icons.Default.WbSunny, AmberLight, AmberDark) { onCuidar(AccionCuidado.SOL) }
-                    BotonCuidado("Abono", Icons.Default.Grass, GreenLight, GreenDark) { onCuidar(AccionCuidado.ABONAR) }
+                if (plant.muerta) {
+                    // Murio por no abonarla a tiempo: no se cuida, se revive (en el jardin, a cambio de hojas)
+                    Surface(onClick = onEnterGarden, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), color = RojoClaro) {
+                        Text(
+                            text = plant.costoRevivir?.let { "Murió · Revivir en el jardín ($it hojas)" } ?: "Murió · Revivir en el jardín",
+                            modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = RojoTexto
+                        )
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        BotonCuidado("Regar", Icons.Default.Opacity, BlueLight, BlueInfo) { onCuidar(AccionCuidado.REGAR) }
+                        BotonCuidado("Luz", Icons.Default.WbSunny, AmberLight, AmberDark) { onCuidar(AccionCuidado.SOL) }
+                        BotonCuidado("Abono", Icons.Default.Grass, GreenLight, GreenDark) { onCuidar(AccionCuidado.ABONAR) }
+                    }
                 }
             }
         }
