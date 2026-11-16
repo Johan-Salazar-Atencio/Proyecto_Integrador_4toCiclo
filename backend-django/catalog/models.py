@@ -69,8 +69,7 @@ class Usuario(models.Model):
     experiencia_xp = models.IntegerField(default=0)
     monedas = models.IntegerField(default=100)
     racha_dias = models.IntegerField(default=0)
-    region = models.CharField(max_length=100, default="GLOBAL")
-    # Llave a regiones; si va vacia, la base la completa desde `region` (V13)
+    # Region del usuario (tabla regiones); si va vacia, la base la deja en GLOBAL (V25)
     id_region = models.ForeignKey(
         Region, on_delete=models.SET_NULL, db_column="id_region", null=True, blank=True
     )
@@ -87,6 +86,11 @@ class Usuario(models.Model):
         db_table = "usuarios"
         verbose_name = "Usuario"
         verbose_name_plural = "Usuarios"
+
+    @property
+    def region(self):
+        """Codigo de su region (GLOBAL si no tiene)."""
+        return self.id_region.codigo if self.id_region_id else "GLOBAL"
 
     def __str__(self):
         return f"{self.nombre} ({self.email})"
@@ -189,12 +193,10 @@ class EventoDesastre(models.Model):
     id_creador = models.ForeignKey(
         Usuario, on_delete=models.SET_NULL, db_column="id_creador", null=True, blank=True
     )
-    # Texto y llave conviven hasta la migracion que elimine el texto; se guardan los dos
-    tipo_evento = models.CharField(max_length=50)
+    # Tipo y zona del evento: solo las llaves (V25 quito las columnas de texto)
     id_tipo_desastre = models.ForeignKey(
         TipoDesastre, on_delete=models.PROTECT, db_column="id_tipo_desastre", null=True, blank=True
     )
-    region = models.CharField(max_length=100, default="GLOBAL")
     id_region = models.ForeignKey(
         Region, on_delete=models.SET_NULL, db_column="id_region", null=True, blank=True
     )
@@ -213,6 +215,16 @@ class EventoDesastre(models.Model):
         verbose_name = "Evento de desastre"
         verbose_name_plural = "Eventos de desastre"
         ordering = ["-fecha_inicio"]
+
+    @property
+    def tipo_evento(self):
+        """Codigo del tipo (HUAYCO, HELADA...); vacio si el evento no tiene tipo."""
+        return self.id_tipo_desastre.codigo if self.id_tipo_desastre_id else ""
+
+    @property
+    def region(self):
+        """Codigo de la region a la que afecta (GLOBAL si no tiene)."""
+        return self.id_region.codigo if self.id_region_id else "GLOBAL"
 
     def __str__(self):
         return f"{self.tipo_evento} / {self.region} [{self.estado}]"

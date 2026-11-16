@@ -53,7 +53,7 @@ class EventoActivoView(generics.GenericAPIView):
         )
         region = (request.query_params.get("region") or "").strip()
         if region:
-            qs = qs.filter(Q(region="GLOBAL") | Q(region=region))
+            qs = qs.filter(Q(id_region__isnull=True) | Q(id_region__codigo="GLOBAL") | Q(id_region__codigo=region))
         evento = qs.order_by("-fecha_inicio").first()
         if not evento:
             return Response(status=204)

@@ -75,15 +75,15 @@ class RegistroDesastreInline(admin.TabularInline):
 class EventoDesastreAdmin(admin.ModelAdmin):
     list_display = (
         "id_desastre",
-        "tipo_evento",
-        "region",
+        "id_tipo_desastre",
+        "id_region",
         "severidad",
         "estado",
         "fecha_inicio",
         "fecha_fin",
     )
-    list_filter = ("tipo_evento", "estado", "severidad", "region")
-    search_fields = ("mensaje_notificacion", "region")
+    list_filter = ("id_tipo_desastre", "estado", "severidad", "id_region")
+    search_fields = ("mensaje_notificacion", "id_region__nombre")
     inlines = [RegistroDesastreInline]
     actions = ["activar", "finalizar"]
 
@@ -125,8 +125,8 @@ class PlantaUsuarioInline(admin.TabularInline):
 @admin.register(Usuario)
 class UsuarioAdmin(admin.ModelAdmin):
     inlines = [PlantaUsuarioInline]
-    list_display = ("id_usuario", "nombre", "email", "rol", "nivel", "monedas", "region")
-    list_filter = ("rol", "region")
+    list_display = ("id_usuario", "nombre", "email", "rol", "nivel", "monedas", "id_region")
+    list_filter = ("rol", "id_region")
     search_fields = ("nombre", "email")
     readonly_fields = ("password_hash", "fecha_registro", "updated_at")
 

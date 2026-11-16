@@ -39,7 +39,9 @@ class MisionEventoServiceTest {
         plantaRepo = mock(PlantaUsuarioRepository.class);
         UsuarioRepository usuarioRepo = mock(UsuarioRepository.class);
         Usuario u = new Usuario();
-        u.setRegion("LIMA");
+        com.plantia.models.Region lima = new com.plantia.models.Region();
+        lima.setCodigo("LIMA");
+        u.setRegionEntidad(lima);
         when(usuarioRepo.findById(USER)).thenReturn(Optional.of(u));
         TipoDesastreRepository tipoRepo = mock(TipoDesastreRepository.class);
         TipoDesastre tipo = new TipoDesastre();

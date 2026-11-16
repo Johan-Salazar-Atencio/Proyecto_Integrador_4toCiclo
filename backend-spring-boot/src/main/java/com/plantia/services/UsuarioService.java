@@ -79,8 +79,7 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         Region region = regionRepo.findByCodigoAndActivaTrue(codigo == null ? "" : codigo.trim())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Region no valida"));
-        u.setRegion(region.getCodigo());
-        u.setIdRegion(region.getIdRegion());
+        u.setRegionEntidad(region);
         usuarioRepo.save(u);
         return resumen(u);
     }

@@ -144,9 +144,7 @@ class AdminEventoCreateView(APIView):
             region, _ = Region.objects.get_or_create(codigo=codigo_region, defaults={"nombre": codigo_region})
             evento = EventoDesastre.objects.create(
                 id_creador=admin,
-                tipo_evento=tipo.codigo,
                 id_tipo_desastre=tipo,
-                region=region.codigo,
                 id_region=region,
                 mensaje_notificacion=data["mensaje_notificacion"],
                 fecha_inicio=data["fecha_inicio"],

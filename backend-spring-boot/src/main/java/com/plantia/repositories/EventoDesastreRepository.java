@@ -12,11 +12,11 @@ import com.plantia.models.EventoDesastre;
 public interface EventoDesastreRepository extends JpaRepository<EventoDesastre, Integer> {
 
     @Query("""
-            SELECT e FROM EventoDesastre e
+            SELECT e FROM EventoDesastre e LEFT JOIN e.regionEntidad r
             WHERE e.estado = 'ACTIVO'
               AND e.fechaInicio <= CURRENT_TIMESTAMP
               AND e.fechaFin > CURRENT_TIMESTAMP
-              AND (e.region = 'GLOBAL' OR e.region = :region)
+              AND (r IS NULL OR r.codigo = 'GLOBAL' OR r.codigo = :region)
             ORDER BY e.fechaInicio DESC
             """)
     List<EventoDesastre> activosParaRegion(@Param("region") String region);

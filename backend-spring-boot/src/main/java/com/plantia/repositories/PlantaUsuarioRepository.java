@@ -13,9 +13,9 @@ public interface PlantaUsuarioRepository extends JpaRepository<PlantaUsuario, In
 
     List<PlantaUsuario> findByIdUsuarioOrderByFechaPlantadoDesc(Integer idUsuario);
 
-    /** Plantas de los usuarios cuya region coincide (texto, igual que la alerta del Home). */
+    /** Plantas de los usuarios cuya region coincide (por su codigo, igual que la alerta del Home). */
     @Query("SELECT p FROM PlantaUsuario p WHERE p.idUsuario IN "
-            + "(SELECT u.idUsuario FROM Usuario u WHERE u.region = :region)")
+            + "(SELECT u.idUsuario FROM Usuario u LEFT JOIN u.regionEntidad r WHERE COALESCE(r.codigo, 'GLOBAL') = :region)")
     List<PlantaUsuario> findDeUsuariosDeRegion(@Param("region") String region);
 
     Optional<PlantaUsuario> findFirstByIdUsuarioAndEtapaCrecimientoNotOrderByFechaPlantadoDesc(

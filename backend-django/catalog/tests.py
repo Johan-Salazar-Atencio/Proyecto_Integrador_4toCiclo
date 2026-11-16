@@ -87,33 +87,50 @@ class CrearEventoTiposTests(SimpleTestCase):
         self.assertEqual(respuesta.status_code, 400)
         crear.assert_not_called()
 
-    def test_tipo_valido_guarda_texto_y_llaves(self):
+    def test_tipo_valido_guarda_solo_las_llaves(self):
         from .models import TipoDesastre
 
         tipo = TipoDesastre(id_tipo_desastre=1, codigo="HUAYCO", nombre="Huayco")
         respuesta, crear = self._post(self.DATOS, tipo=tipo, region_creada=True)
         self.assertEqual(respuesta.status_code, 201)
         argumentos = crear.call_args.kwargs
-        self.assertEqual(argumentos["tipo_evento"], "HUAYCO")
+        self.assertNotIn("tipo_evento", argumentos)
+        self.assertNotIn("region", argumentos)
         self.assertIs(argumentos["id_tipo_desastre"], tipo)
-        self.assertEqual(argumentos["region"], "Arequipa")
         self.assertEqual(argumentos["id_region"].id_region, 9)
+        self.assertEqual(argumentos["id_region"].codigo, "Arequipa")
 
 
 class EventoSerializerTests(SimpleTestCase):
     def test_evento_sin_tipo_enlazado_no_falla(self):
         from datetime import datetime
 
+        from .models import EventoDesastre, Region, TipoDesastre
+        from .serializers import EventoDesastreSerializer
+
+        evento = EventoDesastre(
+            id_desastre=1, id_tipo_desastre=TipoDesastre(id_tipo_desastre=1, codigo="HUAYCO", nombre="Huayco"),
+            id_region=Region(id_region=1, codigo="GLOBAL", nombre="Global"), mensaje_notificacion="m",
+            fecha_inicio=datetime(2026, 11, 15), fecha_fin=datetime(2026, 11, 16),
+        )
+        datos = EventoDesastreSerializer(evento).data
+        self.assertEqual(datos["tipo_evento"], "HUAYCO")
+        self.assertEqual(datos["region"], "GLOBAL")
+        self.assertEqual(datos["tipo_nombre"], "Huayco")
+
+    def test_evento_sin_tipo_ni_region_no_falla(self):
+        from datetime import datetime
+
         from .models import EventoDesastre
         from .serializers import EventoDesastreSerializer
 
         evento = EventoDesastre(
-            id_desastre=1, tipo_evento="HUAYCO", region="GLOBAL", mensaje_notificacion="m",
-            fecha_inicio=datetime(2026, 11, 15), fecha_fin=datetime(2026, 11, 16),
+            id_desastre=1, mensaje_notificacion="m", fecha_inicio=datetime(2026, 11, 15), fecha_fin=datetime(2026, 11, 16),
         )
         datos = EventoDesastreSerializer(evento).data
+        self.assertEqual(datos["tipo_evento"], "")
+        self.assertEqual(datos["region"], "GLOBAL")
         self.assertIsNone(datos["tipo_nombre"])
-        self.assertEqual(datos["tipo_evento"], "HUAYCO")
 
 
 class EventoActivoVigenciaTests(SimpleTestCase):

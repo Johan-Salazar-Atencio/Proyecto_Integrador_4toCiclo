@@ -5,9 +5,12 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -50,12 +53,10 @@ public class Usuario {
     @Column(name = "racha_dias")
     private Integer rachaDias;
 
-    @Column(name = "region")
-    private String region;
-
-    /** Llave a regiones; si va vacia, la base la completa desde region (V13). */
-    @Column(name = "id_region")
-    private Integer idRegion;
+    /** Region del usuario (tabla regiones). Si va vacia, la base lo deja en GLOBAL (V25). */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_region")
+    private Region regionEntidad;
 
     /** Ultimo dia con actividad; base de la racha diaria. */
     @Column(name = "ultima_actividad")
@@ -96,10 +97,11 @@ public class Usuario {
     public void setMonedas(Integer monedas) { this.monedas = monedas; }
     public Integer getRachaDias() { return rachaDias; }
     public void setRachaDias(Integer rachaDias) { this.rachaDias = rachaDias; }
-    public String getRegion() { return region; }
-    public void setRegion(String region) { this.region = region; }
-    public Integer getIdRegion() { return idRegion; }
-    public void setIdRegion(Integer idRegion) { this.idRegion = idRegion; }
+    public Region getRegionEntidad() { return regionEntidad; }
+    public void setRegionEntidad(Region regionEntidad) { this.regionEntidad = regionEntidad; }
+    /** Codigo de su region (GLOBAL si no tiene). */
+    public String getRegion() { return regionEntidad == null || regionEntidad.getCodigo() == null ? "GLOBAL" : regionEntidad.getCodigo(); }
+    public Integer getIdRegion() { return regionEntidad == null ? null : regionEntidad.getIdRegion(); }
     public LocalDate getUltimaActividad() { return ultimaActividad; }
     public void setUltimaActividad(LocalDate ultimaActividad) { this.ultimaActividad = ultimaActividad; }
     public Integer getIdInvernadero() { return idInvernadero; }
