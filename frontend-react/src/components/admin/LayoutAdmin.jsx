@@ -10,6 +10,8 @@ const MENU = [
   { ruta: RUTAS_ADMIN.EVENTOS, icono: '⚠️', texto: 'Lanzador de desastres' },
   { ruta: RUTAS_ADMIN.MISIONES, icono: '🎯', texto: 'Misiones diarias' },
   { ruta: RUTAS_ADMIN.TIENDA, icono: '🛒', texto: 'Tienda' },
+  { ruta: RUTAS_ADMIN.JUEGO, icono: '🍃', texto: 'Economía del juego' },
+  { ruta: RUTAS_ADMIN.TIPOS_EVENTO, icono: '🌦️', texto: 'Tipos de evento' },
   { ruta: RUTAS_ADMIN.CATALOGO, icono: '📖', texto: 'Catálogo y moderación' },
 ]
 

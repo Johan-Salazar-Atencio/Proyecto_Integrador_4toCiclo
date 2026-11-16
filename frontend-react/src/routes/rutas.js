@@ -24,4 +24,6 @@ export const RUTAS_ADMIN = {
   CATALOGO: '/admin/catalogo',
   MISIONES: '/admin/misiones',
   TIENDA: '/admin/tienda',
+  JUEGO: '/admin/juego',
+  TIPOS_EVENTO: '/admin/tipos-evento',
 }
