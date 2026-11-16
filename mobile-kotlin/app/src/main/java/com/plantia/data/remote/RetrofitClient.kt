@@ -161,8 +161,10 @@ object RetrofitClient {
      */
     fun urlAbsoluta(url: String?): String? {
         if (url.isNullOrBlank()) return null
-        if (!url.startsWith("http")) return null
         val base = (_baseUrl.value ?: BuildConfig.API_BASE_URL).trimEnd('/')
+        // Una ruta del servidor (por ejemplo la imagen de un evento: /files/eventos/x.jpg) se cuelga de su direccion
+        if (url.startsWith("/")) return base + url
+        if (!url.startsWith("http")) return null
         return url.replaceFirst(Regex("^https?://[^/]+"), base)
     }
 }
