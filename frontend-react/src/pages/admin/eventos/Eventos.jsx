@@ -35,7 +35,7 @@ export default function Eventos() {
   const lanzar = async (datos) => {
     await crearEvento(datos)
     await cargar()
-    avisar('Evento lanzado (simulado: aún no se guarda en la base de datos)')
+    avisar('Evento lanzado: los usuarios ya lo reciben')
   }
 
   const cancelar = async (evento) => {
@@ -43,11 +43,11 @@ export default function Eventos() {
     await cancelarEvento(evento.id_desastre)
     await cargar()
     setCancelando(false)
-    avisar('Emergencia cancelada (simulado)')
+    avisar('Emergencia cancelada')
   }
 
   const { cargando, eventos, error } = estado
-  const activo = eventos.find((e) => e.estado === 'ACTIVO')
+  const activo = eventos.find((e) => e.estado === 'ACTIVO' && new Date(e.fecha_fin) > new Date())
 
   if (cargando) return <div className="home-cargando"><span className="home-giro" aria-label="Cargando" /></div>
 

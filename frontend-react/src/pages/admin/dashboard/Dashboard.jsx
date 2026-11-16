@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { obtenerActividad, obtenerResumen, obtenerUltimosEscaneos } from '../../../services/admin/estadisticas'
+import { obtenerEstadisticas } from '../../../services/admin/estadisticas'
 import Grafico from './Grafico'
 import TablaEscaneos from './TablaEscaneos'
 import './dashboard.css'
@@ -9,17 +9,22 @@ const formato = (n) => (n == null ? '—' : Number(n).toLocaleString('es-PE'))
 export default function Dashboard() {
   const [estado, setEstado] = useState({ cargando: true, resumen: null, actividad: [], escaneos: [], error: '' })
 
-  const cargar = useCallback(async () => {
-    setEstado((e) => ({ ...e, cargando: true, error: '' }))
+  // `silencioso`: el refresco automatico no vuelve a mostrar el giro de carga
+  const cargar = useCallback(async (silencioso = false) => {
+    if (!silencioso) setEstado((e) => ({ ...e, cargando: true, error: '' }))
     try {
-      const [resumen, actividad, escaneos] = await Promise.all([obtenerResumen(), obtenerActividad(), obtenerUltimosEscaneos()])
+      const { resumen, actividad, escaneos } = await obtenerEstadisticas()
       setEstado({ cargando: false, resumen, actividad, escaneos, error: '' })
     } catch {
       setEstado({ cargando: false, resumen: null, actividad: [], escaneos: [], error: 'No se pudo leer Django. ¿Está encendido en el puerto 8000?' })
     }
   }, [])
 
-  useEffect(() => { cargar() }, [cargar])
+  useEffect(() => {
+    cargar()
+    const reloj = setInterval(() => cargar(true), 10000) // en vivo: se actualiza solo cada 10 s
+    return () => clearInterval(reloj)
+  }, [cargar])
 
   const { cargando, resumen, actividad, escaneos, error } = estado
 
@@ -29,21 +34,21 @@ export default function Dashboard() {
     return (
       <div className="home-error" role="alert">
         <span>{error}</span>
-        <button onClick={cargar}>Reintentar</button>
+        <button onClick={() => cargar()}>Reintentar</button>
       </div>
     )
   }
 
   const tarjetas = [
-    { icono: '👥', titulo: 'Total usuarios', valor: formato(resumen.usuarios), nota: resumen.crecimientoUsuarios == null ? '—' : `+${resumen.crecimientoUsuarios}% este mes`, ejemplo: true },
-    { icono: '📷', titulo: 'Escaneos IA hoy', valor: formato(resumen.escaneosHoy), nota: `Pico: ${resumen.picoPorMinuto == null ? '—' : resumen.picoPorMinuto} req/min`, ejemplo: true },
-    { icono: '📖', titulo: 'Especies en catálogo', valor: formato(resumen.especies), nota: `${resumen.toxicas} tóxicas para mascotas${resumen.origenCatalogo === 'spring' ? ' · leído de Spring' : ''}` },
+    { icono: '👥', titulo: 'Total usuarios', valor: formato(resumen.usuarios), nota: `${resumen.usuariosNuevosMes} nuevos este mes${resumen.crecimientoUsuarios == null ? '' : ` (${resumen.crecimientoUsuarios >= 0 ? '+' : ''}${resumen.crecimientoUsuarios}% vs. mes pasado)`}` },
+    { icono: '📷', titulo: 'Escaneos IA hoy', valor: formato(resumen.escaneosHoy), nota: `Pico: ${resumen.picoPorMinuto} escaneos/min` },
+    { icono: '📖', titulo: 'Especies en catálogo', valor: formato(resumen.especies), nota: `${resumen.toxicas} tóxicas para mascotas` },
     { icono: '⚠️', titulo: 'Eventos activos', valor: formato(resumen.eventosActivos), nota: `${resumen.eventosTotales} ${resumen.eventosTotales === 1 ? 'evento' : 'eventos'} en total` },
   ]
 
   return (
     <div className="dashboard">
-      <p className="dashboard-intro aparece">Resumen del motor IA, los eventos climáticos y la comunidad. Las tarjetas marcadas con <span className="dashboard-ejemplo">ejemplo</span> aún no vienen del servidor.</p>
+      <p className="dashboard-intro aparece">Resumen del motor IA, los eventos climáticos y la comunidad. Datos reales de la base de datos, se actualizan solos cada 10 segundos.</p>
 
       <section className="dashboard-tarjetas">
         {tarjetas.map((t, i) => (
@@ -54,7 +59,6 @@ export default function Dashboard() {
             </div>
             <b>{t.valor}</b>
             <small>{t.nota}</small>
-            {t.ejemplo && <span className="dashboard-ejemplo kpi-etiqueta">ejemplo</span>}
           </article>
         ))}
       </section>
@@ -62,10 +66,9 @@ export default function Dashboard() {
       <section className="tarjeta aparece" style={{ animationDelay: '0.25s' }}>
         <div className="dashboard-titulo">
           <div>
-            <h2>Actividad de usuarios y escaneos</h2>
-            <p>Últimos 14 días</p>
+            <h2>Usuarios nuevos y escaneos</h2>
+            <p>Últimos 14 días: registros nuevos y escaneos por día</p>
           </div>
-          <span className="dashboard-ejemplo">ejemplo</span>
         </div>
         <Grafico datos={actividad} />
       </section>
@@ -76,7 +79,6 @@ export default function Dashboard() {
             <h2>Últimos escaneos registrados</h2>
             <p>Fotos subidas por los usuarios y procesadas por la IA</p>
           </div>
-          <span className="dashboard-ejemplo">ejemplo</span>
         </div>
         <TablaEscaneos escaneos={escaneos} />
       </section>

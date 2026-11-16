@@ -62,8 +62,9 @@ export async function crearEvento({ tipo, region, severidad, mensaje, horas, min
     }),
   })
   if (!respuesta.ok) {
-    const texto = await respuesta.text()
-    throw new Error(texto || `Error ${respuesta.status}`)
+    let mensaje = ''
+    try { mensaje = (await respuesta.json()).error } catch { /* sin cuerpo JSON */ }
+    throw new Error(mensaje || `Error ${respuesta.status}`)
   }
   return await respuesta.json()
 }

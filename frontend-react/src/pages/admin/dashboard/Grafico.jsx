@@ -4,11 +4,11 @@ const ANCHO = 640
 const ALTO = 220
 const MARGEN = { izq: 8, der: 8, arriba: 16, abajo: 26 }
 
-// Grafico de lineas con area (SVG, sin librerias): usuarios activos y escaneos por dia
+// Grafico de lineas con area (SVG, sin librerias): usuarios nuevos y escaneos por dia
 export default function Grafico({ datos }) {
   const [activo, setActivo] = useState(null)
 
-  const maximo = Math.max(...datos.flatMap((d) => [d.usuarios, d.escaneos])) * 1.1
+  const maximo = Math.max(...datos.flatMap((d) => [d.usuarios, d.escaneos])) * 1.1 || 1
   const ancho = ANCHO - MARGEN.izq - MARGEN.der
   const alto = ALTO - MARGEN.arriba - MARGEN.abajo
   const x = (i) => MARGEN.izq + (i / (datos.length - 1)) * ancho
@@ -30,7 +30,7 @@ export default function Grafico({ datos }) {
   return (
     <div className="grafico">
       <div className="grafico-leyenda">
-        <span><i style={{ background: 'var(--verde)' }} /> Usuarios activos</span>
+        <span><i style={{ background: 'var(--verde)' }} /> Usuarios nuevos</span>
         <span><i style={{ background: 'var(--azul)' }} /> Escaneos IA</span>
       </div>
 
@@ -72,7 +72,7 @@ export default function Grafico({ datos }) {
         {punto && (
           <div className="grafico-dato" style={{ left: `${(x(activo) / ANCHO) * 100}%` }}>
             <b>{etiqueta(punto.fecha)}</b>
-            <span><i style={{ background: 'var(--verde)' }} /> {punto.usuarios.toLocaleString('es-PE')} usuarios</span>
+            <span><i style={{ background: 'var(--verde)' }} /> {punto.usuarios.toLocaleString('es-PE')} usuarios nuevos</span>
             <span><i style={{ background: 'var(--azul)' }} /> {punto.escaneos.toLocaleString('es-PE')} escaneos</span>
           </div>
         )}

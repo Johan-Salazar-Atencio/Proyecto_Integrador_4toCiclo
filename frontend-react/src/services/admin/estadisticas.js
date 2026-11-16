@@ -8,51 +8,24 @@ const leerLista = async (ruta) => {
   return Array.isArray(datos) ? datos : datos.results || []
 }
 
-export async function obtenerResumen() {
-  const cabeceras = cabecerasAdmin()
-
-  let stats = null
-  try {
-    const r = await fetch('/django/api/admin/stats/', { headers: cabeceras })
-    if (r.ok) stats = await r.json()
-  } catch { /* se mantiene null */ }
-
-  let especies = []
-  try { especies = await leerLista('/api/catalog/') } catch { especies = [] }
-
-  let eventos = []
-  try { eventos = await leerLista('/api/catalog/eventos/') } catch { eventos = [] }
-
+// Todo sale de una sola consulta real a Django (/api/admin/stats/): usuarios, escaneos, eventos y actividad.
+export async function obtenerEstadisticas() {
+  const r = await fetch('/django/api/admin/stats/', { headers: cabecerasAdmin() })
+  if (!r.ok) throw new Error(`Django respondio ${r.status}`)
+  const d = await r.json()
   return {
-    especies: especies.length,
-    toxicas: 0,
-    eventosActivos: eventos.filter((e) => e.estado === 'ACTIVO').length,
-    eventosTotales: eventos.length,
-    usuarios: stats?.usuarios ?? null,
-    crecimientoUsuarios: null,
-    escaneosHoy: null,
-    picoPorMinuto: null,
-    origenCatalogo: 'django',
+    resumen: {
+      especies: d.especies,
+      toxicas: d.toxicas,
+      eventosActivos: d.eventos_activos,
+      eventosTotales: d.eventos_total,
+      usuarios: d.usuarios,
+      usuariosNuevosMes: d.usuarios_nuevos_mes,
+      crecimientoUsuarios: d.crecimiento_usuarios,
+      escaneosHoy: d.escaneos_hoy,
+      picoPorMinuto: d.pico_por_minuto,
+    },
+    actividad: d.actividad,
+    escaneos: d.ultimos_escaneos,
   }
 }
-
-// Actividad de los ultimos 14 dias (datos de ejemplo; el servidor no expone serie temporal).
-export async function obtenerActividad() {
-  const hoy = new Date()
-  return Array.from({ length: 14 }, (_, i) => {
-    const d = new Date(hoy)
-    d.setDate(hoy.getDate() - (13 - i))
-    return {
-      fecha: d.toISOString(),
-      usuarios: 120 + Math.round(Math.sin(i / 2) * 40 + Math.random() * 30),
-      escaneos: 40 + Math.round(Math.cos(i / 3) * 20 + Math.random() * 25),
-    }
-  })
-}
-
-// Ultimos escaneos — no hay endpoint admin agregado; se devuelve lista vacia
-// (el dashboard muestra "sin datos" en lugar de datos de ejemplo).
-export async function obtenerUltimosEscaneos() {
-  return []
-}
-

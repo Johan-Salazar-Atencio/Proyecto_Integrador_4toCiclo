@@ -99,10 +99,10 @@ export default function FormularioEvento({ hayActivo, onLanzar }) {
             <textarea rows={3} maxLength={MAX_MENSAJE} value={datos.mensaje} onChange={(e) => { setMensajeEditado(true); poner('mensaje', e.target.value) }} />
           </label>
 
-          {hayActivo && <p className="formulario-aviso">⚠️ Ya hay un evento en curso. Si lanzas otro, la app mostrará el más reciente.</p>}
+          {hayActivo && <p className="formulario-aviso">⚠️ Ya hay un evento en curso. Solo puede haber uno a la vez: cancélalo o espera a que termine.</p>}
           {error && <div className="auth-error" role="alert">{error}</div>}
 
-          <Boton onClick={() => setConfirmando(true)} disabled={!valido}>⚡ Lanzar evento y notificar usuarios</Boton>
+          <Boton onClick={() => setConfirmando(true)} disabled={!valido || hayActivo}>⚡ Lanzar evento y notificar usuarios</Boton>
         </div>
 
         <VistaNotificacion tipo={tipo} mensaje={datos.mensaje} region={datos.region === 'GLOBAL' ? 'GLOBAL' : nombreRegion(datos.region)} />
