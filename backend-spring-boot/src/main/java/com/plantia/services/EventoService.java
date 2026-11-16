@@ -9,8 +9,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.plantia.dto.WeatherAlertDto;
 import com.plantia.models.EventoDesastre;
+import com.plantia.models.TipoDesastre;
 import com.plantia.models.Usuario;
 import com.plantia.repositories.EventoDesastreRepository;
+import com.plantia.repositories.TipoDesastreRepository;
 import com.plantia.repositories.UsuarioRepository;
 
 @Service
@@ -18,10 +20,13 @@ public class EventoService {
 
     private final EventoDesastreRepository eventoRepo;
     private final UsuarioRepository usuarioRepo;
+    private final TipoDesastreRepository tipoRepo;
 
-    public EventoService(EventoDesastreRepository eventoRepo, UsuarioRepository usuarioRepo) {
+    public EventoService(EventoDesastreRepository eventoRepo, UsuarioRepository usuarioRepo,
+                         TipoDesastreRepository tipoRepo) {
         this.eventoRepo = eventoRepo;
         this.usuarioRepo = usuarioRepo;
+        this.tipoRepo = tipoRepo;
     }
 
     @Transactional(readOnly = true)
@@ -33,10 +38,12 @@ public class EventoService {
 
         return eventoRepo.activosParaRegion(region).stream()
                 .findFirst()
-                .map(EventoService::toDto);
+                .map(this::toDto);
     }
 
-    private static WeatherAlertDto toDto(EventoDesastre e) {
+    private WeatherAlertDto toDto(EventoDesastre e) {
+        TipoDesastre tipo = e.getIdTipoDesastre() == null ? null : tipoRepo.findById(e.getIdTipoDesastre()).orElse(null);
+        LocalDateTime ahora = LocalDateTime.now();
         return new WeatherAlertDto(
                 titulo(e.getTipoEvento()),
                 e.getMensajeNotificacion(),
@@ -44,7 +51,12 @@ public class EventoService {
                 restante(e.getFechaFin()),
                 "Prevenir evento",
                 e.getTipoEvento(),
-                fase(e.getFechaInicio(), e.getFechaFin(), LocalDateTime.now()));
+                fase(e.getFechaInicio(), e.getFechaFin(), ahora),
+                tipo != null ? tipo.getNombre() : null,
+                tipo != null ? tipo.getImagenUrl() : null,
+                tipo != null ? tipo.getDescripcion() : null,
+                tipo != null ? tipo.getConsejo() : null,
+                e.getFechaFin() == null ? null : Math.max(0, Duration.between(ahora, e.getFechaFin()).getSeconds()));
     }
 
     /** Fraccion del evento que debe haber pasado para que la animacion deje de ser un aviso. */

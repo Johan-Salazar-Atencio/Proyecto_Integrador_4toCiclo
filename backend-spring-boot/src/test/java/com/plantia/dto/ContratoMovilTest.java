@@ -42,6 +42,15 @@ class ContratoMovilTest {
     }
 
     @Test
+    void laAlertaTraeLosDatosDeLaTarjetaDelEventoSoloSiExisten() throws Exception {
+        assertThat(claves(new WeatherAlertDto("t", "d", "HIGH", "01h 20m", "Prevenir evento", "OLA_DE_CALOR", "PICO",
+                "Ola de calor", "/files/arte/eventos/ola.jpg", "texto", "consejo", 3600L)))
+                .contains("eventName", "imageUrl", "info", "tip", "endsInSeconds");
+        assertThat(claves(new WeatherAlertDto("t", "d", "HIGH", "01h 20m", "Prevenir evento", "HUAYCO", "PICO")))
+                .doesNotContain("eventName", "imageUrl", "info", "tip", "endsInSeconds");
+    }
+
+    @Test
     void plantSummary() throws Exception {
         assertThat(claves(new PlantSummaryDto("Monstera", "Monstera deliciosa", 80, 60, 90, "Hace 2 dias", null)))
                 .containsExactlyInAnyOrder(

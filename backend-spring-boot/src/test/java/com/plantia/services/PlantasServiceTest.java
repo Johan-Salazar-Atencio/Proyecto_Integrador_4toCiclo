@@ -56,7 +56,7 @@ class PlantasServiceTest {
                 mock(ReglaProgresoRepository.class), mock(HistorialProgresoRepository.class),
                 mock(MisionService.class), mock(MisionUsuarioRepository.class));
         eventoRepo = mock(EventoDesastreRepository.class);
-        EventoService eventos = new EventoService(eventoRepo, usuarioRepo);
+        EventoService eventos = new EventoService(eventoRepo, usuarioRepo, mock(com.plantia.repositories.TipoDesastreRepository.class));
         usuario = new Usuario();
         when(usuarioRepo.findById(any())).thenReturn(Optional.of(usuario));
         service = new PlantasService(plantaRepo, mock(PlantaCatalogoRepository.class), escaneoRepo, progreso, eventos,
