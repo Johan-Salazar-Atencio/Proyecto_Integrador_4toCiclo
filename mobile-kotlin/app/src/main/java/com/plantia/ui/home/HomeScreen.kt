@@ -15,18 +15,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Collections
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,13 +26,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,7 +40,6 @@ import com.plantia.ui.components.AvisoToast
 import com.plantia.ui.home.components.EventoCard
 import com.plantia.ui.home.components.MisionesResumenCard
 import com.plantia.ui.home.components.PlantSummaryCard
-import com.plantia.ui.home.components.QuickAccessGrid
 import com.plantia.ui.home.components.UserHeaderCard
 import com.plantia.ui.home.viewmodel.HomeViewModel
 import com.plantia.ui.theme.AmberAlert
@@ -62,32 +48,14 @@ import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.RojoClaro
 import com.plantia.ui.theme.RojoTexto
 import com.plantia.ui.theme.TextPrimary
-import com.plantia.ui.theme.TextSecondary
-
-data class BottomNavItem(
-    val label: String,
-    val icon: ImageVector
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToScan: () -> Unit = {},
     onNavigateToGarden: () -> Unit = {},
-    onNavigateToCollection: () -> Unit = {},
-    onNavigateToCatalogo: () -> Unit = {},
-    onNavigateToPerfil: () -> Unit = {},
     onNavigateToTienda: () -> Unit = {},
     onNavigateToMisiones: () -> Unit = {}
 ) {
-    val bottomNavItems = listOf(
-        BottomNavItem("Inicio", Icons.Default.Home),
-        BottomNavItem("Escanear", Icons.Default.PhotoCamera),
-        BottomNavItem("Colección", Icons.Default.Collections),
-        BottomNavItem("Perfil", Icons.Default.Person)
-    )
-    var selectedTab by remember { mutableIntStateOf(0) }
-
     val homeViewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
     val state = homeViewModel.uiState
 
@@ -99,7 +67,6 @@ fun HomeScreen(
     LaunchedEffect(ciclo) {
         ciclo.repeatOnLifecycle(Lifecycle.State.STARTED) { homeViewModel.sondear() }
     }
-    val accesosRapidos = state.accesos
     AvisoToast(homeViewModel.aviso, homeViewModel::avisoMostrado)
 
     Scaffold(
@@ -158,46 +125,6 @@ fun HomeScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        },
-        bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
-            ) {
-                bottomNavItems.forEachIndexed { index, item ->
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = item.label
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = item.label,
-                                fontSize = 12.sp,
-                                fontWeight = if (selectedTab == index) FontWeight.SemiBold else FontWeight.Normal
-                            )
-                        },
-                        selected = selectedTab == index,
-                        onClick = {
-                            selectedTab = index
-                            when (index) {
-                                1 -> onNavigateToScan()
-                                2 -> onNavigateToCollection()
-                                3 -> onNavigateToPerfil()
-                            }
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = GreenPrimary,
-                            selectedTextColor = GreenPrimary,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary,
-                            indicatorColor = GreenPrimary.copy(alpha = 0.1f)
-                        )
-                    )
-                }
-            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
@@ -270,22 +197,6 @@ fun HomeScreen(
 
                 if (state.misiones.isNotEmpty()) {
                     MisionesResumenCard(misiones = state.misiones, onClick = onNavigateToMisiones)
-                }
-
-                if (accesosRapidos.isNotEmpty()) {
-                    QuickAccessGrid(
-                        items = accesosRapidos,
-                        onItemClick = { item ->
-                            when (item.id) {
-                                "scan" -> onNavigateToScan()
-                                "collection" -> onNavigateToCollection()
-                                "encyclopedia" -> onNavigateToCatalogo()
-                                "garden" -> onNavigateToGarden()
-                                "jardin" -> onNavigateToGarden()
-                                "store" -> onNavigateToTienda()
-                            }
-                        }
-                    )
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))

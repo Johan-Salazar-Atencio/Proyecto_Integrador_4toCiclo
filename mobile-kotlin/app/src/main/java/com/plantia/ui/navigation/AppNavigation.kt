@@ -8,8 +8,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -63,11 +69,35 @@ private val reSale: Exit = {
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
+    val entradaActual by navController.currentBackStackEntryAsState()
+    val rutaActual = entradaActual?.destination?.route
 
+    Scaffold(
+        modifier = modifier,
+        bottomBar = {
+            if (rutaActual in rutasConBarra) {
+                BarraInferior(
+                    rutaActual = rutaActual,
+                    onIr = { ruta ->
+                        if (ruta != rutaActual) {
+                            navController.navigate(ruta) {
+                                // Cada pestana parte del inicio: no se acumulan pantallas al ir de una a otra.
+                                popUpTo(Routes.HOME) { inclusive = ruta == Routes.HOME }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onEscanear = { navController.navigate(Routes.SCAN) }
+                )
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+    ) { relleno ->
     NavHost(
         navController = navController,
         startDestination = Routes.WELCOME,
-        modifier = modifier,
+        modifier = Modifier.padding(relleno).consumeWindowInsets(relleno),
         enterTransition = entra,
         exitTransition = sale,
         popEnterTransition = reEntra,
@@ -101,11 +131,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         // App
         composable(Routes.HOME) {
             HomeScreen(
-                onNavigateToScan = { navController.navigate(Routes.SCAN) },
                 onNavigateToGarden = { navController.navigate(Routes.VIRTUAL_GARDEN) },
-                onNavigateToCollection = { navController.navigate(Routes.COLLECTION) },
-                onNavigateToCatalogo = { navController.navigate(Routes.CATALOGO) },
-                onNavigateToPerfil = { navController.navigate(Routes.PERFIL) },
                 onNavigateToTienda = { navController.navigate(Routes.TIENDA) },
                 onNavigateToMisiones = { navController.navigate(Routes.MISIONES) }
             )
@@ -277,5 +303,6 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onVolver = { navController.popBackStack() }
             )
         }
+    }
     }
 }
