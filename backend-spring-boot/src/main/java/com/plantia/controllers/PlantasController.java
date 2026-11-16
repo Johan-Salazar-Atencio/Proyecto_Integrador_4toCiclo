@@ -113,12 +113,32 @@ public class PlantasController {
         return fondosPlantaService.aplicar(userId, idPlantaUsuario, body.get("idTema"));
     }
 
-    /** Refugia la planta del desastre activo (409 si no hay desastre o la planta ya murio). */
+    /** Previene el evento activo en la planta (409 si no hay evento o la planta ya murio). */
+    @PostMapping("/{id}/prevenir")
+    public ResponseEntity<PlantSummaryDto> prevenir(
+            @RequestHeader("X-User-Id") Integer userId,
+            @PathVariable("id") Integer idPlantaUsuario) {
+        return ResponseEntity.ok(plantasService.prevenir(userId, idPlantaUsuario));
+    }
+
+    /** Previene el evento en varias plantas. Body: { "ids": [n, ...] }. */
+    @PostMapping("/prevenir")
+    public ResponseEntity<List<PlantSummaryDto>> prevenirVarias(
+            @RequestHeader("X-User-Id") Integer userId,
+            @RequestBody Map<String, List<Integer>> body) {
+        List<Integer> ids = body.get("ids");
+        if (ids == null || ids.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(plantasService.prevenirVarias(userId, ids));
+    }
+
+    /** Nombre anterior de /prevenir; se conserva para las apps que aun lo usan. */
     @PostMapping("/{id}/refugio")
     public ResponseEntity<PlantSummaryDto> refugiar(
             @RequestHeader("X-User-Id") Integer userId,
             @PathVariable("id") Integer idPlantaUsuario) {
-        return ResponseEntity.ok(plantasService.refugiar(userId, idPlantaUsuario));
+        return ResponseEntity.ok(plantasService.prevenir(userId, idPlantaUsuario));
     }
 
     /** Activa una planta digital (cambia su etapa). */

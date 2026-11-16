@@ -212,19 +212,19 @@ public class PlantasService {
     }
 
     /**
-     * Pone la planta a resguardo del desastre en curso. Solo se puede con un desastre activo para la
-     * region del usuario, y repetirlo es inofensivo. El resultado (SALVADA o DANADA) y la recompensa
-     * llegan cuando el evento termina (ResultadoDesastreService), por eso aqui no se da XP.
+     * Previene el evento en curso en una planta (antes "refugiar"). Solo se puede con un evento activo
+     * para la region del usuario y con la planta viva; repetirlo es inofensivo. El resultado (SALVADA o
+     * golpeada) y el premio llegan cuando el evento termina (ResultadoDesastreService), por eso aqui no se da XP.
      */
     @Transactional
-    public PlantSummaryDto refugiar(Integer userId, Integer idPlantaUsuario) {
+    public PlantSummaryDto prevenir(Integer userId, Integer idPlantaUsuario) {
         PlantaUsuario p = propia(userId, idPlantaUsuario);
         if ("MUERTA".equals(p.getEtapaCrecimiento())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "La planta ya no se puede refugiar");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La planta ya no se puede proteger");
         }
         if (!Boolean.TRUE.equals(p.getEstaRefugiada())) {
             if (eventoService.activo(userId).isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "No hay un desastre activo");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "No hay un evento activo");
             }
             // updated_at no se toca: envejecer() lo usa para contar las horas de desgaste
             p.setEstaRefugiada(true);
@@ -238,6 +238,18 @@ public class PlantasService {
             }
         }
         return map(p);
+    }
+
+    /** Previene el evento en varias plantas a la vez (la tarjeta roja de Misiones). Falla entera si una no sirve. */
+    @Transactional
+    public List<PlantSummaryDto> prevenirVarias(Integer userId, List<Integer> ids) {
+        return ids.stream().distinct().map(id -> prevenir(userId, id)).toList();
+    }
+
+    /** Nombre anterior de {@link #prevenir}; se conserva para las apps que aun llaman a /refugio. */
+    @Transactional
+    public PlantSummaryDto refugiar(Integer userId, Integer idPlantaUsuario) {
+        return prevenir(userId, idPlantaUsuario);
     }
 
     /** Tipo de mision que cuenta cada cuidado. */

@@ -42,7 +42,7 @@ public class EventoService {
                 e.getMensajeNotificacion(),
                 severidad(e.getSeveridad()),
                 restante(e.getFechaFin()),
-                "Refugiar Planta",
+                "Prevenir evento",
                 e.getTipoEvento(),
                 fase(e.getFechaInicio(), e.getFechaFin(), LocalDateTime.now()));
     }

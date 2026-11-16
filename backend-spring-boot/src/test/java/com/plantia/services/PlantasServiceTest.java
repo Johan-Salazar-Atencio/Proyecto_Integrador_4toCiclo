@@ -195,17 +195,17 @@ class PlantasServiceTest {
         assertThat(vieja.getEtapaCrecimiento()).isEqualTo("ADULTA");
     }
 
-    // --- Refugio ---
+    // --- Prevenir el evento (antes refugio) ---
 
     private void hayDesastreActivo() {
         when(eventoRepo.activosParaRegion("GLOBAL")).thenReturn(List.of(new EventoDesastre()));
     }
 
     @Test
-    void refugiarConUnDesastreActivoMarcaLaPlantaYNoDaXp() {
+    void prevenirConUnEventoActivoMarcaLaPlantaYNoDaXp() {
         hayDesastreActivo();
 
-        var dto = service.refugiar(DUENO, 10);
+        var dto = service.prevenir(DUENO, 10);
 
         assertThat(dto.refugiada()).isTrue();
         assertThat(dto.progreso()).isNull();
@@ -214,54 +214,79 @@ class PlantasServiceTest {
 
     @Test
     void sinDesastreActivoDa409YNoGuarda() {
-        assertThatThrownBy(() -> service.refugiar(DUENO, 10))
+        assertThatThrownBy(() -> service.prevenir(DUENO, 10))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
         verify(plantaRepo, never()).save(any());
     }
 
     @Test
-    void refugiarUnaPlantaYaRefugiadaEsInofensivoAunSinDesastre() {
+    void prevenirUnaPlantaYaProtegidaEsInofensivoAunSinDesastre() {
         hayDesastreActivo();
-        service.refugiar(DUENO, 10);
+        service.prevenir(DUENO, 10);
         when(eventoRepo.activosParaRegion("GLOBAL")).thenReturn(List.of());
 
-        var dto = service.refugiar(DUENO, 10);
+        var dto = service.prevenir(DUENO, 10);
 
         assertThat(dto.refugiada()).isTrue();
         verify(plantaRepo, org.mockito.Mockito.times(1)).save(any());
     }
 
     @Test
-    void refugiarPlantaAjenaDa404() {
+    void prevenirPlantaAjenaDa404() {
         hayDesastreActivo();
 
-        assertThatThrownBy(() -> service.refugiar(OTRO, 10))
+        assertThatThrownBy(() -> service.prevenir(OTRO, 10))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
         verify(plantaRepo, never()).save(any());
     }
 
     @Test
-    void unaPlantaMuertaNoSePuedeRefugiar() {
+    void unaPlantaMuertaNoSePuedePrevenir() {
         hayDesastreActivo();
         plantaRepo.findById(10).get().setEtapaCrecimiento("MUERTA");
 
-        assertThatThrownBy(() -> service.refugiar(DUENO, 10))
+        assertThatThrownBy(() -> service.prevenir(DUENO, 10))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
     }
 
     @Test
-    void refugiarNoReiniciaElRelojDeDesgaste() {
+    void prevenirNoReiniciaElRelojDeDesgaste() {
         hayDesastreActivo();
         var planta = plantaRepo.findById(10).get();
         var antes = java.time.LocalDateTime.now().minusHours(3);
         planta.setUpdatedAt(antes);
 
-        service.refugiar(DUENO, 10);
+        service.prevenir(DUENO, 10);
 
         assertThat(planta.getUpdatedAt()).isEqualTo(antes);
         assertThat(planta.getRefugiadaDesde()).isNotNull();
+    }
+
+    @Test
+    void prevenirVariasPlantasMarcaCadaUnaYNoRepiteLasRepetidas() {
+        hayDesastreActivo();
+
+        var resultado = service.prevenirVarias(DUENO, List.of(10, 10));
+
+        assertThat(resultado).hasSize(1);
+        assertThat(resultado.get(0).refugiada()).isTrue();
+    }
+
+    @Test
+    void prevenirVariasFallaSiUnaNoEsDelUsuario() {
+        hayDesastreActivo();
+
+        assertThatThrownBy(() -> service.prevenirVarias(OTRO, List.of(10)))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void elNombreAnteriorSigueFuncionando() {
+        hayDesastreActivo();
+
+        assertThat(service.refugiar(DUENO, 10).refugiada()).isTrue();
     }
 }
