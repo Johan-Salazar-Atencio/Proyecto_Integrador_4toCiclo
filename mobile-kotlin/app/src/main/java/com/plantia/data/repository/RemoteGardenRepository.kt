@@ -7,6 +7,7 @@ import com.plantia.data.model.PlantSummary
 import com.plantia.data.remote.PlantiaApi
 import com.plantia.data.remote.RetrofitClient
 import com.plantia.data.remote.dto.PlantSummaryDto
+import com.plantia.data.remote.dto.PrevenirPlantasRequest
 import com.plantia.util.normalizarUrlLocal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -63,7 +64,7 @@ class RemoteGardenRepository(
 
     override suspend fun prevenirVarias(ids: List<Int>): PlantasResultado = withContext(Dispatchers.IO) {
         try {
-            val respuesta = api().prevenirPlantas(mapOf("ids" to ids))
+            val respuesta = api().prevenirPlantas(PrevenirPlantasRequest(ids))
             val cuerpo = respuesta.body()
             when {
                 respuesta.isSuccessful && cuerpo != null -> PlantasResultado.Con(cuerpo.map { it.aPlanta() })

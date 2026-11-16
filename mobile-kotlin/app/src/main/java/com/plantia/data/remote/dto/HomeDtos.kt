@@ -96,3 +96,6 @@ data class DailyMissionDto(
     val eventType: String? = null,
     val endsInSeconds: Long? = null
 )
+
+/** POST /api/v1/plantas/prevenir: las plantas en las que se previene el evento. */
+data class PrevenirPlantasRequest(val ids: List<Int>)
