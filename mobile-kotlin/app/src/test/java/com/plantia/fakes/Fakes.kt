@@ -88,13 +88,11 @@ class FakeGardenRepository : GardenRepository {
     var alSeleccionar: PlantaResultado = PlantaResultado.Con(planta())
     var alCuidar: PlantaResultado = PlantaResultado.Con(planta())
     var alPrevenir: PlantaResultado = PlantaResultado.Con(planta().copy(refugiada = true))
-    var alPrevenirVarias: PlantasResultado = PlantasResultado.Con(emptyList())
     var alRevivir: PlantaResultado = PlantaResultado.Con(planta())
     var alGolpeVisto: PlantaResultado = PlantaResultado.Con(planta())
 
     val cuidados = mutableListOf<Pair<Int, AccionCuidado>>()
     val prevenidos = mutableListOf<Int>()
-    val prevenidosVarios = mutableListOf<List<Int>>()
     val revividos = mutableListOf<Int>()
     val golpesVistos = mutableListOf<Int>()
     val digitalizados = mutableListOf<Pair<Int, Int?>>()
@@ -117,11 +115,6 @@ class FakeGardenRepository : GardenRepository {
     override suspend fun prevenir(idPlanta: Int): PlantaResultado {
         prevenidos += idPlanta
         return alPrevenir
-    }
-
-    override suspend fun prevenirVarias(ids: List<Int>): PlantasResultado {
-        prevenidosVarios += ids
-        return alPrevenirVarias
     }
 
     override suspend fun revivir(idPlanta: Int): PlantaResultado {

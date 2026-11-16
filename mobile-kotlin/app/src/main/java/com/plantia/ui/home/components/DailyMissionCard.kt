@@ -1,6 +1,7 @@
 package com.plantia.ui.home.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,12 +37,15 @@ import com.plantia.ui.theme.TextSecondary
 @Composable
 fun DailyMissionCard(
     mission: DailyMission,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Si se da, la tarjeta se puede tocar (lleva a donde se cumple la mision). */
+    onClick: (() -> Unit)? = null
 ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .then(if (onClick != null) Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick) else Modifier),
         shape = RoundedCornerShape(16.dp),
         shadowElevation = 2.dp,
         color = Color.Transparent

@@ -113,7 +113,11 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
         // Misiones
         composable(Routes.MISIONES) {
-            MisionesScreen(onBack = { navController.popBackStack() })
+            MisionesScreen(
+                onBack = { navController.popBackStack() },
+                onEscanear = { navController.navigate(Routes.SCAN) },
+                onPlantasVirtuales = { navController.navigate(Routes.COLLECTION_DIGITALES) }
+            )
         }
 
         // Escaneo
@@ -175,6 +179,17 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 // La pantalla ya dejo elegida la planta; aqui solo se abre el jardin.
                 onPlantaDigital = { navController.navigate(Routes.VIRTUAL_GARDEN) },
                 onScan = { navController.navigate(Routes.SCAN) }
+            )
+        }
+
+        // Coleccion abierta en las plantas virtuales: ahi se entra a cada una y se previene el evento o se cuida
+        composable(Routes.COLLECTION_DIGITALES) {
+            CollectionScreen(
+                onBack = { navController.popBackStack() },
+                onPlantaEscaneada = { planta -> navController.navigate(Routes.collectionDetail(planta.id)) },
+                onPlantaDigital = { navController.navigate(Routes.VIRTUAL_GARDEN) },
+                onScan = { navController.navigate(Routes.SCAN) },
+                abrirDigitales = true
             )
         }
 

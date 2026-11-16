@@ -37,9 +37,6 @@ interface GardenRepository {
     /** Previene el evento en curso en la planta; falla si ya no hay evento activo. */
     suspend fun prevenir(idPlanta: Int): PlantaResultado
 
-    /** Previene el evento en varias plantas a la vez; falla entera si una no se puede. */
-    suspend fun prevenirVarias(ids: List<Int>): PlantasResultado
-
     /** Revive una planta muerta a cambio de hojas; falla con un mensaje si no alcanzan. */
     suspend fun revivir(idPlanta: Int): PlantaResultado
 

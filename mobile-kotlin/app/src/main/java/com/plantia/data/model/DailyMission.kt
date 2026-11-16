@@ -12,7 +12,9 @@ data class DailyMission(
     val kind: String? = null,
     val eventType: String? = null,
     /** Segundos que faltan para que termine el evento; null en las misiones diarias. */
-    val endsInSeconds: Long? = null
+    val endsInSeconds: Long? = null,
+    /** Tipo de una mision diaria (RIEGO, ESCANEO, SOL, ABONO, CUIDADO, DIGITALIZAR, COLECCION, REFUGIO); null en la del evento. */
+    val type: String? = null
 ) {
     val esEvento: Boolean get() = kind == "EVENT"
 }

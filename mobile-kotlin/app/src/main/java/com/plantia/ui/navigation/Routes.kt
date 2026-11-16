@@ -23,6 +23,8 @@ object Routes {
     const val HISTORIAL = "historial"
     const val VIRTUAL_GARDEN = "VirtualGardenScreen"
     const val COLLECTION = "CollectionScreen"
+    /** La coleccion abierta en las plantas virtuales: a donde llevan las misiones de cuidado y de evento. */
+    const val COLLECTION_DIGITALES = "CollectionScreen/digitales"
     const val TIENDA = "tienda"
     const val MISIONES = "misiones"
     const val PERFIL = "perfil"

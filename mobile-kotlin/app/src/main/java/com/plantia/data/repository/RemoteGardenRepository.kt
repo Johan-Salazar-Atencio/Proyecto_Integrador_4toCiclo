@@ -7,7 +7,6 @@ import com.plantia.data.model.PlantSummary
 import com.plantia.data.remote.PlantiaApi
 import com.plantia.data.remote.RetrofitClient
 import com.plantia.data.remote.dto.PlantSummaryDto
-import com.plantia.data.remote.dto.PrevenirPlantasRequest
 import com.plantia.util.normalizarUrlLocal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -61,19 +60,6 @@ class RemoteGardenRepository(
 
     override suspend fun prevenir(idPlanta: Int): PlantaResultado =
         planta(errores = ERRORES_PREVENIR) { api().prevenirPlanta(idPlanta) }
-
-    override suspend fun prevenirVarias(ids: List<Int>): PlantasResultado = withContext(Dispatchers.IO) {
-        try {
-            val respuesta = api().prevenirPlantas(PrevenirPlantasRequest(ids))
-            val cuerpo = respuesta.body()
-            when {
-                respuesta.isSuccessful && cuerpo != null -> PlantasResultado.Con(cuerpo.map { it.aPlanta() })
-                else -> PlantasResultado.Fallo(ERRORES_PREVENIR[respuesta.code()] ?: "El servidor respondio ${respuesta.code()}")
-            }
-        } catch (e: Exception) {
-            PlantasResultado.Fallo(e.message ?: SIN_CONEXION)
-        }
-    }
 
     override suspend fun revivir(idPlanta: Int): PlantaResultado =
         planta(errores = ERRORES_REVIVIR) { api().revivirPlanta(idPlanta) }

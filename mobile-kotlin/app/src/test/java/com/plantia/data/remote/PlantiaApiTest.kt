@@ -1,6 +1,5 @@
 package com.plantia.data.remote
 
-import com.plantia.data.remote.dto.PrevenirPlantasRequest
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -9,7 +8,6 @@ import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okio.Buffer
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -39,15 +37,6 @@ class PlantiaApiTest {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(PlantiaApi::class.java)
-    }
-
-    @Test
-    fun prevenir_varias_plantas_manda_la_lista_de_ids() = runTest {
-        val respuesta = api("""[{"name":"Monstera","id":1,"refugiada":true}]""").prevenirPlantas(PrevenirPlantasRequest(listOf(1, 2)))
-
-        assertEquals("POST /api/v1/plantas/prevenir", ruta)
-        assertEquals("""{"ids":[1,2]}""", cuerpo)
-        assertTrue(respuesta.body()?.first()?.refugiada == true)
     }
 
     @Test

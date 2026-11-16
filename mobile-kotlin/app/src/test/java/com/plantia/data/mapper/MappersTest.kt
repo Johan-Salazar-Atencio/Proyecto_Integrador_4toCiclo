@@ -98,4 +98,9 @@ class MappersTest {
         assertEquals(86000L, planta.recuperacionSegundos)
         assertEquals("OLA_DE_CALOR", planta.golpeTipo)
     }
+
+    @Test
+    fun la_mision_diaria_trae_su_tipo() {
+        assertEquals("ESCANEO", DailyMissionDto(id = "mission_2", title = "Explorador", type = "ESCANEO").toDomain().type)
+    }
 }

@@ -94,8 +94,6 @@ data class DailyMissionDto(
     val isCompleted: Boolean = false,
     val kind: String? = null,
     val eventType: String? = null,
-    val endsInSeconds: Long? = null
+    val endsInSeconds: Long? = null,
+    val type: String? = null
 )
-
-/** POST /api/v1/plantas/prevenir: las plantas en las que se previene el evento. */
-data class PrevenirPlantasRequest(val ids: List<Int>)

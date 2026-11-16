@@ -83,11 +83,13 @@ fun CollectionScreen(
     onPlantaEscaneada: (ColeccionItemDto) -> Unit = {},
     onPlantaDigital: (PlantSummary) -> Unit = {},
     onScan: () -> Unit = {},
+    /** true abre directamente la pestana de plantas digitales (las misiones llevan alli). */
+    abrirDigitales: Boolean = false,
     viewModel: CollectionViewModel = viewModel(factory = CollectionViewModel.Factory)
 ) {
     IconosOscurosEnBarraDeEstado()
 
-    var pestana by rememberSaveable { mutableIntStateOf(PESTANA_ESCANEADAS) }
+    var pestana by rememberSaveable { mutableIntStateOf(if (abrirDigitales) PESTANA_DIGITALES else PESTANA_ESCANEADAS) }
     AvisoToast(viewModel.aviso, viewModel::avisoMostrado)
 
     Scaffold(

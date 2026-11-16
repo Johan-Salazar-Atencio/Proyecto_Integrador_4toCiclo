@@ -11,7 +11,6 @@ import com.plantia.data.remote.dto.CuidadoSeccionDto
 import com.plantia.data.remote.dto.CambiarRegionRequest
 import com.plantia.data.remote.dto.DailyMissionDto
 import com.plantia.data.remote.dto.FondoDto
-import com.plantia.data.remote.dto.PrevenirPlantasRequest
 import com.plantia.data.remote.dto.RegionDto
 import com.plantia.data.remote.dto.PlantSummaryDto
 import com.plantia.data.remote.dto.TemaFondoDto
@@ -139,10 +138,6 @@ interface PlantiaApi {
     /** Previene el evento activo en la planta (409 si no hay evento o la planta murio, 404 si no es del usuario). */
     @POST("api/v1/plantas/{id}/prevenir")
     suspend fun prevenirPlanta(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
-
-    /** Previene el evento en varias plantas. Body: { "ids": [1, 2] } */
-    @POST("api/v1/plantas/prevenir")
-    suspend fun prevenirPlantas(@Body body: PrevenirPlantasRequest): Response<List<PlantSummaryDto>>
 
     /** Revive una planta muerta a cambio de hojas (402 si no alcanzan, 409 si no esta muerta). */
     @POST("api/v1/plantas/{id}/revivir")

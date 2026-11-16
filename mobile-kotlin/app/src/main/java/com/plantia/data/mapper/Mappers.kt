@@ -120,7 +120,8 @@ fun DailyMissionDto.toDomain(): DailyMission = DailyMission(
     isCompleted = isCompleted,
     kind = kind,
     eventType = eventType,
-    endsInSeconds = endsInSeconds?.coerceAtLeast(0)
+    endsInSeconds = endsInSeconds?.coerceAtLeast(0),
+    type = type
 )
 
 fun RecentScanDto.toDomain(): RecentScan = RecentScan(
