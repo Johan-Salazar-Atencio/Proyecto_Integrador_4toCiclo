@@ -11,6 +11,9 @@ import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.TemaFondo
 import com.plantia.data.model.TiendaItem
+import com.plantia.data.model.WeatherAlert
+import com.plantia.data.repository.AlertaResultado
+import com.plantia.data.repository.HomeRepository
 import com.plantia.data.repository.AbonoResultado
 import com.plantia.data.repository.FondosResultado
 import com.plantia.data.repository.TiendaRepository
@@ -31,8 +34,61 @@ sealed interface GardenUiState {
 class GardenViewModel(
     private val garden: GardenRepository,
     /** Tienda para el abono (+1 dia de crecimiento); sin ella el jardin no muestra ese boton. */
-    private val tienda: TiendaRepository? = null
+    private val tienda: TiendaRepository? = null,
+    /** Para saber si hay un evento activo: el boton "Prevenir evento" solo aparece entonces. */
+    private val home: HomeRepository? = null
 ) : ViewModel() {
+
+    /** Evento activo para el usuario, o null si no hay (o si todavia no se consulto). */
+    var evento: WeatherAlert? by mutableStateOf(null)
+        private set
+
+    /** Hay una peticion de prevenir en curso: evita el doble toque. */
+    var previniendo: Boolean by mutableStateOf(false)
+        private set
+
+    /** El boton "Prevenir evento" se ofrece con un evento activo y una planta viva, sin proteger y sin golpe previo. */
+    val puedePrevenir: Boolean
+        get() {
+            val planta = (uiState as? GardenUiState.Success)?.planta ?: return false
+            return evento != null && !planta.refugiada && !planta.muerta && !planta.enRecuperacion
+        }
+
+    /** Consulta si hay un evento activo. Un fallo de red conserva lo que ya se sabia. */
+    suspend fun actualizarEvento() {
+        val repo = home ?: return
+        when (val alerta = repo.alerta()) {
+            is AlertaResultado.Con -> evento = alerta.alerta
+            AlertaResultado.Sin -> evento = null
+            AlertaResultado.Fallo -> Unit
+        }
+    }
+
+    /** Previene el evento activo en la planta del jardin y entrega el mensaje (con el consejo de campo). */
+    fun prevenir(alTerminar: (String) -> Unit) {
+        val actual = (uiState as? GardenUiState.Success)?.planta ?: return
+        val id = actual.id ?: return
+        if (previniendo || !puedePrevenir) return
+        val consejo = evento?.tip
+        previniendo = true
+        viewModelScope.launch {
+            when (val r = garden.prevenir(id)) {
+                is PlantaResultado.Con -> {
+                    uiState = GardenUiState.Success(r.planta)
+                    alTerminar(buildString {
+                        append("${actual.name} esta protegida del evento")
+                        if (!consejo.isNullOrBlank()) append(". $consejo")
+                    })
+                }
+                is PlantaResultado.Fallo -> {
+                    alTerminar(r.mensaje)
+                    // Lo mas probable es que el evento ya termino
+                    actualizarEvento()
+                }
+            }
+            previniendo = false
+        }
+    }
 
     /** Abono de la tienda a la venta (con su precio), o null si no esta disponible. */
     var abono: TiendaItem? by mutableStateOf(null)
@@ -168,6 +224,6 @@ class GardenViewModel(
         }
 
     companion object {
-        val Factory = viewModelFactory { initializer { GardenViewModel(AppContainer.garden, AppContainer.tienda) } }
+        val Factory = viewModelFactory { initializer { GardenViewModel(AppContainer.garden, AppContainer.tienda, AppContainer.home) } }
     }
 }

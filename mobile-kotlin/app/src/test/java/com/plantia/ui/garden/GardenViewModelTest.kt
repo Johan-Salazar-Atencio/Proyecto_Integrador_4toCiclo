@@ -7,6 +7,11 @@ import com.plantia.ui.tienda.FakeTiendaRepository
 import com.plantia.data.repository.PlantaActivaResultado
 import com.plantia.data.repository.PlantaResultado
 import com.plantia.fakes.FakeGardenRepository
+import com.plantia.fakes.FakeHomeRepository
+import com.plantia.fakes.alerta
+import com.plantia.data.repository.AlertaResultado
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertFalse
 import com.plantia.fakes.MainDispatcherRule
 import com.plantia.fakes.planta
 import com.plantia.ui.garden.viewmodel.GardenUiState
@@ -143,5 +148,88 @@ class GardenViewModelTest {
         vm.abrirFondos {}
         vm.cerrarFondos()
         assertNull(vm.fondos)
+    }
+
+    // --- Prevenir evento ---
+
+    private val home = FakeHomeRepository()
+
+    private fun vmConEvento(hayEvento: Boolean = true): GardenViewModel {
+        home.alertaResultado = if (hayEvento) AlertaResultado.Con(alerta().copy(tip = "Cubre el suelo")) else AlertaResultado.Sin
+        val vm = GardenViewModel(garden, home = home)
+        kotlinx.coroutines.test.runTest { vm.actualizarEvento() }
+        return vm
+    }
+
+    @Test
+    fun sin_evento_no_se_ofrece_prevenir() {
+        assertFalse(vmConEvento(hayEvento = false).puedePrevenir)
+    }
+
+    @Test
+    fun con_evento_y_una_planta_viva_se_ofrece_prevenir() {
+        assertTrue(vmConEvento().puedePrevenir)
+    }
+
+    @Test
+    fun una_planta_ya_protegida_no_se_ofrece_prevenir() {
+        garden.activa = PlantaActivaResultado.ConPlanta(planta().copy(refugiada = true))
+        assertFalse(vmConEvento().puedePrevenir)
+    }
+
+    @Test
+    fun una_planta_muerta_o_en_recuperacion_no_se_ofrece_prevenir() {
+        garden.activa = PlantaActivaResultado.ConPlanta(planta().copy(fase = "MUERTA"))
+        assertFalse(vmConEvento().puedePrevenir)
+        garden.activa = PlantaActivaResultado.ConPlanta(planta().copy(enRecuperacion = true))
+        assertFalse(vmConEvento().puedePrevenir)
+    }
+
+    @Test
+    fun prevenir_protege_la_planta_y_avisa_con_el_consejo() {
+        garden.alPrevenir = PlantaResultado.Con(planta().copy(refugiada = true))
+        val vm = vmConEvento()
+        var mensaje = ""
+
+        vm.prevenir { mensaje = it }
+
+        assertEquals(listOf(1), garden.prevenidos)
+        assertTrue((vm.uiState as GardenUiState.Success).planta.refugiada)
+        assertEquals("Monstera esta protegida del evento. Cubre el suelo", mensaje)
+        assertFalse(vm.puedePrevenir)
+        assertFalse(vm.previniendo)
+    }
+
+    @Test
+    fun sin_evento_prevenir_no_llama_al_servidor() {
+        val vm = vmConEvento(hayEvento = false)
+
+        vm.prevenir {}
+
+        assertTrue(garden.prevenidos.isEmpty())
+    }
+
+    @Test
+    fun si_el_evento_ya_termino_avisa_y_deja_de_ofrecer_prevenir() {
+        garden.alPrevenir = PlantaResultado.Fallo("Ya no hay un evento activo para prevenir")
+        val vm = vmConEvento()
+        home.alertaResultado = AlertaResultado.Sin
+        var mensaje = ""
+
+        vm.prevenir { mensaje = it }
+
+        assertEquals("Ya no hay un evento activo para prevenir", mensaje)
+        assertNull(vm.evento)
+        assertFalse(vm.puedePrevenir)
+    }
+
+    @Test
+    fun un_fallo_de_red_al_consultar_conserva_el_evento_que_ya_se_veia() = runTest {
+        val vm = vmConEvento()
+        home.alertaResultado = AlertaResultado.Fallo
+
+        vm.actualizarEvento()
+
+        assertTrue(vm.evento != null)
     }
 }

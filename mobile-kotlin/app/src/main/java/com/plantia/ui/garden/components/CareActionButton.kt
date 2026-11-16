@@ -35,6 +35,7 @@ import com.plantia.ui.theme.TextSecondary
 
 /**
  * Boton de cuidado con micro-animacion: al presionar se encoge un poco y rebota al soltar.
+ * Es compacto (icono de 40 dp) para que los tres quepan en una fila sin ocupar media pantalla.
  */
 @Composable
 fun CareActionButton(
@@ -58,26 +59,26 @@ fun CareActionButton(
     Column(
         modifier = modifier
             .scale(escala)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(colorFondo.copy(alpha = 0.18f))
             .clickable(interactionSource = interaccion, indication = null) {
                 haptico.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
             }
-            .padding(vertical = 14.dp, horizontal = 8.dp),
+            .padding(vertical = 10.dp, horizontal = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(52.dp)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(colorFondo),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(26.dp))
+            Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(20.dp))
         }
-        Text(text = etiqueta, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-        Text(text = pista, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextSecondary, modifier = Modifier.padding(bottom = 2.dp))
+        Text(text = etiqueta, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+        Text(text = pista, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
     }
 }

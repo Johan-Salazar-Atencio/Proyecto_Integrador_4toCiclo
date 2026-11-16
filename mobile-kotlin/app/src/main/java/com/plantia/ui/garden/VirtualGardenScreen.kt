@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
@@ -38,6 +40,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -50,10 +53,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.TiendaItem
+import com.plantia.data.model.WeatherAlert
 import com.plantia.ui.garden.components.AnimatedStatBar
 import com.plantia.ui.garden.components.CareActionButton
 import com.plantia.ui.escena.Escena
@@ -62,6 +69,9 @@ import com.plantia.ui.garden.components.FondosPlantaSheet
 import com.plantia.ui.garden.components.PlantFrame
 import com.plantia.ui.garden.viewmodel.GardenUiState
 import com.plantia.ui.garden.viewmodel.GardenViewModel
+import com.plantia.ui.home.viewmodel.INTERVALO_SONDEO_MS
+import com.plantia.ui.theme.RojoClaro
+import com.plantia.ui.theme.RojoTexto
 import com.plantia.ui.preview.DatosEjemplo
 import com.plantia.ui.theme.AmberAlert
 import com.plantia.ui.theme.BackgroundLight
@@ -74,6 +84,7 @@ import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
 import com.plantia.util.IconosOscurosEnBarraDeEstado
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // El backend no manda animo ni consejos: se derivan de los porcentajes.
@@ -106,6 +117,17 @@ fun VirtualGardenScreen(
 
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    // Un evento que lanza el admin aparece solo (y el boton de prevenir con el): se consulta mientras el jardin esta a la vista
+    val ciclo = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(ciclo) {
+        ciclo.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                viewModel.actualizarEvento()
+                delay(INTERVALO_SONDEO_MS)
+            }
+        }
+    }
 
     Scaffold(
         containerColor = BackgroundLight,
@@ -176,6 +198,16 @@ fun VirtualGardenScreen(
                     escena = escenaViewModel.escena,
                     planta = estado.planta,
                     abono = viewModel.abono,
+                    evento = if (viewModel.puedePrevenir || estado.planta.refugiada) viewModel.evento else null,
+                    previniendo = viewModel.previniendo,
+                    onPrevenir = {
+                        viewModel.prevenir { mensaje ->
+                            scope.launch {
+                                snackbar.currentSnackbarData?.dismiss()
+                                snackbar.showSnackbar(mensaje)
+                            }
+                        }
+                    },
                     onTienda = onTienda,
                     onFondos = {
                         viewModel.abrirFondos { mensaje ->
@@ -213,6 +245,10 @@ internal fun JardinContenido(
     planta: PlantSummary,
     escena: Escena? = null,
     abono: TiendaItem? = null,
+    /** Evento activo (o null): con el aparece el boton "Prevenir evento" junto a los cuidados. */
+    evento: WeatherAlert? = null,
+    previniendo: Boolean = false,
+    onPrevenir: () -> Unit = {},
     onAbono: () -> Unit = {},
     onTienda: () -> Unit = {},
     onFondos: (() -> Unit)? = null,
@@ -254,7 +290,7 @@ internal fun JardinContenido(
             ) {
                 EncabezadoPlanta(planta)
                 TarjetaVital(planta)
-                TarjetaAcciones(onCuidar)
+                TarjetaAcciones(planta, evento, previniendo, onPrevenir, onCuidar)
                 TarjetaAbono(abono, onAbono, onTienda)
                 TarjetaConsejo(consejo(planta))
                 Spacer(Modifier.height(4.dp))
@@ -282,7 +318,7 @@ internal fun JardinContenido(
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f)
             )
             TarjetaVital(planta)
-            TarjetaAcciones(onCuidar)
+            TarjetaAcciones(planta, evento, previniendo, onPrevenir, onCuidar)
             TarjetaAbono(abono, onAbono, onTienda)
             TarjetaConsejo(consejo(planta))
             Spacer(Modifier.height(8.dp))
@@ -336,12 +372,17 @@ private fun TarjetaVital(planta: PlantSummary) {
 }
 
 @Composable
-private fun TarjetaAcciones(onCuidar: (AccionCuidado) -> Unit) {
+private fun TarjetaAcciones(
+    planta: PlantSummary,
+    evento: WeatherAlert?,
+    previniendo: Boolean,
+    onPrevenir: () -> Unit,
+    onCuidar: (AccionCuidado) -> Unit
+) {
     TarjetaBlanca {
-        Text("Acciones de cuidado", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-        Text("Mantén el balance de tu planta", fontSize = 13.sp, color = TextSecondary)
-        Spacer(Modifier.height(14.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("Cuidados", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AccionCuidado.entries.forEach { accion ->
                 val (icono, color) = when (accion) {
                     AccionCuidado.REGAR -> Icons.Filled.WaterDrop to BlueInfo
@@ -359,6 +400,40 @@ private fun TarjetaAcciones(onCuidar: (AccionCuidado) -> Unit) {
                 )
             }
         }
+        // Solo con un evento activo (o ya prevenido) y una planta viva
+        if (evento != null && !planta.muerta && !planta.enRecuperacion) {
+            Spacer(Modifier.height(10.dp))
+            BotonPrevenir(protegida = planta.refugiada, previniendo = previniendo, onPrevenir = onPrevenir)
+        }
+    }
+}
+
+/** "Prevenir evento": en rojo mientras falta; cuando la planta ya esta protegida pasa a ser una confirmacion en verde. */
+@Composable
+private fun BotonPrevenir(protegida: Boolean, previniendo: Boolean, onPrevenir: () -> Unit) {
+    Button(
+        onClick = onPrevenir,
+        enabled = !protegida && !previniendo,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = RojoTexto,
+            contentColor = Color.White,
+            disabledContainerColor = if (protegida) GreenLight else RojoClaro,
+            disabledContentColor = if (protegida) GreenDark else RojoTexto
+        )
+    ) {
+        Icon(Icons.Filled.Shield, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = when {
+                protegida -> "Protegida del evento"
+                previniendo -> "Previniendo..."
+                else -> "Prevenir evento"
+            },
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
