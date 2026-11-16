@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -27,141 +27,75 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.plantia.data.model.UserSummary
-import com.plantia.ui.theme.AmberAlert
-import com.plantia.ui.theme.AmberLight
-import com.plantia.ui.theme.GreenLight
+import com.plantia.ui.components.FotoPerfil
+import com.plantia.ui.theme.AmberDark
+import com.plantia.ui.theme.GreenDark
 import com.plantia.ui.theme.GreenPrimary
+import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
 
+/** Iniciales para el avatar cuando no hay foto: "Johan Demo" -> "JD", "Lucia" -> "L". */
+internal fun iniciales(nombre: String): String =
+    nombre.trim().split(" ").filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }.ifEmpty { "?" }
+
+/**
+ * Encabezado del Inicio (propuesta E): avatar, saludo, rango y nivel, las hojas a la derecha y, debajo,
+ * la barra de XP hacia el siguiente nivel. Tocar las hojas abre la tienda.
+ */
 @Composable
 fun UserHeaderCard(
     user: UserSummary,
+    onHojas: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        shadowElevation = 2.dp,
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier.size(40.dp).clip(CircleShape).background(GreenPrimary),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(GreenLight),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val icono: @Composable () -> Unit = {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Perfil",
-                            tint = GreenPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    if (user.profileImageUrl.isNullOrBlank()) icono()
-                    else com.plantia.ui.components.FotoPerfil(user.profileImageUrl, "Foto de ${user.name}", respaldo = icono)
+                val textoIniciales: @Composable () -> Unit = {
+                    Text(iniciales(user.name), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Hola, ${user.name}!",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "Nivel ${user.level} ${user.badge}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = AmberLight
+                if (user.profileImageUrl.isNullOrBlank()) textoIniciales()
+                else FotoPerfil(user.profileImageUrl, "Foto de ${user.name}", respaldo = textoIniciales)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("¡Hola, ${user.name}!", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1)
+                Text("${user.badge} · Nivel ${user.level}", fontSize = 12.sp, color = TextSecondary)
+            }
+            Surface(onClick = onHojas, shape = RoundedCornerShape(20.dp), color = SurfaceWhite, shadowElevation = 2.dp) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "${user.leaves}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = AmberAlert
-                        )
-                    }
+                    Icon(Icons.Default.Eco, contentDescription = "Hojas", tint = GreenDark, modifier = Modifier.size(16.dp))
+                    Text("${user.leaves}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = AmberDark)
                 }
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // XP dentro del nivel actual y racha diaria
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = if (user.esNivelMaximo) "Nivel maximo · ${user.experience} XP"
-                    else "${user.experience} / ${user.experienceToNextLevel} XP",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
-                    modifier = Modifier.weight(1f)
-                )
-                if (user.streakDays > 0) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = AmberLight
-                    ) {
-                        Text(
-                            text = "Racha ${user.streakDays} ${if (user.streakDays == 1) "dia" else "dias"}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = AmberAlert,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            val progreso by animateFloatAsState(user.progresoNivel, tween(600), label = "xp-home")
-            LinearProgressIndicator(
-                progress = { progreso },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = GreenPrimary,
-                trackColor = GreenPrimary.copy(alpha = 0.15f)
-            )
         }
+        Spacer(Modifier.height(8.dp))
+        val progreso by animateFloatAsState(user.progresoNivel, tween(600), label = "xp-home")
+        LinearProgressIndicator(
+            progress = { progreso },
+            modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(4.dp)),
+            color = GreenPrimary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+        Text(
+            text = if (user.esNivelMaximo) "Nivel máximo · ${user.experience} XP"
+            else "${user.experience} / ${user.experienceToNextLevel} XP para el nivel ${user.level + 1}",
+            fontSize = 11.sp,
+            color = TextSecondary,
+            modifier = Modifier.padding(top = 2.dp)
+        )
     }
 }

@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.ui.components.AvisoToast
+import com.plantia.ui.escena.EscenaViewModel
 import com.plantia.ui.home.components.EventoCard
 import com.plantia.ui.home.components.MisionesResumenCard
 import com.plantia.ui.home.components.PlantSummaryCard
@@ -57,7 +58,10 @@ fun HomeScreen(
     onNavigateToMisiones: () -> Unit = {}
 ) {
     val homeViewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
+    val escenaViewModel: EscenaViewModel = viewModel(factory = EscenaViewModel.Factory)
     val state = homeViewModel.uiState
+    // Al pasar a otra planta la escena (fondo y arte) se vuelve a pedir
+    LaunchedEffect(state.planta?.id) { escenaViewModel.recargar() }
 
     // El total de la coleccion cambia al escanear o guardar: se actualiza cada vez que se vuelve al inicio.
     LaunchedEffect(Unit) { homeViewModel.refrescarColeccion() }
@@ -70,62 +74,6 @@ fun HomeScreen(
     AvisoToast(homeViewModel.aviso, homeViewModel::avisoMostrado)
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Inicio",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                },
-                actions = {
-                    // Las monedas abren la tienda
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = AmberLight,
-                        onClick = onNavigateToTienda,
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "${state.usuario?.leaves ?: 0}",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = AmberAlert
-                            )
-                        }
-                    }
-                    Surface(
-                        shape = CircleShape,
-                        color = GreenPrimary,
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .size(36.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "J",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.surface
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
@@ -180,13 +128,19 @@ fun HomeScreen(
                 }
 
                 state.usuario?.let { usuario ->
-                    UserHeaderCard(user = usuario)
+                    UserHeaderCard(user = usuario, onHojas = onNavigateToTienda)
                 }
 
                 state.planta?.let { planta ->
                     PlantSummaryCard(
                         plant = planta,
-                        onEnterGarden = onNavigateToGarden
+                        posicion = (state.plantas.indexOfFirst { it.id == planta.id } + 1).coerceAtLeast(1),
+                        total = state.plantas.size,
+                        escena = escenaViewModel.escena,
+                        onEnterGarden = onNavigateToGarden,
+                        onAnterior = homeViewModel::anterior,
+                        onSiguiente = homeViewModel::siguiente,
+                        onCuidar = homeViewModel::cuidar
                     )
                 }
 

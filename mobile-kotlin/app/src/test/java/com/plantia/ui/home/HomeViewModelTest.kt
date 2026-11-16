@@ -1,8 +1,10 @@
 package com.plantia.ui.home
 
+import com.plantia.data.model.AccionCuidado
 import com.plantia.data.repository.AlertaResultado
 import com.plantia.data.repository.PlantaActivaResultado
 import com.plantia.data.repository.PlantaResultado
+import com.plantia.data.repository.PlantasResultado
 import com.plantia.fakes.FakeCollectionRepository
 import com.plantia.fakes.FakeGardenRepository
 import com.plantia.fakes.FakeHomeRepository
@@ -171,5 +173,49 @@ class HomeViewModelTest {
         vm.actualizarEnVivo()
 
         assertEquals(1, vm.uiState.misiones.single().currentCount)
+    }
+
+    @Test
+    fun la_flecha_siguiente_deja_como_activa_la_otra_planta_de_la_lista() = runTest {
+        garden.lista = PlantasResultado.Con(listOf(planta(id = 1), planta(id = 2)))
+        garden.alSeleccionar = PlantaResultado.Con(planta(id = 2))
+        val vm = viewModel()
+        vm.actualizarEnVivo()
+
+        vm.siguiente()
+
+        assertEquals(2, vm.uiState.planta?.id)
+        assertEquals(2, vm.uiState.plantas.size)
+    }
+
+    @Test
+    fun las_plantas_del_baul_no_cuentan_para_las_flechas() = runTest {
+        garden.lista = PlantasResultado.Con(listOf(planta(id = 1), planta(id = 2).copy(enBaul = true)))
+        val vm = viewModel()
+        vm.actualizarEnVivo()
+
+        assertEquals(1, vm.uiState.plantas.size)
+    }
+
+    @Test
+    fun cuidar_aplica_el_cuidado_a_la_planta_que_se_ve() = runTest {
+        garden.alCuidar = PlantaResultado.Con(planta(id = 1, agua = 80))
+        val vm = viewModel()
+
+        vm.cuidar(AccionCuidado.REGAR)
+
+        assertEquals(listOf(1 to AccionCuidado.REGAR), garden.cuidados)
+        assertEquals(80, vm.uiState.planta?.humidityPercent)
+    }
+
+    @Test
+    fun cuidar_no_llama_al_servidor_si_esa_necesidad_ya_esta_llena() = runTest {
+        garden.activa = PlantaActivaResultado.ConPlanta(planta(id = 1, agua = 100))
+        val vm = viewModel()
+
+        vm.cuidar(AccionCuidado.REGAR)
+
+        assertEquals(emptyList<Pair<Int, AccionCuidado>>(), garden.cuidados)
+        assertNotNull(vm.aviso)
     }
 }

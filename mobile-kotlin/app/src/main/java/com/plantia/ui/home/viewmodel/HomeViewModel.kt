@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.plantia.data.local.Sesion
+import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.DailyMission
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.QuickAccessItem
@@ -19,6 +20,8 @@ import com.plantia.data.repository.CollectionRepository
 import com.plantia.data.repository.GardenRepository
 import com.plantia.data.repository.HomeRepository
 import com.plantia.data.repository.PlantaActivaResultado
+import com.plantia.data.repository.PlantaResultado
+import com.plantia.data.repository.PlantasResultado
 import com.plantia.di.AppContainer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -29,6 +32,8 @@ data class HomeUiState(
     val usuario: UserSummary? = null,
     val alerta: WeatherAlert? = null,
     val planta: PlantSummary? = null,
+    /** Plantas activas (fuera del baul) entre las que se pasa con las flechas del Inicio. */
+    val plantas: List<PlantSummary> = emptyList(),
     val accesosServidor: List<QuickAccessItem> = emptyList(),
     val totalColeccion: Int? = null,
     val misiones: List<DailyMission> = emptyList(),
@@ -129,6 +134,7 @@ class HomeViewModel(
         if (planta is PlantaActivaResultado.ConPlanta) {
             nuevo = nuevo.copy(planta = fusionar(nuevo.planta, planta.planta))
         }
+        (garden.listar() as? PlantasResultado.Con)?.let { nuevo = nuevo.copy(plantas = activas(it.plantas)) }
         uiState = nuevo
     }
 
@@ -147,7 +153,11 @@ class HomeViewModel(
                 fase = remota.fase,
                 enRecuperacion = remota.enRecuperacion,
                 recuperacionSegundos = remota.recuperacionSegundos,
-                golpeTipo = remota.golpeTipo
+                golpeTipo = remota.golpeTipo,
+                diasCuidados = remota.diasCuidados,
+                diasTotales = remota.diasTotales,
+                apariencia = remota.apariencia ?: actual.apariencia,
+                macetaCodigo = remota.macetaCodigo
             )
         } else {
             remota
@@ -157,11 +167,17 @@ class HomeViewModel(
         viewModelScope.launch {
             uiState = uiState.copy(cargando = true, error = null)
             val datos = home.cargar()
+            // La planta del jardin llega completa (dias, apariencia, maceta) por el repositorio del jardin
+            // y conserva la imagen que el Home resolvio con otra ruta
+            val completa = (garden.plantaActiva() as? PlantaActivaResultado.ConPlanta)?.planta
+                ?.let { it.copy(imageUrl = datos.planta?.imageUrl ?: it.imageUrl) } ?: datos.planta
+            val lista = (garden.listar() as? PlantasResultado.Con)?.plantas?.let(::activas).orEmpty()
             uiState = HomeUiState(
                 cargando = false,
                 usuario = datos.usuario,
                 alerta = datos.alerta,
-                planta = datos.planta,
+                planta = completa,
+                plantas = lista,
                 accesosServidor = datos.accesos,
                 totalColeccion = totalColeccion(),
                 misiones = datos.misiones,
@@ -171,6 +187,54 @@ class HomeViewModel(
                     else -> null
                 }
             )
+        }
+    }
+
+    private fun activas(todas: List<PlantSummary>) = todas.filterNot { it.enBaul }
+
+    /** Pasa a la planta anterior o siguiente de la lista y la deja como la del jardin. */
+    fun anterior() = mover(-1)
+    fun siguiente() = mover(+1)
+
+    private fun mover(paso: Int) {
+        val lista = uiState.plantas
+        if (lista.size < 2) return
+        val actual = lista.indexOfFirst { it.id == uiState.planta?.id }.coerceAtLeast(0)
+        val id = lista[(actual + paso + lista.size) % lista.size].id ?: return
+        viewModelScope.launch {
+            when (val r = garden.seleccionar(id)) {
+                is PlantaResultado.Con -> uiState = uiState.copy(planta = r.planta)
+                is PlantaResultado.Fallo -> aviso = r.mensaje
+            }
+        }
+    }
+
+    private var cuidando = false
+
+    /** Riega, da luz o abona a la planta que se ve en el Inicio y avisa el resultado. */
+    fun cuidar(accion: AccionCuidado) {
+        val actual = uiState.planta ?: return
+        val id = actual.id ?: return
+        if (cuidando) return
+        val lleno = when (accion) {
+            AccionCuidado.REGAR -> actual.humidityPercent >= 100
+            AccionCuidado.SOL -> actual.lightPercent >= 100
+            AccionCuidado.ABONAR -> actual.healthPercent >= 100
+        }
+        if (lleno) {
+            aviso = "${actual.name} ya tiene todo lo que necesita"
+            return
+        }
+        cuidando = true
+        viewModelScope.launch {
+            when (val r = garden.cuidar(id, accion)) {
+                is PlantaResultado.Con -> {
+                    uiState = uiState.copy(planta = r.planta)
+                    aviso = "${accion.etiqueta}: ${actual.name} mejora"
+                }
+                is PlantaResultado.Fallo -> aviso = "No se pudo aplicar el cuidado: ${r.mensaje}"
+            }
+            cuidando = false
         }
     }
 
