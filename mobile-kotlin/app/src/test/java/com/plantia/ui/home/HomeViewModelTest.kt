@@ -118,67 +118,6 @@ class HomeViewModelTest {
         tarea.cancel()
     }
 
-    // --- Boton Prevenir evento ---
-
-    @Test
-    fun prevenir_marca_la_planta_y_avisa() = runTest {
-        home.datos = home.datos.copy(alerta = alerta())
-        val vm = viewModel()
-
-        vm.prevenir()
-
-        assertEquals(listOf(1), garden.prevenidos)
-        assertEquals(true, vm.uiState.planta?.refugiada)
-        assertEquals("Monstera esta protegida", vm.aviso)
-        assertEquals(false, vm.previniendo)
-    }
-
-    @Test
-    fun si_el_evento_ya_termino_avisa_y_refresca_la_alerta() = runTest {
-        home.datos = home.datos.copy(alerta = alerta())
-        garden.alPrevenir = PlantaResultado.Fallo("Ya no hay un evento activo para prevenir")
-        val vm = viewModel()
-        home.alertaResultado = AlertaResultado.Sin
-
-        vm.prevenir()
-
-        assertEquals("Ya no hay un evento activo para prevenir", vm.aviso)
-        assertEquals(false, vm.uiState.planta?.refugiada)
-        assertNull(vm.uiState.alerta)
-    }
-
-    @Test
-    fun sin_planta_no_llama_al_servidor_y_avisa() = runTest {
-        home.datos = home.datos.copy(planta = null)
-        val vm = viewModel()
-
-        vm.prevenir()
-
-        assertEquals(emptyList<Int>(), garden.prevenidos)
-        assertEquals("Aun no tienes una planta para proteger", vm.aviso)
-    }
-
-    @Test
-    fun una_planta_ya_protegida_no_se_vuelve_a_pedir() = runTest {
-        home.datos = home.datos.copy(planta = planta().copy(refugiada = true))
-        val vm = viewModel()
-
-        vm.prevenir()
-
-        assertEquals(emptyList<Int>(), garden.prevenidos)
-    }
-
-    @Test
-    fun el_aviso_se_limpia_al_mostrarse() = runTest {
-        val vm = viewModel()
-        vm.prevenir()
-        assertNotNull(vm.aviso)
-
-        vm.avisoMostrado()
-
-        assertNull(vm.aviso)
-    }
-
     // --- Subida de nivel ---
 
     @Test

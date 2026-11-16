@@ -50,11 +50,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.ui.components.AvisoToast
-import com.plantia.ui.home.components.DailyMissionCard
+import com.plantia.ui.home.components.EventoCard
+import com.plantia.ui.home.components.MisionesResumenCard
 import com.plantia.ui.home.components.PlantSummaryCard
 import com.plantia.ui.home.components.QuickAccessGrid
 import com.plantia.ui.home.components.UserHeaderCard
-import com.plantia.ui.home.components.WeatherAlertCard
 import com.plantia.ui.home.viewmodel.HomeViewModel
 import com.plantia.ui.theme.AmberAlert
 import com.plantia.ui.theme.AmberLight
@@ -256,20 +256,20 @@ fun HomeScreen(
                     UserHeaderCard(user = usuario)
                 }
 
-                state.alerta?.let { alerta ->
-                    WeatherAlertCard(
-                        alert = alerta,
-                        onActionClick = homeViewModel::prevenir,
-                        refugiada = state.planta?.refugiada == true,
-                        previniendo = homeViewModel.previniendo
-                    )
-                }
-
                 state.planta?.let { planta ->
                     PlantSummaryCard(
                         plant = planta,
                         onEnterGarden = onNavigateToGarden
                     )
+                }
+
+                // El evento activo con su imagen y cuenta regresiva; tocarlo lleva a Misiones, donde se previene
+                state.alerta?.let { alerta ->
+                    EventoCard(alerta = alerta, onClick = onNavigateToMisiones)
+                }
+
+                if (state.misiones.isNotEmpty()) {
+                    MisionesResumenCard(misiones = state.misiones, onClick = onNavigateToMisiones)
                 }
 
                 if (accesosRapidos.isNotEmpty()) {
@@ -287,30 +287,7 @@ fun HomeScreen(
                         }
                     )
                 }
-
-                if (state.misiones.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onNavigateToMisiones)
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Misiones del día",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text("Ver todas", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = GreenPrimary)
-                    }
-                    state.misiones.forEach { mision ->
-                        DailyMissionCard(mission = mision)
-                    }
-                }
             }
-
             Spacer(modifier = Modifier.height(24.dp))
         }
     }

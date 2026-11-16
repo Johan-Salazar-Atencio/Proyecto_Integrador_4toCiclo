@@ -19,7 +19,6 @@ import com.plantia.data.repository.CollectionRepository
 import com.plantia.data.repository.GardenRepository
 import com.plantia.data.repository.HomeRepository
 import com.plantia.data.repository.PlantaActivaResultado
-import com.plantia.data.repository.PlantaResultado
 import com.plantia.di.AppContainer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -66,43 +65,12 @@ class HomeViewModel(
     var uiState by mutableStateOf(HomeUiState())
         private set
 
-    /** Mensaje breve para el usuario (resultado de prevenir); la pantalla lo muestra y llama a [avisoMostrado]. */
+    /** Mensaje breve para el usuario (por ejemplo, la subida de nivel); la pantalla lo muestra y llama a [avisoMostrado]. */
     var aviso by mutableStateOf<String?>(null)
-        private set
-
-    /** Hay una peticion de prevenir en curso: evita doble toque y bloquea el refresco de la planta. */
-    var previniendo by mutableStateOf(false)
         private set
 
     fun avisoMostrado() {
         aviso = null
-    }
-
-    /** Previene el evento activo en la planta del Home. */
-    fun prevenir() {
-        val planta = uiState.planta
-        val id = planta?.id
-        if (id == null) {
-            aviso = "Aun no tienes una planta para proteger"
-            return
-        }
-        if (previniendo || planta.refugiada) return
-        viewModelScope.launch {
-            previniendo = true
-            when (val resultado = garden.prevenir(id)) {
-                is PlantaResultado.Con -> {
-                    uiState = uiState.copy(planta = uiState.planta?.copy(refugiada = true))
-                    aviso = "${planta.name} esta protegida"
-                }
-                is PlantaResultado.Fallo -> {
-                    aviso = resultado.mensaje
-                    previniendo = false
-                    // Lo mas probable es que el evento ya termino: se refresca la alerta
-                    actualizarEnVivo()
-                }
-            }
-            previniendo = false
-        }
     }
 
     init {
@@ -158,8 +126,7 @@ class HomeViewModel(
             }
             nuevo = nuevo.copy(usuario = usuario)
         }
-        // Mientras se previene no se pisa la planta con una lectura anterior a la respuesta del servidor
-        if (planta is PlantaActivaResultado.ConPlanta && !previniendo) {
+        if (planta is PlantaActivaResultado.ConPlanta) {
             nuevo = nuevo.copy(planta = fusionar(nuevo.planta, planta.planta))
         }
         uiState = nuevo
