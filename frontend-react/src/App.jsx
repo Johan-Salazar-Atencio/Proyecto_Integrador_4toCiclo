@@ -19,6 +19,7 @@ import Escaneo from './pages/user/escaneo/Escaneo'
 import Home from './pages/user/home/Home'
 import Historial from './pages/user/historial/Historial'
 import Jardin from './pages/user/jardin/Jardin'
+import MisionesUsuario from './pages/user/misiones/MisionesUsuario'
 import Terminos from './pages/user/legal/Terminos'
 import Tienda from './pages/user/tienda/Tienda'
 import Perfil from './pages/user/perfil/Perfil'
@@ -49,6 +50,7 @@ export default function App() {
         <Route path={RUTAS.ESCANEAR} element={<Escaneo />} />
         <Route path={RUTAS.FICHA} element={<Ficha />} />
         <Route path={RUTAS.JARDIN} element={<Jardin />} />
+        <Route path={RUTAS.MISIONES} element={<MisionesUsuario />} />
         <Route path={RUTAS.TIENDA} element={<Tienda />} />
         <Route path={RUTAS.COLECCION} element={<Coleccion />} />
         <Route path={`${RUTAS.COLECCION}/:id`} element={<DetalleColeccion />} />

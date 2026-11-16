@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RUTAS } from '../../../routes/rutas'
-import { urlImagen } from '../../../services/home'
-import { cuidarPlanta, obtenerPlantaJardin } from '../../../services/jardin'
+import { obtenerEventoActivo, urlImagen } from '../../../services/home'
+import { cuidarPlanta, golpeVisto, obtenerPlantaJardin, prevenirPlanta, revivirPlanta } from '../../../services/jardin'
 import { comprarAbono, obtenerTienda } from '../../../services/tienda'
 import PlantaPixel from '../../../components/PlantaPixel'
 import EscenaPixel from '../../../components/EscenaPixel'
@@ -10,6 +10,7 @@ import FondosPlanta from '../../../components/FondosPlanta'
 import { ACCIONES, mensajeCuidado } from './acciones'
 import { consejo, estadoAnimo, nivelBarra } from './animo'
 import { etapaDe } from './etapas'
+import useRestante, { formatoCuenta } from '../useRestante'
 import './jardin.css'
 
 const ESTADISTICAS = [
@@ -18,6 +19,23 @@ const ESTADISTICAS = [
   { campo: 'lightPercent', texto: '☀️ Luz' },
 ]
 const MS_AVISO = 2500
+const MS_SONDEO_EVENTO = 20000
+const MS_GOLPE = 3500
+
+// Frase del golpe: el sujeto depende del evento que arraso con la planta
+const TEXTO_GOLPE = { HUAYCO: 'El huayco', HELADA: 'La helada', OLA_DE_CALOR: 'La ola de calor', PLAGA: 'La plaga' }
+const textoDelGolpe = (tipo) => `¡${TEXTO_GOLPE[tipo] || 'El evento'} arrasó con tu planta!`
+
+// Cuenta regresiva de la recuperacion: solo el abono salva a la planta golpeada antes de que se acabe el tiempo
+function Recuperacion({ segundos }) {
+  const restante = useRestante(segundos)
+  return (
+    <section className="jardin-recuperacion aparece" role="alert">
+      <b>⚠️ En recuperación{restante != null ? ` · ${formatoCuenta(restante)}` : ''}</b>
+      <p>Un evento la golpeó. Solo el abono la recupera: abónala antes de que se acabe el tiempo o morirá.</p>
+    </section>
+  )
+}
 
 export default function Jardin() {
   const [estado, setEstado] = useState({ cargando: true, planta: null, error: '' })
@@ -27,6 +45,9 @@ export default function Jardin() {
   const [fondosAbierto, setFondosAbierto] = useState(false)
   const [claveEscena, setClaveEscena] = useState(0) // cambia al poner otro fondo: la escena se vuelve a armar
   const [abono, setAbono] = useState(null) // abono de la tienda (precio), si esta a la venta
+  const [evento, setEvento] = useState(null) // evento activo (o null): con el aparece "Prevenir evento"
+  const [golpe, setGolpe] = useState(null) // tipo de evento que arraso con la planta, mientras se muestra
+  const [escudo, setEscudo] = useState(0) // sube cada vez que se previene: dispara el escudo
   const temporizador = useRef(null)
 
   // Planta del jardin guardada en el servidor (GET /plantas/activa, 204 = sin planta)
@@ -44,6 +65,28 @@ export default function Jardin() {
     obtenerTienda().then((t) => setAbono(t.items.find((i) => i.tipo === 'ABONO') || null)).catch(() => setAbono(null))
   }, [])
   useEffect(() => () => clearTimeout(temporizador.current), [])
+
+  // Un evento que lanza el admin aparece solo: se consulta mientras el jardin esta a la vista
+  useEffect(() => {
+    let vivo = true
+    const consultar = () => obtenerEventoActivo().then((e) => { if (vivo) setEvento(e) }).catch(() => {})
+    consultar()
+    const id = setInterval(consultar, MS_SONDEO_EVENTO)
+    return () => { vivo = false; clearInterval(id) }
+  }, [])
+
+  // Si un evento golpeo a la planta, se muestra una sola vez como arraso con ella y se marca como visto
+  const golpeTipo = estado.planta?.golpeTipo
+  const plantaId = estado.planta?.id
+  useEffect(() => {
+    if (!golpeTipo) return undefined
+    setGolpe(golpeTipo)
+    const id = setTimeout(() => {
+      setGolpe(null)
+      golpeVisto(plantaId).then((p) => setEstado((e) => ({ ...e, planta: p }))).catch(() => {})
+    }, MS_GOLPE)
+    return () => clearTimeout(id)
+  }, [golpeTipo, plantaId])
 
   const avisar = (texto) => {
     setAviso(texto)
@@ -70,6 +113,37 @@ export default function Jardin() {
       }
     } catch (err) {
       avisar(err.message || 'No se pudo cuidar la planta.')
+    } finally {
+      setCuidando(false)
+    }
+  }
+
+  // Prevenir el evento: deja a esta planta a resguardo (una por una)
+  const prevenir = async () => {
+    if (cuidando) return
+    setCuidando(true)
+    try {
+      const planta = await prevenirPlanta(estado.planta.id)
+      setEstado((e) => ({ ...e, planta }))
+      setEscudo((n) => n + 1)
+      avisar(`${planta.name} está a resguardo 🛡️`)
+    } catch (err) {
+      avisar(err.message || 'No se pudo prevenir el evento.')
+    } finally {
+      setCuidando(false)
+    }
+  }
+
+  // Revivir: cuesta hojas y la planta sigue creciendo desde donde iba
+  const revivir = async () => {
+    if (cuidando) return
+    setCuidando(true)
+    try {
+      const planta = await revivirPlanta(estado.planta.id)
+      setEstado((e) => ({ ...e, planta }))
+      avisar(`¡${planta.name} revivió! 🌱`)
+    } catch (err) {
+      avisar(err.estado === 402 ? 'No te alcanzan las hojas para revivirla.' : err.message || 'No se pudo revivir la planta.')
     } finally {
       setCuidando(false)
     }
@@ -121,14 +195,18 @@ export default function Jardin() {
   const foto = urlImagen(planta.fotoUrl)
   const etapa = etapaDe(planta)
   const marchita = etapa.marchita
+  const muerta = planta.fase === 'MUERTA'
 
   return (
     <div className="jardin">
       <section className={`jardin-marco aparece ${marchita ? 'jardin-marco-marchita' : ''}`}>
         <EscenaPixel key={claveEscena} />
         <div key={salto} className={`jardin-planta ${salto ? 'jardin-salta' : ''}`}>
-          <PlantaPixel etapa={etapa.indice} apariencia={planta.apariencia} titulo={`${planta.name}: ${etapa.nombre}`} />
+          <PlantaPixel etapa={etapa.indice} apariencia={planta.apariencia} maceta={planta.macetaCodigo} titulo={`${planta.name}: ${etapa.nombre}`} />
         </div>
+        {escudo > 0 && <span key={`escudo-${escudo}`} className="jardin-escudo" aria-hidden="true">🛡️</span>}
+        {golpe && <div className="jardin-golpe" role="alert">{textoDelGolpe(golpe)}</div>}
+        {planta.refugiada && evento && <span className="jardin-resguardo">🛡️ A resguardo</span>}
         <button className="jardin-fondos-boton" onClick={() => setFondosAbierto(true)} aria-label={`Fondos de ${planta.name}`} title="Fondos de esta planta">🖼️</button>
         <div
           className={`jardin-chip ${animo.clase}`}
@@ -172,22 +250,43 @@ export default function Jardin() {
           <p>{consejo(planta)}</p>
         </section>
 
-        <div className="jardin-acciones aparece" style={{ animationDelay: '0.2s' }}>
-          {Object.entries(ACCIONES).map(([clave, a]) => (
-            <button key={clave} className="jardin-accion" onClick={() => cuidar(clave)} disabled={cuidando}>
-              <span>{a.icono}</span>
-              <b>{a.texto}</b>
-              <small>{a.pista}</small>
+        {muerta ? (
+          <section className="jardin-muerta aparece">
+            <h2>💀 {planta.name} murió</h2>
+            <p>No se abonó a tiempo después del evento. Puedes revivirla y sigue creciendo desde donde iba.</p>
+            <button className="jardin-revivir" onClick={revivir} disabled={cuidando}>
+              {planta.costoRevivir != null ? `Revivir · ${planta.costoRevivir} 🍃` : 'Revivir'}
             </button>
-          ))}
-        </div>
-
-        {abono && (
-          <button className="jardin-abono aparece" onClick={abonarConTienda} disabled={cuidando} style={{ animationDelay: '0.26s' }}>
-            <span>🌿</span>
-            <b>{abono.nombre}: +1 día de crecimiento</b>
-            <small>{abono.precio} 🍃 · máximo 1 al día</small>
-          </button>
+          </section>
+        ) : (
+          <>
+            {planta.enRecuperacion && <Recuperacion segundos={planta.recuperacionSegundos} />}
+            <div className="jardin-acciones aparece" style={{ animationDelay: '0.2s' }}>
+              {Object.entries(ACCIONES).map(([clave, a]) => (
+                <button key={clave} className="jardin-accion" onClick={() => cuidar(clave)} disabled={cuidando}>
+                  <span>{a.icono}</span>
+                  <b>{a.texto}</b>
+                  <small>{a.pista}</small>
+                </button>
+              ))}
+            </div>
+            {(evento || planta.refugiada) && (
+              <button
+                className={`jardin-prevenir ${planta.refugiada ? 'jardin-prevenir-hecho' : ''}`}
+                onClick={prevenir}
+                disabled={cuidando || planta.refugiada}
+              >
+                {planta.refugiada ? '🛡️ Evento prevenido' : `🛡️ Prevenir evento${evento?.eventName ? `: ${evento.eventName}` : ''}`}
+              </button>
+            )}
+            {abono && (
+              <button className="jardin-abono aparece" onClick={abonarConTienda} disabled={cuidando} style={{ animationDelay: '0.26s' }}>
+                <span>🌿</span>
+                <b>{abono.nombre}: +1 día de crecimiento</b>
+                <small>{abono.precio} 🍃 · máximo 1 al día</small>
+              </button>
+            )}
+          </>
         )}
         <Link className="jardin-tienda-enlace" to={RUTAS.TIENDA}>🛒 Ir a la tienda</Link>
       </div>

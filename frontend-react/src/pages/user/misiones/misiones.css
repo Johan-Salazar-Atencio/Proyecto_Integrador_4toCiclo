@@ -1,0 +1,13 @@
+.misiones { display: flex; flex-direction: column; gap: 14px; max-width: 640px; margin-inline: auto; }
+.misiones-titulo { font-size: 1.1rem; }
+.misiones-vacio { color: var(--texto-suave); }
+.mision-ir { align-self: flex-start; font-weight: 800; }
+.mision-evento { display: flex; flex-direction: column; gap: 8px; background: var(--rojo-claro); border: 1.5px solid color-mix(in srgb, var(--rojo) 60%, transparent); }
+.mision-evento-cabecera { display: flex; justify-content: space-between; color: var(--rojo); font-size: 0.78rem; }
+.mision-evento h2 { font-size: 1.15rem; }
+.mision-evento .barra { background: #fff; }
+.mision-evento .barra-relleno { background: var(--rojo); }
+.mision-evento p { font-size: 0.9rem; }
+.mision-evento small { color: var(--texto-suave); }
+.mision-evento-boton { display: block; padding: 11px; background: var(--rojo); border-radius: 14px; color: #fff; font-weight: 700; text-align: center; }
+.mision-evento-lista { padding: 11px; background: #fff; border-radius: 14px; color: var(--verde-oscuro); font-weight: 700; text-align: center; }

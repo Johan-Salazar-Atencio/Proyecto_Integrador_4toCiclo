@@ -21,7 +21,9 @@ export function etapasDe(planta) {
 // Por debajo de esta salud la planta se marchita (y deja de crecer hasta recuperarla)
 export const SALUD_MARCHITA = 30
 
-export const estaMarchita = (planta) => planta.healthPercent < SALUD_MARCHITA
+// Tambien se ve marchita la que murio por no abonarse tras un evento o la que esta en recuperacion
+export const estaMarchita = (planta) =>
+  planta.healthPercent < SALUD_MARCHITA || planta.fase === 'MUERTA' || Boolean(planta.enRecuperacion)
 
 // Mismo avance que indiceSprite del movil. Sin datos del servidor (total 0) se ve la adulta.
 export function indiceSprite(dias, total) {

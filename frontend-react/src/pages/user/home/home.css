@@ -77,3 +77,6 @@
 @media (prefers-reduced-motion: reduce) {
   .barra-relleno { animation: none; }
 }
+
+.mision-enlace { color: inherit; }
+.mision-evento-etiqueta { padding: 4px 10px; background: var(--rojo); color: #fff; border-radius: 999px; font-size: 0.75rem; font-weight: 800; }

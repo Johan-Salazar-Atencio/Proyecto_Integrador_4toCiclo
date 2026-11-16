@@ -24,7 +24,7 @@ export default function Home() {
       {usuario && <TarjetaUsuario usuario={usuario} />}
       {planta && <TarjetaPlanta planta={planta} plantas={plantas} ocupado={ocupado} onMover={mover} onCuidar={cuidar} />}
       {alerta && <AlertaClima alerta={alerta} />}
-      {mision && <MisionDiaria mision={mision} />}
+      {mision && <MisionDiaria mision={mision} hayEvento={Boolean(alerta)} />}
 
       {aviso && <div className="jardin-aviso" role="status">{aviso}</div>}
     </div>
