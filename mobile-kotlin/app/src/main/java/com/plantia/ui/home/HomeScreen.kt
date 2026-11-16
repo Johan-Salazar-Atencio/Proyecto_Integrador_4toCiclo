@@ -77,7 +77,8 @@ fun HomeScreen(
     onNavigateToCollection: () -> Unit = {},
     onNavigateToCatalogo: () -> Unit = {},
     onNavigateToPerfil: () -> Unit = {},
-    onNavigateToTienda: () -> Unit = {}
+    onNavigateToTienda: () -> Unit = {},
+    onNavigateToMisiones: () -> Unit = {}
 ) {
     val bottomNavItems = listOf(
         BottomNavItem("Inicio", Icons.Default.Home),
@@ -288,13 +289,22 @@ fun HomeScreen(
                 }
 
                 if (state.misiones.isNotEmpty()) {
-                    Text(
-                        text = "Misiones del día",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onNavigateToMisiones)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Misiones del día",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text("Ver todas", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = GreenPrimary)
+                    }
                     state.misiones.forEach { mision ->
                         DailyMissionCard(mission = mision)
                     }

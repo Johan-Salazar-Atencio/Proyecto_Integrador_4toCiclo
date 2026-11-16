@@ -65,6 +65,7 @@ import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.TiendaItem
 import com.plantia.data.model.WeatherAlert
+import com.plantia.ui.components.rememberCuentaRegresiva
 import com.plantia.ui.garden.components.AnimatedStatBar
 import com.plantia.ui.garden.components.CareActionButton
 import com.plantia.ui.escena.Escena
@@ -391,23 +392,10 @@ private fun ColumnScope.CuerpoJardin(
     TarjetaConsejo(consejo(planta))
 }
 
-/** Segundos que quedan, contando hacia atras cada segundo a partir del valor que mando el servidor. */
-@Composable
-private fun rememberSegundosRestantes(inicial: Long?): Long? {
-    var restante by remember(inicial) { mutableStateOf(inicial) }
-    LaunchedEffect(inicial) {
-        while ((restante ?: 0L) > 0L) {
-            delay(1_000)
-            restante = restante?.minus(1)
-        }
-    }
-    return restante
-}
-
 /** La planta fue golpeada por un evento: solo el abono la salva y el tiempo corre. */
 @Composable
 private fun TarjetaRecuperacion(planta: PlantSummary) {
-    val restante = rememberSegundosRestantes(planta.recuperacionSegundos)
+    val restante = rememberCuentaRegresiva(planta.recuperacionSegundos)
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),

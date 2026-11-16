@@ -24,6 +24,7 @@ object Routes {
     const val VIRTUAL_GARDEN = "VirtualGardenScreen"
     const val COLLECTION = "CollectionScreen"
     const val TIENDA = "tienda"
+    const val MISIONES = "misiones"
     const val PERFIL = "perfil"
 
     const val ARG_PLANT_ID = "plantId"

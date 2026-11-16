@@ -28,6 +28,7 @@ import com.plantia.ui.collection.CollectionScreen
 import com.plantia.ui.detail.CollectionDetailScreen
 import com.plantia.ui.detail.PlantDetailScreen
 import com.plantia.ui.garden.VirtualGardenScreen
+import com.plantia.ui.misiones.MisionesScreen
 import com.plantia.ui.home.HomeScreen
 import com.plantia.ui.legal.TermsScreen
 import com.plantia.ui.profile.PerfilScreen
@@ -105,8 +106,14 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onNavigateToCollection = { navController.navigate(Routes.COLLECTION) },
                 onNavigateToCatalogo = { navController.navigate(Routes.CATALOGO) },
                 onNavigateToPerfil = { navController.navigate(Routes.PERFIL) },
-                onNavigateToTienda = { navController.navigate(Routes.TIENDA) }
+                onNavigateToTienda = { navController.navigate(Routes.TIENDA) },
+                onNavigateToMisiones = { navController.navigate(Routes.MISIONES) }
             )
+        }
+
+        // Misiones
+        composable(Routes.MISIONES) {
+            MisionesScreen(onBack = { navController.popBackStack() })
         }
 
         // Escaneo
