@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import com.plantia.data.model.UserSummary
 import com.plantia.ui.components.FotoPerfil
 import com.plantia.ui.theme.AmberDark
+import com.plantia.ui.theme.FuentePixel
 import com.plantia.ui.theme.GreenDark
 import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.SurfaceWhite
@@ -61,7 +62,7 @@ fun UserHeaderCard(
                 contentAlignment = Alignment.Center
             ) {
                 val textoIniciales: @Composable () -> Unit = {
-                    Text(iniciales(user.name), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text(iniciales(user.name), color = Color.White, fontSize = 15.sp, fontFamily = FuentePixel, fontWeight = FontWeight.Medium)
                 }
                 if (user.profileImageUrl.isNullOrBlank()) textoIniciales()
                 else FotoPerfil(user.profileImageUrl, "Foto de ${user.name}", respaldo = textoIniciales)

@@ -45,6 +45,7 @@ import com.plantia.ui.theme.AmberDark
 import com.plantia.ui.theme.AmberLight
 import com.plantia.ui.theme.BlueInfo
 import com.plantia.ui.theme.BlueLight
+import com.plantia.ui.theme.FuentePixel
 import com.plantia.ui.theme.GreenDark
 import com.plantia.ui.theme.GreenLight
 import com.plantia.ui.theme.GreenPrimary
@@ -119,8 +120,8 @@ fun PlantSummaryCard(
                     Text(
                         plant.name,
                         fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = FuentePixel,
+                        fontWeight = FontWeight.Medium,
                         color = TextPrimary,
                         modifier = Modifier.weight(1f, fill = false)
                     )

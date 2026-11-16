@@ -280,7 +280,8 @@ private fun TarjetaUsuario(
                             text = usuario.name.trim().split(" ").filter { it.isNotBlank() }.take(2)
                                 .joinToString("") { it.first().uppercase() }.ifEmpty { "?" },
                             fontSize = 40.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontFamily = com.plantia.ui.theme.FuentePixel,
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.surface
                         )
                     }
@@ -337,7 +338,7 @@ private fun Estadistica(valor: String, etiqueta: String, borde: androidx.compose
         border = BorderStroke(1.5.dp, borde.copy(alpha = 0.55f))
     ) {
         Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(valor, fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, color = TextPrimary)
+            Text(valor, fontSize = 22.sp, fontWeight = FontWeight.Medium, fontFamily = com.plantia.ui.theme.FuentePixel, color = TextPrimary)
             Text(etiqueta, fontSize = 11.sp, color = TextSecondary)
         }
     }

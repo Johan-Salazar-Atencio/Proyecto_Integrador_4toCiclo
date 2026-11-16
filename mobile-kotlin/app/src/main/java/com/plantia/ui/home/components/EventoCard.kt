@@ -96,7 +96,8 @@ fun EventoCard(
                         Text(
                             text = if (restante != null) formatoCuentaRegresiva(restante) else alerta.timeRemaining,
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontFamily = com.plantia.ui.theme.FuentePixel,
+                            fontWeight = FontWeight.Medium,
                             color = AmberAlert
                         )
                     }
