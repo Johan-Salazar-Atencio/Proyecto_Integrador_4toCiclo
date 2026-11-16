@@ -4,7 +4,7 @@
 .cat-dato { padding: 8px 16px; background: var(--superficie); border-radius: 999px; box-shadow: var(--sombra); color: var(--texto-suave); font-weight: 700; font-size: 0.85rem; }
 .cat-dato b { margin-left: 6px; color: var(--texto); font-size: 1rem; }
 
-.cat-columnas { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: start; }
+.cat-columnas { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
 .cat-con-panel { grid-template-columns: minmax(0, 1fr) 380px; }
 
 .cat-filtros { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
