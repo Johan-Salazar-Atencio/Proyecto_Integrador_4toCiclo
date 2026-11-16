@@ -53,6 +53,15 @@ class ContratoMovilTest {
     }
 
     @Test
+    void laMisionDeEventoTraeSusCamposExtra() throws Exception {
+        assertThat(claves(new DailyMissionDto("event_1", "Prevenir ola de calor", "+80 XP", 0.5f, 1, 2, false,
+                "EVENT", "OLA_DE_CALOR", 7200L)))
+                .containsExactlyInAnyOrder(
+                        "id", "title", "reward", "progress", "currentCount", "targetCount", "isCompleted",
+                        "kind", "eventType", "endsInSeconds");
+    }
+
+    @Test
     void dailyMissionIncluyeIsCompleted() throws Exception {
         assertThat(claves(new DailyMissionDto("m1", "Riego", "+50", 0.5f, 1, 2, false)))
                 .containsExactlyInAnyOrder(

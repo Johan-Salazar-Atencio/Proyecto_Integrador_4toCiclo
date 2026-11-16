@@ -1,6 +1,12 @@
 package com.plantia.dto;
 
-/** Coincide con DailyMission del movil. */
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+/**
+ * Coincide con DailyMission del movil. Los tres ultimos campos solo viajan en la mision de un evento
+ * activo (la tarjeta roja de Misiones): kind es "EVENT", eventType el codigo del tipo de evento y
+ * endsInSeconds lo que falta para que termine.
+ */
 public record DailyMissionDto(
         String id,
         String title,
@@ -8,6 +14,14 @@ public record DailyMissionDto(
         float progress,
         int currentCount,
         int targetCount,
-        boolean isCompleted
+        boolean isCompleted,
+        @JsonInclude(JsonInclude.Include.NON_NULL) String kind,
+        @JsonInclude(JsonInclude.Include.NON_NULL) String eventType,
+        @JsonInclude(JsonInclude.Include.NON_NULL) Long endsInSeconds
 ) {
+    /** Mision diaria normal. */
+    public DailyMissionDto(String id, String title, String reward, float progress,
+                           int currentCount, int targetCount, boolean isCompleted) {
+        this(id, title, reward, progress, currentCount, targetCount, isCompleted, null, null, null);
+    }
 }
