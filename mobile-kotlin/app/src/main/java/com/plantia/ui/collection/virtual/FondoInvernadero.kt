@@ -269,7 +269,7 @@ fun FondoInvernadero(
         when (codigo) {
             "VICTORIANO" -> {
                 victoriano(momento)
-                marcoDeMadera(Color(0xFFFFFFFF), Color(0xFFB9B4A4))
+                marcoDeMadera(Color(0xFFE9E6DA), Color(0xFFA9A493))
             }
             "LUCES" -> {
                 luces()

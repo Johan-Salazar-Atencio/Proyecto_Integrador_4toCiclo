@@ -116,10 +116,21 @@ fun TiendaScreen(
                     onPestana = { pestana = it },
                     ocupado = viewModel.ocupado,
                     onComprar = viewModel::comprar,
-                    onAbono = viewModel::usarAbono
+                    onAbono = viewModel::usarAbono,
+                    onAplicar = viewModel::abrirAplicar
                 )
             }
         }
+    }
+
+    viewModel.aplicando?.let { maceta ->
+        HojaAplicarMaceta(
+            maceta = maceta,
+            plantas = viewModel.plantasParaMaceta,
+            cargando = viewModel.cargandoPlantas,
+            onAplicar = viewModel::aplicarMaceta,
+            onCerrar = viewModel::cerrarAplicar
+        )
     }
 }
 
@@ -131,7 +142,8 @@ private fun Contenido(
     onPestana: (String) -> Unit,
     ocupado: Boolean,
     onComprar: (TiendaItem) -> Unit,
-    onAbono: () -> Unit
+    onAbono: () -> Unit,
+    onAplicar: (TiendaItem) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -156,11 +168,26 @@ private fun Contenido(
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                FilterChip(selected = pestana == "FONDO", onClick = { onPestana("FONDO") }, label = { Text("🖼️ Fondos") })
                 FilterChip(selected = pestana == "ABONO", onClick = { onPestana("ABONO") }, label = { Text("🌿 Abono") })
+                FilterChip(selected = pestana == "FONDO", onClick = { onPestana("FONDO") }, label = { Text("🖼️ Fondos") })
+                FilterChip(selected = pestana == "MACETA", onClick = { onPestana("MACETA") }, label = { Text("🪴 Macetas") })
             }
         }
-        if (pestana == "FONDO") {
+        if (pestana == "MACETA") {
+            if (tienda.macetas.isEmpty()) {
+                item { Text("Aún no hay macetas a la venta.", color = TextSecondary, fontSize = 14.sp) }
+            }
+            items(tienda.macetas, key = { "m${it.id}" }) { maceta ->
+                TarjetaMaceta(maceta, tienda.monedas, ocupado, onComprar, onAplicar)
+            }
+        } else if (pestana == "FONDO") {
+            if (tienda.invernaderos.isNotEmpty()) {
+                item { Text("Invernaderos de tu colección", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary) }
+                items(tienda.invernaderos, key = { "i${it.id}" }) { invernadero ->
+                    TarjetaInvernadero(invernadero, tienda.monedas, ocupado, onComprar)
+                }
+            }
+            item { Text("Fondos de la escena de cada planta", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary) }
             if (tienda.fondos.isEmpty()) {
                 item { Text("Aún no hay fondos a la venta.", color = TextSecondary, fontSize = 14.sp) }
             }

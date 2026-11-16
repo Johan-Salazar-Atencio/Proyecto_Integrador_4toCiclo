@@ -7,11 +7,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.Tienda
 import com.plantia.data.model.TiendaItem
 import com.plantia.data.repository.AbonoResultado
 import com.plantia.data.repository.GardenRepository
 import com.plantia.data.repository.PlantaActivaResultado
+import com.plantia.data.repository.PlantasResultado
 import com.plantia.data.repository.TiendaRepository
 import com.plantia.data.repository.TiendaResultado
 import com.plantia.di.AppContainer
@@ -39,6 +41,17 @@ class TiendaViewModel(
     var ocupado: Boolean by mutableStateOf(false)
         private set
 
+    /** Maceta a la que se le estan eligiendo plantas; null con la hoja cerrada. */
+    var aplicando: TiendaItem? by mutableStateOf(null)
+        private set
+
+    /** Plantas del invernadero entre las que se elige (las del baul no, estan congeladas). */
+    var plantasParaMaceta: List<PlantSummary> by mutableStateOf(emptyList())
+        private set
+
+    var cargandoPlantas: Boolean by mutableStateOf(false)
+        private set
+
     init {
         cargar()
     }
@@ -52,9 +65,49 @@ class TiendaViewModel(
         aviso = null
     }
 
-    /** Compra un fondo; se pone a cada planta desde el icono de fondos del jardin. */
+    /** Compra un articulo; cada tipo se usa en un lugar distinto y el aviso lo dice. */
     fun comprar(item: TiendaItem) = accion {
-        aplicar(tienda.comprar(item.id), "Compraste «${item.nombre}». Ponlo desde el icono de fondos de tu jardín")
+        val donde = when (item.tipo) {
+            TiendaItem.MACETA -> "Ponla a tus plantas con «Poner a mis plantas»"
+            TiendaItem.INVERNADERO -> "Elígelo desde el chip de tu colección"
+            else -> "Ponlo desde el icono de fondos de tu jardín"
+        }
+        aplicar(tienda.comprar(item.id), "Compraste «${item.nombre}». $donde")
+    }
+
+    /** Abre la hoja para elegir a cuales plantas se les pone la maceta. */
+    fun abrirAplicar(maceta: TiendaItem) {
+        aplicando = maceta
+        plantasParaMaceta = emptyList()
+        cargandoPlantas = true
+        viewModelScope.launch {
+            when (val r = garden.listar()) {
+                is PlantasResultado.Con -> plantasParaMaceta = r.plantas.filter { !it.enBaul }
+                is PlantasResultado.Fallo -> {
+                    aviso = r.mensaje
+                    aplicando = null
+                }
+            }
+            cargandoPlantas = false
+        }
+    }
+
+    fun cerrarAplicar() {
+        aplicando = null
+    }
+
+    /** Pone la maceta a las plantas elegidas; el servidor las cambia todas o ninguna. */
+    fun aplicarMaceta(idPlantas: List<Int>) {
+        val maceta = aplicando ?: return
+        accion {
+            when (val r = garden.ponerMaceta(maceta.id, idPlantas)) {
+                is PlantasResultado.Con -> {
+                    aviso = "«${maceta.nombre}» puesta a ${idPlantas.size} planta${if (idPlantas.size == 1) "" else "s"}"
+                    aplicando = null
+                }
+                is PlantasResultado.Fallo -> aviso = r.mensaje
+            }
+        }
     }
 
     /** Compra un abono y lo usa en la planta del jardin. */

@@ -5,6 +5,7 @@ import com.plantia.data.model.TiendaItem
 import com.plantia.data.repository.AbonoResultado
 import com.plantia.data.repository.FondosResultado
 import com.plantia.data.repository.PlantaActivaResultado
+import com.plantia.data.repository.PlantasResultado
 import com.plantia.data.repository.TiendaRepository
 import com.plantia.data.repository.TiendaResultado
 import com.plantia.fakes.FakeGardenRepository
@@ -131,5 +132,61 @@ class TiendaViewModelTest {
         vm.comprar(item(2, TiendaItem.FONDO, 100))
         vm.avisoVisto()
         assertNull(vm.aviso)
+    }
+
+    private fun maceta(id: Int, comprado: Boolean = true) = TiendaItem(
+        id = id, nombre = "Azul", tipo = TiendaItem.MACETA, descripcion = "", precio = 0, nivelRequerido = 1,
+        previewUrl = null, variantes = emptyList(), comprado = comprado, bloqueado = false, codigo = "AZUL"
+    )
+
+    @Test
+    fun al_abrir_la_hoja_de_macetas_solo_se_ofrecen_las_plantas_fuera_del_baul() {
+        garden.lista = PlantasResultado.Con(
+            listOf(planta(id = 1), planta(id = 2, activa = false).copy(enBaul = true), planta(id = 3, activa = false))
+        )
+        val vm = TiendaViewModel(repo, garden)
+
+        vm.abrirAplicar(maceta(9))
+
+        assertEquals(9, vm.aplicando?.id)
+        assertEquals(listOf(1, 3), vm.plantasParaMaceta.map { it.id })
+    }
+
+    @Test
+    fun poner_la_maceta_manda_las_plantas_elegidas_y_cierra_la_hoja() {
+        garden.lista = PlantasResultado.Con(listOf(planta(id = 1), planta(id = 3, activa = false)))
+        val vm = TiendaViewModel(repo, garden)
+        vm.abrirAplicar(maceta(9))
+
+        vm.aplicarMaceta(listOf(1, 3))
+
+        assertEquals(listOf(9 to listOf(1, 3)), garden.macetas)
+        assertNull(vm.aplicando)
+        assertEquals("«Azul» puesta a 2 plantas", vm.aviso)
+    }
+
+    @Test
+    fun si_el_servidor_rechaza_la_maceta_la_hoja_sigue_abierta_y_se_avisa() {
+        garden.lista = PlantasResultado.Con(listOf(planta(id = 1)))
+        garden.alPonerMaceta = PlantasResultado.Fallo("Primero compra esta maceta")
+        val vm = TiendaViewModel(repo, garden)
+        vm.abrirAplicar(maceta(9))
+
+        vm.aplicarMaceta(listOf(1))
+
+        assertEquals("Primero compra esta maceta", vm.aviso)
+        assertEquals(9, vm.aplicando?.id)
+    }
+
+    @Test
+    fun comprar_una_maceta_o_un_invernadero_dice_donde_usarlos() {
+        val vm = TiendaViewModel(repo, garden)
+
+        vm.comprar(maceta(9, comprado = false))
+        assertTrue(vm.aviso!!.contains("Poner a mis plantas"))
+
+        vm.avisoVisto()
+        vm.comprar(maceta(10, comprado = false).copy(tipo = TiendaItem.INVERNADERO, nombre = "Luces"))
+        assertTrue(vm.aviso!!.contains("chip de tu colección"))
     }
 }
