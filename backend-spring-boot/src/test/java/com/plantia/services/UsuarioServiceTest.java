@@ -34,6 +34,8 @@ class UsuarioServiceTest {
     private com.plantia.repositories.ItemTiendaRepository itemRepo;
     private com.plantia.repositories.InventarioUsuarioRepository inventarioRepo;
     private UsuarioService service;
+    private StorageService storage;
+    private final List<String> borradas = new java.util.ArrayList<>();
 
     @BeforeEach
     void preparar() {
@@ -45,7 +47,16 @@ class UsuarioServiceTest {
         regionRepo = mock(RegionRepository.class);
         itemRepo = mock(com.plantia.repositories.ItemTiendaRepository.class);
         inventarioRepo = mock(com.plantia.repositories.InventarioUsuarioRepository.class);
-        service = new UsuarioService(usuarioRepo, nivelRepo, regionRepo, itemRepo, inventarioRepo);
+        storage = new StorageService() {
+            @Override public String save(org.springframework.web.multipart.MultipartFile f) {
+                if (f.isEmpty()) {
+                    throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "vacio");
+                }
+                return "http://x/files/nueva.jpg";
+            }
+            @Override public void delete(String url) { borradas.add(url); }
+        };
+        service = new UsuarioService(usuarioRepo, nivelRepo, regionRepo, itemRepo, inventarioRepo, storage);
     }
 
     private static Nivel nivel(int n, int xp) {
@@ -209,5 +220,32 @@ class UsuarioServiceTest {
         assertThatThrownBy(() -> service.cambiarInvernadero(1, 99))
                 .isInstanceOfSatisfying(ResponseStatusException.class, e -> assertThat(e.getStatusCode().value()).isEqualTo(404));
         assertThat(u.getIdInvernadero()).isNull();
+    }
+
+    // --- Foto de perfil ---
+
+    @Test
+    void laFotoNuevaReemplazaALaAnteriorYBorraLaVieja() {
+        Usuario u = usuarioSimple();
+        u.setFotoUrl("http://x/files/vieja.jpg");
+        var foto = new org.springframework.mock.web.MockMultipartFile("foto", "yo.jpg", "image/jpeg", new byte[] {1});
+
+        UserSummaryDto dto = service.cambiarFoto(1, foto);
+
+        assertThat(dto.profileImageUrl()).isEqualTo("http://x/files/nueva.jpg");
+        assertThat(u.getFotoUrl()).isEqualTo("http://x/files/nueva.jpg");
+        assertThat(borradas).containsExactly("http://x/files/vieja.jpg");
+    }
+
+    @Test
+    void unaFotoVaciaSeRechazaYNoTocaLaAnterior() {
+        Usuario u = usuarioSimple();
+        u.setFotoUrl("http://x/files/vieja.jpg");
+        var vacia = new org.springframework.mock.web.MockMultipartFile("foto", "yo.jpg", "image/jpeg", new byte[0]);
+
+        assertThatThrownBy(() -> service.cambiarFoto(1, vacia)).isInstanceOf(ResponseStatusException.class);
+
+        assertThat(u.getFotoUrl()).isEqualTo("http://x/files/vieja.jpg");
+        assertThat(borradas).isEmpty();
     }
 }

@@ -12,6 +12,7 @@ import com.plantia.dto.UserSummaryDto;
 import com.plantia.models.InventarioUsuario;
 import com.plantia.models.ItemTienda;
 import com.plantia.models.Region;
+import org.springframework.web.multipart.MultipartFile;
 import com.plantia.models.Usuario;
 import com.plantia.repositories.InventarioUsuarioRepository;
 import com.plantia.repositories.ItemTiendaRepository;
@@ -27,14 +28,17 @@ public class UsuarioService {
     private final RegionRepository regionRepo;
     private final ItemTiendaRepository itemRepo;
     private final InventarioUsuarioRepository inventarioRepo;
+    private final StorageService storage;
 
     public UsuarioService(UsuarioRepository usuarioRepo, NivelRepository nivelRepo, RegionRepository regionRepo,
-                          ItemTiendaRepository itemRepo, InventarioUsuarioRepository inventarioRepo) {
+                          ItemTiendaRepository itemRepo, InventarioUsuarioRepository inventarioRepo,
+                          StorageService storage) {
         this.usuarioRepo = usuarioRepo;
         this.nivelRepo = nivelRepo;
         this.regionRepo = regionRepo;
         this.itemRepo = itemRepo;
         this.inventarioRepo = inventarioRepo;
+        this.storage = storage;
     }
 
     @Transactional(readOnly = true)
@@ -85,6 +89,21 @@ public class UsuarioService {
         }
         u.setIdInvernadero(item.getIdItem());
         usuarioRepo.save(u);
+        return resumen(u);
+    }
+
+    /**
+     * Cambia la foto de perfil. El StorageService solo acepta JPG, PNG o WEBP (por el contenido real, no por el
+     * nombre); la foto anterior se borra del disco una vez guardada la nueva.
+     */
+    @Transactional
+    public UserSummaryDto cambiarFoto(Integer userId, MultipartFile foto) {
+        Usuario u = usuarioRepo.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        String anterior = u.getFotoUrl();
+        u.setFotoUrl(storage.save(foto));
+        usuarioRepo.save(u);
+        storage.delete(anterior);
         return resumen(u);
     }
 
