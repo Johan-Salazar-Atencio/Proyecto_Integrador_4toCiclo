@@ -10,277 +10,292 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.translate
 import com.plantia.ui.escena.momentoDelDia
 import java.time.LocalTime
+import kotlin.math.PI
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/** Madera del estante donde se apoyan las macetas, segun el invernadero. */
-data class PaletaEstante(val tabla: Color, val canto: Color)
+/*
+ * Invernadero en pixel art de la propuesta E. Cada pagina es una cuadricula de 68 x 102 "pixeles": el techo de
+ * vidrio (0 a 26), dos modulos con su repisa de 33 cada uno (26 a 92) y el zocalo de ladrillo (92 a 102).
+ * Las plantas y macetas no se dibujan aqui: se colocan encima en cada hueco (ver [HuecoInvernadero]).
+ */
 
-fun paletaDeEstante(codigo: String): PaletaEstante = when (codigo) {
-    "VICTORIANO" -> PaletaEstante(Color(0xFFF4F1E8), Color(0xFFC9C3B2))
-    "LUCES" -> PaletaEstante(Color(0xFF5A4030), Color(0xFF33241A))
-    else -> PaletaEstante(Color(0xFF8A6238), Color(0xFF5E4125))
+/** Ancho y alto de la cuadricula de una pagina. */
+const val ANCHO_PAGINA = 68f
+const val ALTO_PAGINA = 102f
+
+/** Donde va cada planta dentro de la cuadricula: columna 0..2 y fila 0..1. */
+object HuecoInvernadero {
+    /** Esquina izquierda de la columna y ancho que ocupa. */
+    fun izquierda(columna: Int) = 5f + columna * 22f
+    const val ANCHO = 14f
+
+    /** Arriba de la planta (la planta mide 10 y la maceta 8) y la tabla de la repisa donde se apoyan. */
+    fun arriba(fila: Int) = 26f + 33f * fila + 9f
+    fun repisa(fila: Int) = 26f + 33f * fila + 27f
 }
 
-/** Grosor del marco como parte del ancho: el contenido se acomoda dentro. */
-const val GROSOR_MARCO = 0.034f
+private fun c(hex: String): Color = Color(hex.removePrefix("#").toLong(16) or 0xFF000000)
 
-// ---------- Cielo y paisaje de la selva (un solo paisaje que cambia con la hora) ----------
+private class Cielo(val s: List<Color>, val lejos: Color, val cerca: Color, val arbol: Color, val astro: Color, val tinte: Color, val ta: Float)
 
-private fun cielo(momento: String): List<Color> = when (momento) {
-    "TARDE" -> listOf(0xFF6C4E9E, 0xFFB6567F, 0xFFE07A5F, 0xFFF2A65A, 0xFFF7C873)
-    "NOCHE" -> listOf(0xFF070B24, 0xFF0C1438, 0xFF121C4A, 0xFF1A2A5E, 0xFF22366E)
-    else -> listOf(0xFF7FCBE6, 0xFF9AD8EA, 0xFFB4E4E6, 0xFFCCEEDE, 0xFFE0F5D0)
-}.map { Color(it) }
+private fun cieloDe(momento: String) = when (momento) {
+    "TARDE" -> Cielo(listOf("#FF8E72", "#FFB878", "#FFE0A0").map(::c), c("#C48A9A"), c("#6FA05F"), c("#3F7F4A"), c("#FFF3B8"), c("#FFD9B0"), .18f)
+    "NOCHE" -> Cielo(listOf("#0A1238", "#16245C", "#2A3A86").map(::c), c("#1B3A5E"), c("#12402F"), c("#0C2D22"), c("#F6F1D2"), c("#9CB8FF"), .1f)
+    else -> Cielo(listOf("#5BC8FF", "#93DCFF", "#CBF0FF").map(::c), c("#9BDDAA"), c("#52C17A"), c("#2F9E4F"), c("#FFE066"), c("#E9FFF8"), .14f)
+}
 
-/** Tres planos de selva, del lejano al cercano. */
-private fun planos(momento: String): List<Color> = when (momento) {
-    "TARDE" -> listOf(0xFF6B5B4A, 0xFF4A4A33, 0xFF2F3A26)
-    "NOCHE" -> listOf(0xFF1B3550, 0xFF11273D, 0xFF0A1A2C)
-    else -> listOf(0xFF4F9A57, 0xFF357A3C, 0xFF21562A)
-}.map { Color(it) }
+/** Marco (de dia, de noche) y madera de la repisa de cada tema. */
+private class Marco(val dia: List<Color>, val noche: List<Color>, val repisa: List<Color>)
 
-// Alturas (como parte del alto) de las copas de cada plano; fijas para que el paisaje no cambie entre aperturas.
-private val COPAS = arrayOf(
-    floatArrayOf(.46f, .42f, .47f, .40f, .44f, .38f, .45f, .41f, .47f, .39f, .43f, .46f, .40f, .44f),
-    floatArrayOf(.56f, .60f, .54f, .58f, .62f, .55f, .59f, .53f, .61f, .57f, .54f, .60f, .56f, .62f),
-    floatArrayOf(.72f, .68f, .75f, .70f, .66f, .74f, .71f, .67f, .76f, .69f, .73f, .68f, .75f, .70f)
-)
+private fun marcoDe(tema: String) = when (tema) {
+    "VICTORIANO" -> Marco(listOf("#F4F7F5", "#B9C7BF").map(::c), listOf("#A9B9CC", "#6D8099").map(::c), listOf("#E0A767", "#A8703A").map(::c))
+    "LUCES" -> Marco(listOf("#3A4747", "#1F2A2A").map(::c), listOf("#2B3636", "#151D1D").map(::c), listOf("#C8883F", "#94612A").map(::c))
+    else -> Marco(listOf("#8A5A34", "#5E3A1E").map(::c), listOf("#6E4A2E", "#47301D").map(::c), listOf("#A8744C", "#7E5233").map(::c))
+}
 
-private fun DrawScope.paisaje(momento: String) {
-    val w = size.width
-    val h = size.height
-    val bandas = cielo(momento)
-    val alto = h / bandas.size
-    bandas.forEachIndexed { i, c -> drawRect(c, Offset(0f, i * alto), Size(w, alto + 1f)) }
+/** Pinta una cuadricula de 68 x 102 escalada al ancho; cada rectangulo cae en pixeles enteros (sin costuras). */
+private class Lienzo(val ds: DrawScope, val u: Float) {
+    fun r(x: Float, y: Float, w: Float, h: Float, color: Color, alpha: Float = 1f) {
+        val izq = floor(x * u)
+        val arr = floor(y * u)
+        val der = ceil((x + w) * u)
+        val aba = ceil((y + h) * u)
+        ds.drawRect(color.copy(alpha = color.alpha * alpha), Offset(izq, arr), Size(der - izq, aba - arr))
+    }
 
-    // Un solo astro: sol de dia, sol bajo en la tarde, luna de noche
-    val lado = w / 90f
-    when (momento) {
-        "NOCHE" -> {
-            var semilla = 11
-            fun r(): Float { semilla = (semilla * 1103515245 + 12345) and 0x7fffffff; return (semilla % 1000) / 1000f }
-            repeat(30) { drawRect(Color(0xCCFFFFFF), Offset((r() * w).roundToInt().toFloat(), (r() * h * 0.5f).roundToInt().toFloat()), Size(lado, lado)) }
-            drawCircle(Color(0x22F4F1DE), w * 0.12f, Offset(w * 0.20f, h * 0.15f))
-            drawCircle(Color(0xFFF4F1DE), w * 0.065f, Offset(w * 0.20f, h * 0.15f))
-            drawCircle(Color(0xFF121C4A), w * 0.055f, Offset(w * 0.225f, h * 0.14f))
+    fun r(x: Int, y: Int, w: Int, h: Int, color: Color, alpha: Float = 1f) =
+        r(x.toFloat(), y.toFloat(), w.toFloat(), h.toFloat(), color, alpha)
+}
+
+private fun Lienzo.liana(x: Int, largo: Int, c1: Color, c2: Color) {
+    for (k in 0 until largo) {
+        r(x + if (k % 3 == 1) 1 else 0, 2 + k, 1, 1, c1)
+        if (k % 3 == 2) {
+            r(x - 1, 2 + k, 1, 1, c2)
+            r(x + 2, 2 + k, 1, 1, c2)
         }
-        "TARDE" -> {
-            drawCircle(Color(0x33FFD27A), w * 0.20f, Offset(w * 0.26f, h * 0.34f))
-            drawCircle(Color(0xFFFFB04F), w * 0.085f, Offset(w * 0.26f, h * 0.34f))
+    }
+    r(x - 1, 2 + largo, 3, 1, c2)
+}
+
+private fun Lienzo.helecho(x: Int) {
+    r(x + 1, 2, 1, 3, c("#999999"))
+    r(x, 5, 3, 2, c("#E8743B"))
+    r(x - 2, 7, 7, 1, c("#2F9E4F"))
+    r(x - 3, 8, 2, 2, c("#3FBF63"))
+    r(x + 4, 8, 2, 2, c("#3FBF63"))
+    r(x - 1, 8, 6, 1, c("#2F9E4F"))
+    r(x + 1, 9, 1, 2, c("#2F9E4F"))
+}
+
+private fun Lienzo.guirnalda(noche: Boolean) {
+    val colores = listOf("#FFD43B", "#FF7EB6", "#6FE3FF", "#FFB878").map(::c)
+    var x = 3
+    var j = 0
+    while (x < 63) {
+        val y = 3 + (2 * sin((x - 3) / 60f * PI)).roundToInt()
+        r(x, y, 5, 1, c("#111111"))
+        r(x + 1, y, 4, 4, colores[j % 4], if (noche) .4f else .15f)
+        r(x + 2, y + 1, 2, 2, colores[j % 4])
+        x += 5
+        j++
+    }
+}
+
+/** Paisaje que se ve por la ventana (cielo, astro, nubes o estrellas, montes y arboles). */
+private fun Lienzo.paisaje(momento: String) {
+    val p = cieloDe(momento)
+    r(2, 0, 64, 22, p.s[0]); r(2, 22, 64, 18, p.s[1]); r(2, 40, 64, 14, p.s[2])
+    r(46, 8, 6, 6, p.astro); r(45, 9, 8, 4, p.astro); r(47, 7, 4, 8, p.astro)
+    if (momento == "NOCHE") {
+        listOf(8 to 5, 22 to 12, 36 to 6, 60 to 10, 14 to 24, 30 to 28, 56 to 26, 40 to 20, 6 to 34, 40 to 36, 62 to 32, 26 to 4)
+            .forEach { (x, y) -> r(x, y, 1, 1, Color.White) }
+    } else {
+        val n = Color.White
+        r(8, 12, 10, 2, n, .9f); r(10, 10, 6, 2, n, .9f); r(26, 24, 9, 2, n, .85f)
+        r(28, 22, 5, 2, n, .85f); r(52, 30, 8, 2, n, .8f); r(54, 28, 4, 2, n, .8f)
+    }
+    r(2, 46, 64, 20, p.lejos); r(4, 42, 16, 4, p.lejos); r(6, 40, 8, 2, p.lejos); r(36, 40, 22, 6, p.lejos); r(42, 38, 10, 2, p.lejos)
+    r(2, 54, 64, 12, p.cerca); r(2, 52, 26, 2, p.cerca); r(44, 52, 22, 2, p.cerca)
+    listOf(6 to 46, 22 to 49, 40 to 45, 56 to 48).forEach { (x, y) ->
+        r(x, y, 6, 8, p.arbol); r(x + 1, y - 2, 4, 2, p.arbol); r(x + 2, y + 8, 1, 5, c("#5E3A1E"))
+    }
+    r(2, 0, 64, 66, p.tinte, p.ta)
+}
+
+/** Un modulo (ventanal con su repisa): marco, rayos de luz, adornos del tema y la tabla donde se apoyan las macetas. */
+private fun Lienzo.modulo(tema: String, momento: String, indice: Int, hueco: Int?) {
+    val noche = momento == "NOCHE"
+    val m = marcoDe(tema)
+    val f = if (noche) m.noche else m.dia
+    val madera = m.repisa
+    val blanco = Color.White
+    // Rayos de luz sobre el vidrio
+    listOf(
+        listOf(24f to 0f, 29f to 0f, 17f to 20f, 17f to 15f) to .2f,
+        listOf(56f to 0f, 60f to 0f, 51f to 12f, 51f to 8f) to .18f,
+        listOf(7f to 0f, 11f to 0f, 3f to 16f, 3f to 11f) to .18f
+    ).forEach { (puntos, alfa) ->
+        val camino = Path().apply {
+            moveTo(puntos[0].first * u, puntos[0].second * u)
+            puntos.drop(1).forEach { lineTo(it.first * u, it.second * u) }
+            close()
+        }
+        ds.drawPath(camino, blanco.copy(alpha = alfa))
+    }
+    r(16, 0, 1, 27, f[0]); r(17, 0, 1, 27, f[1], .6f); r(50, 0, 1, 27, f[0]); r(51, 0, 1, 27, f[1], .6f)
+    r(2, 13, 64, 1, f[0]); r(2, 14, 64, 1, f[1], .5f)
+    r(0, 0, 2, 33, f[0]); r(2, 0, 1, 33, f[1]); r(66, 0, 2, 33, f[0]); r(65, 0, 1, 33, f[1])
+    r(0, 0, 68, 2, f[0]); r(0, 2, 68, 1, f[1])
+
+    when (tema) {
+        "VICTORIANO" -> {
+            helecho(if (indice % 2 == 1) 56 else 8)
+            val rosa = c("#FF7EB6")
+            r(63, 8, 2, 2, rosa); r(64, 13, 2, 2, rosa); r(63, 19, 2, 2, rosa)
+            r(1, 6, 1, 18, c("#3FBF63"), .8f)
+        }
+        "LUCES" -> {
+            guirnalda(noche)
+            val g = if (noche) .35f else .12f
+            r(33, 2, 1, 5, c("#111111")); r(28, 5, 12, 12, c("#FFD43B"), g)
+            r(31, 7, 5, 6, c("#2A2A2A")); r(32, 8, 3, 4, c("#FFD43B"))
+            if (momento != "DIA") {
+                listOf(10 to 18, 56 to 10, 24 to 22, 44 to 19).forEach { (x, y) ->
+                    val dx = (indice * 3) % 7
+                    r(x + dx, y, 1, 1, c("#FFF59A")); r(x - 1 + dx, y - 1, 3, 3, c("#FFF59A"), .25f)
+                }
+            }
         }
         else -> {
-            drawCircle(Color(0x33FFF3A6), w * 0.16f, Offset(w * 0.22f, h * 0.15f))
-            drawCircle(Color(0xFFFFE27A), w * 0.065f, Offset(w * 0.22f, h * 0.15f))
-        }
-    }
-
-    // Haces de luz entre las copas (no de noche)
-    if (momento != "NOCHE") {
-        val haz = Color(if (momento == "TARDE") 0x1FFFD9A0 else 0x24FFFFFF)
-        listOf(0.2f, 0.5f, 0.78f).forEach { x ->
-            val camino = Path().apply {
-                moveTo(w * x, 0f); lineTo(w * (x + 0.06f), 0f); lineTo(w * (x + 0.17f), h); lineTo(w * (x + 0.05f), h); close()
-            }
-            drawPath(camino, haz)
-        }
-    }
-
-    // Planos de selva en columnas de pixel: lejano, medio y cercano
-    val verdes = planos(momento)
-    COPAS.forEachIndexed { plano, alturas ->
-        val ancho = w / alturas.size
-        alturas.forEachIndexed { i, a ->
-            val x0 = (i * ancho).roundToInt().toFloat()
-            val x1 = ((i + 1) * ancho).roundToInt().toFloat()
-            drawRect(verdes[plano], Offset(x0, h * a), Size(x1 - x0, h - h * a))
-        }
-    }
-
-    if (momento == "NOCHE") {
-        // Luciernagas
-        val c = Color(0xFFD6FF7A)
-        listOf(.18f to .52f, .42f to .66f, .66f to .58f, .86f to .72f, .30f to .80f).forEach { (x, y) ->
-            drawCircle(c.copy(alpha = 0.25f), lado * 3f, Offset(w * x, h * y))
-            drawRect(c, Offset(w * x - lado / 2, h * y - lado / 2), Size(lado, lado))
-        }
-    }
-}
-
-// ---------- Marco, lianas y guacamayo ----------
-
-private fun DrawScope.marcoDeMadera(claro: Color, oscuro: Color) {
-    val w = size.width
-    val h = size.height
-    val t = w * GROSOR_MARCO
-    // Viga de arriba un poco mas gruesa
-    drawRect(oscuro, Offset(0f, 0f), Size(w, t * 1.7f))
-    drawRect(claro, Offset(0f, 0f), Size(w, t * 1.1f))
-    drawRect(oscuro, Offset(0f, h - t), Size(w, t))
-    drawRect(claro, Offset(0f, h - t), Size(w, t * 0.6f))
-    drawRect(oscuro, Offset(0f, 0f), Size(t, h))
-    drawRect(claro, Offset(0f, 0f), Size(t * 0.6f, h))
-    drawRect(oscuro, Offset(w - t, 0f), Size(t, h))
-    drawRect(claro, Offset(w - t * 0.6f, 0f), Size(t * 0.6f, h))
-    // Vetas de la viga
-    var x = t * 2f
-    while (x < w - t * 2f) {
-        drawRect(oscuro, Offset(x, t * 0.35f), Size(t * 1.4f, t * 0.12f))
-        x += t * 4.3f
-    }
-}
-
-private fun DrawScope.lianas() {
-    val w = size.width
-    val h = size.height
-    val t = w * GROSOR_MARCO
-    val px = w / 90f
-    val tallo = Color(0xFF2F7A3A)
-    val hoja = Color(0xFF55B85B)
-    listOf(0.07f to 0.20f, 0.40f to 0.12f, 0.55f to 0.26f, 0.66f to 0.10f).forEach { (fx, largo) ->
-        val x0 = w * fx
-        val y0 = t * 1.7f
-        val pasos = ((h * largo) / (px * 2f)).roundToInt()
-        for (i in 0 until pasos) {
-            val x = x0 + sin(i * 0.8f + fx * 9f) * px * 1.6f
-            val y = y0 + i * px * 2f
-            drawRect(tallo, Offset(x.roundToInt().toFloat(), y.roundToInt().toFloat()), Size(px, px * 2f))
-            if (i % 3 == 1) {
-                val lado = if (i % 2 == 0) -1f else 1f
-                drawRect(hoja, Offset(x + (if (lado < 0) -px * 2f else px), y), Size(px * 2f, px))
-                drawRect(hoja, Offset(x + (if (lado < 0) -px * 3f else px * 2f), y + px), Size(px * 2f, px))
+            liana(4, 9 + (indice % 3) * 2, c("#2F9E4F"), c("#3FBF63"))
+            liana(11, 6, c("#1F7A3A"), c("#2F9E4F"))
+            liana(55, 8, c("#1F7A3A"), c("#3FBF63"))
+            liana(62, 11, c("#2F9E4F"), c("#3FBF63"))
+            r(5, 13, 2, 2, c("#FF7EB6")); r(60, 15, 2, 2, c("#FFD43B")); r(12, 10, 2, 2, c("#FF7EB6"))
+            if (indice == 0) {
+                // Guacamayo posado
+                r(40, 9, 4, 4, c("#E5484D")); r(43, 8, 3, 3, c("#E5484D")); r(46, 9, 1, 1, c("#FFB020"))
+                r(40, 10, 3, 2, c("#3B82F6")); r(37, 11, 3, 1, c("#3B82F6")); r(44, 9, 1, 1, blanco)
             }
         }
     }
+
+    // El "+" del primer hueco libre
+    if (hueco != null) {
+        val x = 5 + hueco * 22
+        val cx = x + 7
+        val t = f[0]
+        r(cx - 3, 19, 7, 1, t, .8f); r(cx, 16, 1, 7, t, .8f)
+        r(x, 12, 2, 1, t, .6f); r(x + 12, 12, 2, 1, t, .6f); r(x, 24, 2, 1, t, .6f); r(x + 12, 24, 2, 1, t, .6f)
+    }
+
+    // Repisa
+    r(0, 27, 68, 4, madera[0]); r(0, 31, 68, 2, madera[1]); r(0, 27, 68, 1, blanco, .25f)
+    var gx = 4
+    while (gx < 66) {
+        r(gx, 29, 3, 1, madera[1], .5f)
+        gx += 9
+    }
 }
 
-private val GUACAMAYO = listOf(
-    ".....rrr....",
-    "....rrrrr...",
-    "...rrwwwr...",
-    "..orwkwwr...",
-    "..oowwwrr...",
-    "...orrrrrr..",
-    "....rrrrrr..",
-    "....rryyyr..",
-    "....rryyyb..",
-    "....rryybb..",
-    "....rrybbb..",
-    ".....rybbb..",
-    ".....rbbbb..",
-    "......bbb...",
-    "......bbb...",
-    "......bb...."
-)
-
-private val PALETA_GUACAMAYO = mapOf(
-    'r' to Color(0xFFD7263D), 'y' to Color(0xFFF9C80E), 'b' to Color(0xFF1F6FD1),
-    'w' to Color(0xFFF4F1E8), 'k' to Color(0xFF111111), 'o' to Color(0xFFCFC8B8)
-)
-
-private fun DrawScope.guacamayo() {
-    val w = size.width
-    val t = w * GROSOR_MARCO
-    val px = w / 64f
-    val ancho = 12 * px
-    val x0 = w - t - ancho - px * 3f
-    val y0 = t * 1.7f + px * 4f
-    // Rama donde se posa
-    drawRect(Color(0xFF6B4A2B), Offset(x0 - px * 3f, y0 + 16 * px), Size(ancho + px * 6f, px * 1.6f))
-    GUACAMAYO.forEachIndexed { fila, texto ->
-        texto.forEachIndexed { col, c ->
-            val color = PALETA_GUACAMAYO[c] ?: return@forEachIndexed
-            drawRect(color, Offset(x0 + col * px, y0 + fila * px), Size(px + 0.5f, px + 0.5f))
+/** Techo de vidrio a dos aguas con su cielo, vigas y adornos. */
+private fun Lienzo.techo(tema: String, momento: String) {
+    val p = cieloDe(momento)
+    val noche = momento == "NOCHE"
+    val m = marcoDe(tema)
+    val f = if (noche) m.noche else m.dia
+    r(0, 0, 68, 26, f[1])
+    val triangulo = Path().apply {
+        moveTo(4 * u, 26 * u); lineTo(34 * u, 4 * u); lineTo(64 * u, 26 * u); close()
+    }
+    ds.clipPath(triangulo) {
+        r(0, 0, 68, 26, p.s[0])
+        if (noche) {
+            listOf(20 to 12, 44 to 16, 30 to 18, 50 to 12, 26 to 10).forEach { (x, y) -> r(x, y, 1, 1, Color.White) }
+        } else {
+            r(38, 14, 10, 2, Color.White, .85f); r(40, 12, 6, 2, Color.White, .85f); r(18, 18, 8, 2, Color.White, .8f)
+        }
+        r(0, 0, 68, 26, p.tinte, p.ta)
+    }
+    val viga = Stroke(width = u)
+    ds.drawLine(f[0], Offset(34 * u, 4 * u), Offset(19 * u, 26 * u), strokeWidth = viga.width)
+    ds.drawLine(f[0], Offset(34 * u, 4 * u), Offset(49 * u, 26 * u), strokeWidth = viga.width)
+    ds.drawLine(f[0], Offset(34 * u, 4 * u), Offset(34 * u, 26 * u), strokeWidth = viga.width)
+    ds.drawPath(triangulo, f[0], style = Stroke(width = 2 * u))
+    r(33, 0, 2, 4, f[0]); r(33, 0, 2, 1, c("#FFD43B")); r(0, 24, 68, 2, f[0])
+    when (tema) {
+        "VICTORIANO" -> {
+            r(33, 6, 1, 3, c("#999999")); r(31, 9, 5, 4, c("#FFD43B"), if (noche) .9f else .5f); r(32, 10, 3, 2, c("#FFF3B8"))
+        }
+        "LUCES" -> {
+            var t = 0f
+            while (t <= 1f) {
+                val x = 4 + t * 30
+                val y = 26 - t * 22
+                r(x - 1, y, 4f, 4f, c("#FFD43B"), if (noche) .4f else .15f); r(x, y + 1, 2f, 2f, c("#FFD43B"))
+                r(68 - x - 3, y, 4f, 4f, c("#FF7EB6"), if (noche) .4f else .15f); r(68 - x - 2, y + 1, 2f, 2f, c("#FF7EB6"))
+                t += .17f
+            }
+        }
+        else -> {
+            liana(3, 13, c("#2F9E4F"), c("#3FBF63")); liana(7, 8, c("#1F7A3A"), c("#2F9E4F"))
+            liana(64, 11, c("#2F9E4F"), c("#3FBF63")); liana(60, 7, c("#1F7A3A"), c("#3FBF63"))
         }
     }
 }
 
-// ---------- Los otros dos temas ----------
-
-private fun DrawScope.victoriano(momento: String) {
-    val w = size.width
-    val h = size.height
-    val bandas = when (momento) {
-        "TARDE" -> listOf(0xFFF6D7B0, 0xFFF3CFAE, 0xFFEAD0BC, 0xFFDDCFC8, 0xFFD2CCCB, 0xFFC8C8CD)
-        "NOCHE" -> listOf(0xFF1D2A4B, 0xFF24335A, 0xFF2C3C68, 0xFF354773, 0xFF3E517D, 0xFF485B88)
-        else -> listOf(0xFFF6EFD9, 0xFFEFE9D2, 0xFFE6E8D2, 0xFFDCE6D6, 0xFFD2E3DA, 0xFFC8DFDD)
-    }.map { Color(it) }
-    val alto = h / bandas.size
-    bandas.forEachIndexed { i, c -> drawRect(c, Offset(0f, i * alto), Size(w, alto + 1f)) }
-    val hierro = Color(0xFFFFFFFF)
-    val grosor = (w / 160f).coerceAtLeast(2f)
-    for (i in 1..5) drawRect(hierro, Offset(w * i / 6f - grosor / 2, 0f), Size(grosor, h))
-    listOf(0.22f, 0.5f).forEach { y -> drawRect(hierro, Offset(0f, h * y - grosor / 2), Size(w, grosor)) }
-    drawPath(
-        Path().apply { moveTo(w * 0.10f, 0f); lineTo(w * 0.16f, 0f); lineTo(w * 0.04f, h * 0.22f); lineTo(0f, h * 0.22f); close() },
-        Color(0x40FFFFFF)
-    )
-    drawArc(hierro, 180f, 180f, false, Offset(w * 0.12f, -h * 0.10f), Size(w * 0.76f, h * 0.26f), style = Stroke(width = grosor))
+/** Zocalo de ladrillos del pie del invernadero. */
+private fun Lienzo.zocalo(tema: String, momento: String) {
+    val w = marcoDe(tema).repisa
+    r(0, 0, 68, 10, w[1])
+    var x = -4
+    while (x < 68) {
+        r(x, 0, 7, 4, w[0]); r(x + 4, 5, 7, 4, w[0])
+        x += 8
+    }
+    if (momento == "NOCHE") r(0, 0, 68, 10, c("#000011"), .4f)
 }
 
-private fun DrawScope.luces() {
-    val w = size.width
-    val h = size.height
-    val bandas = listOf(0xFF0A1030, 0xFF0E1740, 0xFF131F52, 0xFF192862, 0xFF203270, 0xFF283B7C).map { Color(it) }
-    val alto = h / bandas.size
-    bandas.forEachIndexed { i, c -> drawRect(c, Offset(0f, i * alto), Size(w, alto + 1f)) }
-    var semilla = 7
-    fun r(): Float { semilla = (semilla * 1103515245 + 12345) and 0x7fffffff; return (semilla % 1000) / 1000f }
-    val lado = (w / 90f).coerceAtLeast(2f)
-    repeat(34) { drawRect(Color(0xCCFFFFFF), Offset((r() * w).roundToInt().toFloat(), (r() * h * 0.7f).roundToInt().toFloat()), Size(lado, lado)) }
-    val colores = listOf(Color(0xFFFFD166), Color(0xFFFF8FA3), Color(0xFF9BE7FF), Color(0xFFB8F2A6))
-    val hilo = Color(0xFF1B1B2E)
-    for (tramo in 0..1) {
-        val x0 = w * tramo / 2f
-        val ancho = w / 2f
-        val puntos = 9
-        var anterior: Offset? = null
-        for (i in 0..puntos) {
-            val t = i / puntos.toFloat()
-            val x = x0 + ancho * t
-            val y = h * 0.07f + (4f * t * (1f - t)) * h * 0.05f
-            val actual = Offset(x, y)
-            anterior?.let { drawLine(hilo, it, actual, strokeWidth = lado * 0.5f) }
-            anterior = actual
-            if (i in 1 until puntos) {
-                val color = colores[(i + tramo) % colores.size]
-                drawCircle(color.copy(alpha = 0.25f), radius = lado * 3.2f, center = Offset(x, y + lado * 2))
-                drawRect(color, Offset(x - lado, y + lado), Size(lado * 2, lado * 2.4f))
-            }
+/** La pagina completa en la cuadricula de 68 x 102, escalada al ancho de [ds]. */
+private fun DrawScope.paginaCompleta(tema: String, momento: String, hueco: Int?) {
+    val u = size.width / ANCHO_PAGINA
+    val l = Lienzo(this, u)
+    l.techo(tema, momento)
+    translate(0f, 26 * u) {
+        l.paisaje(momento)
+        l.modulo(tema, momento, 0, if (hueco != null && hueco < 3) hueco else null)
+        translate(0f, 33 * u) {
+            l.modulo(tema, momento, 1, if (hueco != null && hueco >= 3) hueco - 3 else null)
         }
+    }
+    // Si la pantalla es mas alta que la escena, el zocalo de ladrillo sigue hacia abajo
+    var y = 92f
+    while (y * u < size.height) {
+        translate(0f, y * u) { l.zocalo(tema, momento) }
+        y += 10f
     }
 }
 
 /**
- * Fondo en pixel art del invernadero elegido, con su marco: Selva tropical (predeterminado: madera, lianas y un
- * guacamayo sobre un solo paisaje que cambia entre dia, tarde y noche), Victoriano (hierro y vidrio) o
- * Luces de noche. [hora] es la hora del telefono (0 a 23).
+ * Pagina del invernadero elegido en pixel art (propuesta E): Selva tropical (predeterminado), Victoriano o Luces.
+ * [hora] es la hora del telefono (0 a 23) y decide dia, tarde o noche. [huecoLibre] marca con un "+" el primer lugar
+ * vacio (0 a 5) para invitar a escanear otra planta. Su proporcion es [ANCHO_PAGINA] : [ALTO_PAGINA].
  */
 @Composable
 fun FondoInvernadero(
     codigo: String,
     modifier: Modifier = Modifier,
-    hora: Int = remember { LocalTime.now().hour }
+    hora: Int = remember { LocalTime.now().hour },
+    huecoLibre: Int? = null
 ) {
     val momento = momentoDelDia(hora)
-    Canvas(modifier) {
-        when (codigo) {
-            "VICTORIANO" -> {
-                victoriano(momento)
-                marcoDeMadera(Color(0xFFE9E6DA), Color(0xFFA9A493))
-            }
-            "LUCES" -> {
-                luces()
-                marcoDeMadera(Color(0xFF5A4030), Color(0xFF33241A))
-            }
-            else -> {
-                paisaje(momento)
-                marcoDeMadera(Color(0xFF9A6B3C), Color(0xFF5E4125))
-                lianas()
-                guacamayo()
-            }
-        }
-    }
+    Canvas(modifier) { paginaCompleta(codigo, momento, huecoLibre) }
 }

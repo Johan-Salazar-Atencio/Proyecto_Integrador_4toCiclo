@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,6 +38,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -90,31 +92,16 @@ fun CollectionScreen(
 ) {
     IconosOscurosEnBarraDeEstado()
 
-    var pestana by rememberSaveable { mutableIntStateOf(if (abrirDigitales) PESTANA_DIGITALES else PESTANA_ESCANEADAS) }
+    var pestana by rememberSaveable { mutableIntStateOf(PESTANA_DIGITALES) }
     AvisoToast(viewModel.aviso, viewModel::avisoMostrado)
 
     Scaffold(
         containerColor = BackgroundLight,
         // Los margenes del sistema se aplican a mano: la barra superior maneja la barra de estado
         // y la lista deja espacio abajo para la barra de navegacion sin cortar las tarjetas.
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = { Text("Mi colección", fontWeight = FontWeight.SemiBold, color = TextPrimary) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundLight,
-                    titleContentColor = TextPrimary,
-                    navigationIconContentColor = TextPrimary
-                )
-            )
-        }
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding).statusBarsPadding()) {
             when (val estado = viewModel.uiState) {
                 CollectionUiState.Loading -> CircularProgressIndicator(
                     color = GreenPrimary,
@@ -128,7 +115,7 @@ fun CollectionScreen(
                     onBoton = viewModel::cargar
                 )
                 is CollectionUiState.Success -> if (pestana == PESTANA_DIGITALES) {
-                    val bordeInferior = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                    val bordeInferior = 0.dp
                     Column(
                         Modifier
                             .fillMaxSize()
@@ -177,7 +164,7 @@ internal fun ContenidoColeccion(
     onScan: () -> Unit
 ) {
     val vacia = if (pestana == PESTANA_ESCANEADAS) escaneadas.isEmpty() else digitales.isEmpty()
-    val bordeInferior = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val bordeInferior = 0.dp
     val soloLados = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
 
     if (vacia) {
@@ -265,9 +252,16 @@ private fun Cabecera(
                 Text("$nEscaneadas / ∞", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = GreenDark)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pestana("Escaneadas ($nEscaneadas)", pestana == PESTANA_ESCANEADAS, { onPestana(PESTANA_ESCANEADAS) }, Modifier.weight(1f))
-            Pestana("Digitales ($nDigitales)", pestana == PESTANA_DIGITALES, { onPestana(PESTANA_DIGITALES) }, Modifier.weight(1f))
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Pestana("Virtuales · $nDigitales", pestana == PESTANA_DIGITALES, { onPestana(PESTANA_DIGITALES) }, Modifier.weight(1f))
+            Pestana("Escaneos · $nEscaneadas", pestana == PESTANA_ESCANEADAS, { onPestana(PESTANA_ESCANEADAS) }, Modifier.weight(1f))
         }
     }
 }
@@ -276,17 +270,17 @@ private fun Cabecera(
 private fun Pestana(texto: String, seleccionada: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .clip(CircleShape)
-            .background(if (seleccionada) GreenPrimary else SurfaceWhite)
+            .clip(RoundedCornerShape(11.dp))
+            .background(if (seleccionada) GreenPrimary else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
+            .padding(vertical = 9.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             texto,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (seleccionada) Color.White else TextPrimary
+            fontSize = 13.sp,
+            fontWeight = if (seleccionada) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (seleccionada) Color.White else TextSecondary
         )
     }
 }

@@ -1,9 +1,21 @@
 package com.plantia.ui.collection.virtual
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -96,29 +108,36 @@ fun ColeccionVirtual(
     val paginas = paginasDelInvernadero(activas)
     val pager = rememberPagerState(pageCount = { paginas.size + 1 })
 
-    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    val alcance = rememberCoroutineScope()
+    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BarraSuperior(consulta, { consulta = it }, invernadero, invernaderosPropios, onElegirInvernadero)
 
-        HorizontalPager(state = pager, modifier = Modifier.weight(1f).fillMaxWidth()) { pagina ->
-            if (pagina < paginas.size) {
-                PaginaInvernadero(
-                    codigo = invernadero,
-                    plantas = paginas[pagina],
-                    vacioPorBusqueda = consulta.isNotBlank() && activas.isEmpty(),
-                    onAbrir = onAbrir,
-                    onMenu = { conAcciones = it },
-                    onScan = onScan
-                )
-            } else {
-                PaginaBaul(enBaul, onSacarDelBaul)
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { pagina ->
+                if (pagina < paginas.size) {
+                    PaginaInvernadero(
+                        codigo = invernadero,
+                        indicador = { Indicador(pagina, paginas.size + 1, enBaul.size, esBaul = false, modifier = Modifier.align(Alignment.BottomCenter)) },
+                        plantas = paginas[pagina],
+                        vacioPorBusqueda = consulta.isNotBlank() && activas.isEmpty(),
+                        onAbrir = onAbrir,
+                        onMenu = { conAcciones = it },
+                        onScan = onScan
+                    )
+                } else {
+                    PaginaBaul(enBaul, onSacarDelBaul, indicador = { Indicador(pagina, paginas.size + 1, enBaul.size, esBaul = true, modifier = Modifier.align(Alignment.BottomCenter)) })
+                }
+            }
+            val total = paginas.size + 1
+            if (total > 1) {
+                FlechaPagina(Icons.Filled.ChevronLeft, "Página anterior", Modifier.align(Alignment.CenterStart).padding(start = 8.dp)) {
+                    alcance.launch { pager.animateScrollToPage((pager.currentPage - 1 + total) % total) }
+                }
+                FlechaPagina(Icons.Filled.ChevronRight, "Página siguiente", Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)) {
+                    alcance.launch { pager.animateScrollToPage((pager.currentPage + 1) % total) }
+                }
             }
         }
-
-        Indicador(
-            paginaActual = pager.currentPage,
-            totalInvernadero = paginas.size,
-            enBaul = enBaul.size
-        )
     }
 
     conAcciones?.let { planta ->
@@ -158,26 +177,37 @@ private fun BarraSuperior(
     propios: List<TiendaItem>,
     onElegir: (TiendaItem) -> Unit
 ) {
+    var buscando by rememberSaveable { mutableStateOf(consulta.isNotEmpty()) }
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        OutlinedTextField(
-            value = consulta,
-            onValueChange = onConsulta,
-            modifier = Modifier.weight(1f),
-            singleLine = true,
-            shape = RoundedCornerShape(16.dp),
-            placeholder = { Text("Buscar planta", fontSize = 14.sp) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            trailingIcon = {
-                if (consulta.isNotEmpty()) {
-                    IconButton(onClick = { onConsulta("") }) { Icon(Icons.Filled.Close, contentDescription = "Borrar búsqueda") }
-                }
-            }
-        )
         MenuInvernadero(invernadero, propios, onElegir)
+        if (buscando) {
+            OutlinedTextField(
+                value = consulta,
+                onValueChange = onConsulta,
+                modifier = Modifier.weight(1f).height(52.dp),
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                placeholder = { Text("Buscar planta", fontSize = 14.sp) },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                trailingIcon = {
+                    IconButton(onClick = { onConsulta(""); buscando = false }) { Icon(Icons.Filled.Close, contentDescription = "Cerrar búsqueda") }
+                }
+            )
+        } else {
+            Spacer(Modifier.weight(1f))
+            Row(
+                Modifier.clip(RoundedCornerShape(50)).background(SurfaceWhite).clickable { buscando = true }.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(Icons.Filled.Search, contentDescription = null, tint = GreenDark, modifier = Modifier.size(16.dp))
+                Text("Buscar", fontSize = 12.sp, color = GreenDark)
+            }
+        }
     }
 }
 
@@ -216,41 +246,36 @@ private fun MenuInvernadero(actual: String, propios: List<TiendaItem>, onElegir:
 @Composable
 private fun PaginaInvernadero(
     codigo: String,
+    indicador: @Composable BoxScope.() -> Unit,
     plantas: List<PlantSummary>,
     vacioPorBusqueda: Boolean,
     onAbrir: (PlantSummary) -> Unit,
     onMenu: (PlantSummary) -> Unit,
     onScan: () -> Unit
 ) {
-    val estante = paletaDeEstante(codigo)
-    Box(
-        Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(24.dp))
-    ) {
-        FondoInvernadero(codigo, Modifier.fillMaxSize())
-        Column(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 52.dp, bottom = 16.dp)) {
+    // La escena ocupa todo el ancho (68 x 102 pixeles de cuadricula); si la pantalla es mas baja se recorta el zocalo
+    BoxWithConstraints(Modifier.fillMaxSize().clipToBounds()) {
+        val ancho = maxWidth
+        val u = ancho / ANCHO_PAGINA
+        val libre = if (plantas.size < PLANTAS_POR_PAGINA) plantas.size else null
+        val alto = if (maxHeight > u * ALTO_PAGINA) maxHeight else u * ALTO_PAGINA
+        Box(Modifier.align(Alignment.TopStart).width(ancho).height(alto)) {
+            FondoInvernadero(codigo, Modifier.fillMaxSize(), huecoLibre = libre)
             for (fila in 0 until 2) {
-                Column(Modifier.weight(1f).fillMaxWidth()) {
-                    Row(Modifier.weight(1f).fillMaxWidth()) {
-                        for (columna in 0 until 3) {
-                            val planta = plantas.getOrNull(fila * 3 + columna)
-                            Box(Modifier.weight(1f).fillMaxHeight()) {
-                                if (planta != null) {
-                                    PlantaEnEstante(planta, { onAbrir(planta) }, { onMenu(planta) })
-                                } else {
-                                    HuecoVacio(esElPrimero = plantas.isEmpty() && fila == 0 && columna == 1, onScan = onScan)
-                                }
-                            }
-                        }
+                for (columna in 0 until 3) {
+                    val indice = fila * 3 + columna
+                    val lado = u * 22f
+                    val x = u * (HuecoInvernadero.izquierda(columna) + HuecoInvernadero.ANCHO / 2f - 11f)
+                    val y = u * (HuecoInvernadero.repisa(fila) - 22f)
+                    val planta = plantas.getOrNull(indice)
+                    Box(Modifier.offset(x, y).size(lado)) {
+                        if (planta != null) PlantaEnEstante(planta, { onAbrir(planta) }, { onMenu(planta) })
+                        else if (indice == plantas.size) Box(Modifier.fillMaxSize().clickable(onClickLabel = "Escanear una planta", onClick = onScan))
                     }
-                    // Tabla del estante
-                    Box(Modifier.fillMaxWidth().height(10.dp).background(estante.tabla))
-                    Box(Modifier.fillMaxWidth().height(4.dp).background(estante.canto))
                 }
             }
         }
+        Box(Modifier.fillMaxSize()) { indicador() }
         if (vacioPorBusqueda) {
             Text(
                 "Ninguna planta coincide con tu búsqueda",
@@ -261,88 +286,58 @@ private fun PaginaInvernadero(
     }
 }
 
+/** La planta en su maceta, apoyada en la repisa. Tocarla la abre; mantenerla pulsada abre sus acciones (apodo y baul). */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PlantaEnEstante(planta: PlantSummary, onAbrir: () -> Unit, onMenu: () -> Unit) {
     val sprites = rememberSprites()
-    // Las plantas se apoyan en el estante y su contenido no se estira con la pantalla: el "⋮" queda junto a ellas
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-    Box(Modifier.fillMaxWidth().aspectRatio(0.85f).clickable(onClick = onAbrir)) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                Box(Modifier.aspectRatio(1f).fillMaxHeight()) {
-                    if (sprites != null) {
-                        PlantaPixel(
-                            sprites = sprites,
-                            apariencia = planta.apariencia,
-                            diasCuidados = planta.diasCuidados,
-                            diasTotales = planta.diasTotales,
-                            marchita = planta.enRecuperacion || planta.muerta,
-                            descripcion = planta.name,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        SubcomposeAsyncImage(
-                            model = planta.imageUrl,
-                            contentDescription = planta.name,
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize(),
-                            error = { Text("🪴", fontSize = 36.sp, modifier = Modifier.align(Alignment.Center)) }
-                        )
-                    }
-                    MacetaPixel(
-                        planta.macetaCodigo,
-                        Modifier.align(Alignment.BottomCenter).fillMaxWidth(0.5f).aspectRatio(PROPORCION_MACETA)
-                    )
-                }
-            }
-            Text(
-                planta.name,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = androidx.compose.ui.graphics.Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .padding(vertical = 3.dp)
-                    .background(androidx.compose.ui.graphics.Color(0x66000000), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 6.dp, vertical = 1.dp)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .combinedClickable(
+                onClickLabel = "Abrir ${planta.name}",
+                onLongClickLabel = "Acciones de ${planta.name}",
+                onClick = onAbrir,
+                onLongClick = onMenu
+            )
+            .semantics { contentDescription = planta.name }
+    ) {
+        if (sprites != null) {
+            PlantaPixel(
+                sprites = sprites,
+                apariencia = planta.apariencia,
+                diasCuidados = planta.diasCuidados,
+                diasTotales = planta.diasTotales,
+                marchita = planta.enRecuperacion || planta.muerta,
+                descripcion = planta.name,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            SubcomposeAsyncImage(
+                model = planta.imageUrl,
+                contentDescription = planta.name,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(),
+                error = { Text("🪴", fontSize = 28.sp, modifier = Modifier.align(Alignment.Center)) }
             )
         }
+        MacetaPixel(
+            planta.macetaCodigo,
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth(0.64f).aspectRatio(PROPORCION_MACETA)
+        )
         val marca = when {
             planta.muerta -> "💀"
             planta.enRecuperacion -> "⚠️"
             planta.refugiada -> "🛡️"
             else -> null
         }
-        if (marca != null) Text(marca, fontSize = 16.sp, modifier = Modifier.align(Alignment.TopStart).padding(4.dp))
-        IconButton(onClick = onMenu, modifier = Modifier.align(Alignment.TopEnd).size(32.dp)) {
-            Icon(Icons.Filled.MoreVert, contentDescription = "Acciones de ${planta.name}", tint = androidx.compose.ui.graphics.Color.White)
-        }
-    }
+        if (marca != null) Text(marca, fontSize = 14.sp, modifier = Modifier.align(Alignment.TopStart))
     }
 }
 
 @Composable
-private fun HuecoVacio(esElPrimero: Boolean, onScan: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().clickable(onClick = onScan),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Bottom
-    ) {
-        if (esElPrimero) {
-            Text(
-                "Escanea y digitaliza tu primera planta",
-                fontSize = 11.sp, color = androidx.compose.ui.graphics.Color.White, textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
-        }
-        MacetaPixel("TERRACOTA", Modifier.fillMaxWidth(0.5f).aspectRatio(PROPORCION_MACETA).alpha(0.28f))
-        Spacer(Modifier.height(30.dp))
-    }
-}
-
-@Composable
-private fun PaginaBaul(plantas: List<PlantSummary>, onSacar: (PlantSummary) -> Unit) {
+private fun PaginaBaul(plantas: List<PlantSummary>, onSacar: (PlantSummary) -> Unit, indicador: @Composable BoxScope.() -> Unit) {
+    Box(Modifier.fillMaxSize()) {
     Column(
         Modifier
             .fillMaxSize()
@@ -368,6 +363,8 @@ private fun PaginaBaul(plantas: List<PlantSummary>, onSacar: (PlantSummary) -> U
                 }
             }
         }
+    }
+    indicador()
     }
 }
 
@@ -400,24 +397,41 @@ private fun FilaDelBaul(planta: PlantSummary, onSacar: () -> Unit) {
 }
 
 @Composable
-private fun Indicador(paginaActual: Int, totalInvernadero: Int, enBaul: Int) {
-    val total = totalInvernadero + 1
-    Column(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+private fun Indicador(paginaActual: Int, total: Int, enBaul: Int, esBaul: Boolean, modifier: Modifier = Modifier) {
+    Column(modifier.padding(bottom = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        if (esBaul) {
+            Text(
+                "Baúl · $enBaul guardada${if (enBaul == 1) "" else "s"}",
+                fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(bottom = 4.dp)
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
             repeat(total) { i ->
+                val activa = i == paginaActual
                 Box(
                     Modifier
-                        .size(if (i == paginaActual) 9.dp else 7.dp)
+                        .height(6.dp)
+                        .width(if (activa) 16.dp else 6.dp)
                         .clip(CircleShape)
-                        .background(if (i == paginaActual) GreenPrimary else TextSecondary.copy(alpha = 0.35f))
+                        .background(if (esBaul) (if (activa) GreenPrimary else TextSecondary.copy(alpha = 0.35f)) else androidx.compose.ui.graphics.Color.White.copy(alpha = if (activa) 1f else 0.55f))
                 )
             }
         }
-        Text(
-            if (paginaActual < totalInvernadero) "Invernadero ${paginaActual + 1} de $totalInvernadero · desliza para ver más"
-            else "Baúl · $enBaul guardada${if (enBaul == 1) "" else "s"}",
-            fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(top = 4.dp)
-        )
+    }
+}
+
+@Composable
+private fun FlechaPagina(icono: androidx.compose.ui.graphics.vector.ImageVector, descripcion: String, modifier: Modifier, onClick: () -> Unit) {
+    androidx.compose.material3.Surface(
+        onClick = onClick,
+        modifier = modifier.size(32.dp),
+        shape = CircleShape,
+        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.88f),
+        shadowElevation = 2.dp
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icono, contentDescription = descripcion, tint = TextPrimary, modifier = Modifier.size(22.dp))
+        }
     }
 }
 
