@@ -25,7 +25,8 @@ class Region(models.Model):
 
 
 class TipoDesastre(models.Model):
-    """Tipo de desastre que el admin puede crear (Flyway V13); reemplaza la lista fija de 4."""
+    """Tipo de desastre que el admin puede crear (Flyway V13); reemplaza la lista fija de 4.
+    `descripcion` es el texto informativo de la tarjeta del evento."""
 
     id_tipo_desastre = models.AutoField(primary_key=True)
     codigo = models.CharField(max_length=50, unique=True)
@@ -33,10 +34,17 @@ class TipoDesastre(models.Model):
     descripcion = models.TextField(null=True, blank=True)
     icono_url = models.CharField(max_length=255, null=True, blank=True)
     color_hex = models.CharField(max_length=7, default="#888888")
-    # Salud que pierde una planta sin refugio segun la severidad
+    # Ya no se usan desde V23: ahora importa la salud con la que queda la planta (salud_final_*)
     dano_bajo = models.IntegerField(default=10)
     dano_moderado = models.IntegerField(default=25)
     dano_critico = models.IntegerField(default=50)
+    # Tarjeta del evento en el Inicio: imagen, y un consejo de campo que se muestra al prevenir
+    imagen_url = models.CharField(max_length=255, null=True, blank=True)
+    consejo = models.CharField(max_length=250, null=True, blank=True)
+    # Salud con la que queda una planta que no se previno, segun la severidad (Flyway V23)
+    salud_final_bajo = models.IntegerField(default=40)
+    salud_final_moderado = models.IntegerField(default=20)
+    salud_final_critico = models.IntegerField(default=10)
     activo = models.BooleanField(default=True)
     id_creador = models.IntegerField(null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)

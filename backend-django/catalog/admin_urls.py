@@ -13,6 +13,8 @@ urlpatterns = [
     path("misiones/<int:pk>/", admin_views.AdminMisionDetailView.as_view(), name="admin-mision-detail"),
     path("parametros/", admin_views.AdminParametrosView.as_view(), name="admin-parametros"),
     path("parametros/<str:clave>/", admin_views.AdminParametroDetailView.as_view(), name="admin-parametro-detail"),
+    path("tipos-desastre/", admin_views.AdminTiposDesastreView.as_view(), name="admin-tipos-desastre"),
+    path("tipos-desastre/<int:pk>/", admin_views.AdminTipoDesastreDetailView.as_view(), name="admin-tipo-desastre-detail"),
     path("tienda/", admin_views.AdminTiendaListCreateView.as_view(), name="admin-tienda-list"),
     path("tienda/<int:pk>/", admin_views.AdminTiendaDetailView.as_view(), name="admin-tienda-detail"),
 ]

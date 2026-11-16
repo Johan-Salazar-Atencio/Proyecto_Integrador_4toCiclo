@@ -21,7 +21,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from . import fondos_imagen
+from . import eventos_imagen, fondos_imagen
 from .models import (
     EventoDesastre, FondoEscena, ItemTienda, Mision, ParametroJuego, PlantaCatalogo, Region,
     RegistroDesastreUsuario, TemaFondo, TipoDesastre, Usuario,
@@ -309,6 +309,82 @@ class AdminParametroDetailView(APIView):
         parametro.valor = valor
         parametro.save(update_fields=["valor"])
         return Response(_parametro_a_dict(parametro))
+
+
+def _tipo_a_dict(t):
+    return {
+        "id_tipo_desastre": t.id_tipo_desastre, "codigo": t.codigo, "nombre": t.nombre,
+        "descripcion": t.descripcion, "consejo": t.consejo, "imagen_url": t.imagen_url,
+        "color_hex": t.color_hex, "activo": t.activo,
+        "salud_final_bajo": t.salud_final_bajo, "salud_final_moderado": t.salud_final_moderado,
+        "salud_final_critico": t.salud_final_critico,
+    }
+
+
+def _validar_tipo(data, tipo):
+    """Devuelve (valores, error) con lo que se puede cambiar de un tipo de evento."""
+    valores = {}
+    if "descripcion" in data:
+        texto = str(data.get("descripcion") or "").strip()
+        if len(texto) > 2000:
+            return None, "El texto informativo no puede pasar de 2000 caracteres"
+        valores["descripcion"] = texto or None
+    if "consejo" in data:
+        texto = str(data.get("consejo") or "").strip()
+        if len(texto) > 250:
+            return None, "El consejo no puede pasar de 250 caracteres"
+        valores["consejo"] = texto or None
+    salud = {}
+    for campo in ("salud_final_bajo", "salud_final_moderado", "salud_final_critico"):
+        if campo in data:
+            valor = _entero(data[campo])
+            if isinstance(valor, bool) or not isinstance(valor, int) or not 1 <= valor <= 100:
+                return None, f"{campo} debe ser un entero entre 1 y 100"
+            valores[campo] = valor
+        salud[campo] = valores.get(campo, getattr(tipo, campo))
+    # Una severidad mayor nunca deja mas salud que una menor
+    if not salud["salud_final_critico"] <= salud["salud_final_moderado"] <= salud["salud_final_bajo"]:
+        return None, "La salud final debe bajar con la severidad: critico <= moderado <= bajo"
+    return valores, None
+
+
+class AdminTiposDesastreView(APIView):
+    """GET /api/admin/tipos-desastre/  los tipos de evento con su texto, consejo, imagen y salud final."""
+
+    def get(self, request):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response([_tipo_a_dict(t) for t in TipoDesastre.objects.order_by("id_tipo_desastre")])
+
+
+class AdminTipoDesastreDetailView(APIView):
+    """PATCH /api/admin/tipos-desastre/<id>/  cambia el texto, el consejo, la salud final o la imagen
+    (campo `imagen`, un archivo; por eso acepta tambien formularios con archivos)."""
+
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
+
+    def patch(self, request, pk):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        tipo = TipoDesastre.objects.filter(pk=pk).first()
+        if tipo is None:
+            return Response({"error": "Tipo de evento no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+        valores, error = _validar_tipo(request.data, tipo)
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+        archivo = request.FILES.get("imagen")
+        if archivo is not None:
+            try:
+                jpg = eventos_imagen.procesar(archivo.read())
+            except eventos_imagen.ErrorImagen as exc:
+                return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            nombre = eventos_imagen.guardar(os.path.join(settings.STORAGE_IMAGES_DIR, "eventos"), tipo.codigo, jpg)
+            valores["imagen_url"] = f"/files/eventos/{nombre}"
+        for campo, valor in valores.items():
+            setattr(tipo, campo, valor)
+        if valores:
+            tipo.save(update_fields=list(valores))
+        return Response(_tipo_a_dict(tipo))
 
 
 MOMENTOS = ("DIA", "TARDE", "NOCHE")

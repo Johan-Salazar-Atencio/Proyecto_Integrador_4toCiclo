@@ -7,7 +7,7 @@ from django.test import SimpleTestCase
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
-from . import admin_views, fondos_imagen
+from . import admin_views, eventos_imagen, fondos_imagen
 from .models import Usuario
 
 TOKEN = "a" * 32
@@ -592,3 +592,145 @@ class AdminParametrosTests(SimpleTestCase):
             respuesta = self._llamar(admin_views.AdminParametroDetailView, "patch", {"valor": 5},
                                      clave="COSTO_REVIVIR")
         self.assertEqual(respuesta.status_code, 404)
+
+
+def _png_apaisado(ancho=1600, alto=900):
+    import io
+
+    from PIL import Image
+
+    salida = io.BytesIO()
+    Image.new("RGB", (ancho, alto), (200, 120, 40)).save(salida, "PNG")
+    return salida.getvalue()
+
+
+class EventosImagenTests(SimpleTestCase):
+    """La imagen del evento: se reduce, se pasa a JPG y se rechaza lo que no sirve."""
+
+    def test_una_imagen_grande_se_reduce_a_1280_y_queda_en_jpg(self):
+        import io
+
+        from PIL import Image
+
+        jpg = eventos_imagen.procesar(_png_apaisado(2720, 1536))
+        img = Image.open(io.BytesIO(jpg))
+        self.assertEqual(img.format, "JPEG")
+        self.assertEqual(img.width, eventos_imagen.ANCHO_MAX)
+        self.assertEqual(img.height, round(1536 * 1280 / 2720))
+
+    def test_una_imagen_mediana_no_se_agranda(self):
+        import io
+
+        from PIL import Image
+
+        img = Image.open(io.BytesIO(eventos_imagen.procesar(_png_apaisado(800, 450))))
+        self.assertEqual(img.width, 800)
+
+    def test_una_imagen_muy_chica_da_error(self):
+        with self.assertRaises(eventos_imagen.ErrorImagen):
+            eventos_imagen.procesar(_png_apaisado(200, 112))
+
+    def test_un_archivo_que_no_es_imagen_da_error(self):
+        with self.assertRaises(eventos_imagen.ErrorImagen):
+            eventos_imagen.procesar(b"no soy una imagen")
+
+    def test_un_archivo_muy_pesado_da_error(self):
+        with self.assertRaises(eventos_imagen.ErrorImagen):
+            eventos_imagen.procesar(b"0" * (eventos_imagen.MAX_BYTES + 1))
+
+    def test_guardar_escribe_el_archivo_con_huella(self):
+        import tempfile
+
+        jpg = eventos_imagen.procesar(_png_apaisado())
+        with tempfile.TemporaryDirectory() as carpeta:
+            nombre = eventos_imagen.guardar(os.path.join(carpeta, "eventos"), "OLA_DE_CALOR", jpg)
+            self.assertTrue(nombre.startswith("ola_de_calor_") and nombre.endswith(".jpg"))
+            with open(os.path.join(carpeta, "eventos", nombre), "rb") as f:
+                self.assertEqual(f.read(), jpg)
+
+
+class AdminTiposDesastreTests(SimpleTestCase):
+    """Texto, consejo, salud final e imagen de cada tipo de evento."""
+
+    def _tipo(self):
+        from unittest.mock import MagicMock
+
+        tipo = admin_views.TipoDesastre(id_tipo_desastre=3, codigo="OLA_DE_CALOR", nombre="Ola de calor")
+        tipo.save = MagicMock()
+        return tipo
+
+    def _llamar(self, vista, metodo, datos=None, formato="json", admin=True, tipo="por-defecto", **kwargs):
+        from unittest.mock import MagicMock
+
+        tipo = self._tipo() if tipo == "por-defecto" else tipo
+        request = getattr(APIRequestFactory(), metodo)("/api/admin/tipos-desastre/", datos, format=formato)
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario() if admin else None), \
+                patch.object(admin_views.TipoDesastre.objects, "filter", return_value=MagicMock(first=lambda: tipo)):
+            return vista.as_view()(request, **kwargs), tipo
+
+    def test_sin_admin_devuelve_401(self):
+        respuesta, _ = self._llamar(admin_views.AdminTipoDesastreDetailView, "patch", {"consejo": "x"}, admin=False, pk=3)
+        self.assertEqual(respuesta.status_code, 401)
+
+    def test_tipo_inexistente_devuelve_404(self):
+        respuesta, _ = self._llamar(admin_views.AdminTipoDesastreDetailView, "patch", {"consejo": "x"}, tipo=None, pk=9)
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_cambia_el_texto_y_el_consejo(self):
+        respuesta, tipo = self._llamar(admin_views.AdminTipoDesastreDetailView, "patch",
+                                       {"descripcion": " Texto nuevo ", "consejo": "Cubre el suelo"}, pk=3)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.data["descripcion"], "Texto nuevo")
+        self.assertEqual(tipo.consejo, "Cubre el suelo")
+        tipo.save.assert_called_once()
+        self.assertCountEqual(tipo.save.call_args.kwargs["update_fields"], ["descripcion", "consejo"])
+
+    def test_un_texto_vacio_queda_sin_valor(self):
+        respuesta, tipo = self._llamar(admin_views.AdminTipoDesastreDetailView, "patch", {"consejo": "  "}, pk=3)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIsNone(tipo.consejo)
+
+    def test_el_consejo_largo_da_400(self):
+        respuesta, tipo = self._llamar(admin_views.AdminTipoDesastreDetailView, "patch", {"consejo": "x" * 251}, pk=3)
+        self.assertEqual(respuesta.status_code, 400)
+        tipo.save.assert_not_called()
+
+    def test_la_salud_final_debe_bajar_con_la_severidad(self):
+        respuesta, tipo = self._llamar(admin_views.AdminTipoDesastreDetailView, "patch",
+                                       {"salud_final_critico": 30}, pk=3)  # moderado queda en 20
+        self.assertEqual(respuesta.status_code, 400)
+        tipo.save.assert_not_called()
+
+    def test_la_salud_final_valida_se_guarda(self):
+        respuesta, tipo = self._llamar(admin_views.AdminTipoDesastreDetailView, "patch",
+                                       {"salud_final_bajo": 60, "salud_final_moderado": 30, "salud_final_critico": 5}, pk=3)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual((tipo.salud_final_bajo, tipo.salud_final_moderado, tipo.salud_final_critico), (60, 30, 5))
+
+    def test_la_salud_final_fuera_de_rango_da_400(self):
+        for malo in (0, 101, "x", True):
+            respuesta, _ = self._llamar(admin_views.AdminTipoDesastreDetailView, "patch", {"salud_final_bajo": malo}, pk=3)
+            self.assertEqual(respuesta.status_code, 400, malo)
+
+    def test_subir_una_imagen_la_guarda_y_deja_su_ruta(self):
+        import tempfile
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+
+        archivo = SimpleUploadedFile("evento.png", _png_apaisado(), content_type="image/png")
+        with tempfile.TemporaryDirectory() as carpeta, override_settings(STORAGE_IMAGES_DIR=carpeta):
+            respuesta, tipo = self._llamar(admin_views.AdminTipoDesastreDetailView, "patch",
+                                           {"imagen": archivo}, formato="multipart", pk=3)
+            self.assertEqual(respuesta.status_code, 200)
+            self.assertTrue(tipo.imagen_url.startswith("/files/eventos/ola_de_calor_"))
+            self.assertTrue(os.path.exists(os.path.join(carpeta, "eventos", tipo.imagen_url.rsplit("/", 1)[1])))
+
+    def test_una_imagen_que_no_sirve_da_400_y_no_guarda(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        archivo = SimpleUploadedFile("evento.png", b"no soy imagen", content_type="image/png")
+        respuesta, tipo = self._llamar(admin_views.AdminTipoDesastreDetailView, "patch",
+                                       {"imagen": archivo}, formato="multipart", pk=3)
+        self.assertEqual(respuesta.status_code, 400)
+        tipo.save.assert_not_called()
