@@ -13,6 +13,7 @@ public class ParametrosJuego {
     public static final String HORAS_RECUPERACION = "HORAS_RECUPERACION";
     public static final String ABONO_RECUPERACION = "ABONO_RECUPERACION";
     public static final String SALUD_REVIVIDA = "SALUD_REVIVIDA";
+    public static final String MAX_PLANTAS_ACTIVAS = "MAX_PLANTAS_ACTIVAS";
 
     private final ParametroJuegoRepository repo;
 
@@ -38,5 +39,10 @@ public class ParametrosJuego {
 
     public int saludRevivida() {
         return valor(SALUD_REVIVIDA, 50);
+    }
+
+    /** Plantas virtuales que se pueden tener activas; las demas van al baul. */
+    public int maxPlantasActivas() {
+        return valor(MAX_PLANTAS_ACTIVAS, 12);
     }
 }

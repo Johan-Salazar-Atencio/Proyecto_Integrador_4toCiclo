@@ -285,4 +285,17 @@ class ResultadoDesastreServiceTest {
         assertThat(e.getProcesado()).isTrue();
         verify(eventoRepo).save(e);
     }
+
+    @Test
+    void lasPlantasDelBaulNoSufrenElEvento() {
+        PlantaUsuario p = planta(7, 100, false);
+        p.setEnBaul(true);
+        when(plantaRepo.findAll()).thenReturn(List.of(p));
+
+        service.procesar(evento("CRITICO", AHORA.minusMinutes(1)), AHORA);
+
+        verify(registroRepo, never()).save(any());
+        assertThat(p.getSaludPorcentaje()).isEqualTo(100);
+        assertThat(p.getRecuperacionHasta()).isNull();
+    }
 }

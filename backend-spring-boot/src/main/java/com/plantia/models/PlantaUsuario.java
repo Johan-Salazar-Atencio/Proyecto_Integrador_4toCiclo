@@ -89,6 +89,14 @@ public class PlantaUsuario {
     @Column(name = "golpe_tipo")
     private String golpeTipo;
 
+    /** Guardada en el baul: congelada, no crece, no se desgasta ni le afectan los eventos (V24). */
+    @Column(name = "en_baul", nullable = false)
+    private Boolean enBaul = false;
+
+    /** Articulo de la tienda (tipo MACETA) que tiene puesto; null = la terracota de siempre. */
+    @Column(name = "id_maceta")
+    private Integer idMaceta;
+
     /** Tema de fondo elegido para esta planta; null = el predeterminado. */
     @Column(name = "id_tema_fondo")
     private Integer idTemaFondo;
@@ -149,6 +157,10 @@ public class PlantaUsuario {
     public void setRecuperacionHasta(LocalDateTime recuperacionHasta) { this.recuperacionHasta = recuperacionHasta; }
     public String getGolpeTipo() { return golpeTipo; }
     public void setGolpeTipo(String golpeTipo) { this.golpeTipo = golpeTipo; }
+    public Boolean getEnBaul() { return enBaul; }
+    public void setEnBaul(Boolean enBaul) { this.enBaul = enBaul; }
+    public Integer getIdMaceta() { return idMaceta; }
+    public void setIdMaceta(Integer idMaceta) { this.idMaceta = idMaceta; }
     public Integer getIdTemaFondo() { return idTemaFondo; }
     public void setIdTemaFondo(Integer idTemaFondo) { this.idTemaFondo = idTemaFondo; }
     public String getApariencia() { return apariencia; }

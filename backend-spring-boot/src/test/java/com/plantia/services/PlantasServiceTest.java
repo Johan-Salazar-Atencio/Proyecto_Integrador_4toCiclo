@@ -44,6 +44,7 @@ class PlantasServiceTest {
     private EventoDesastreRepository eventoRepo;
     private PlantasService service;
     private UsuarioRepository usuarioRepo;
+    private PlantaCatalogoRepository catalogoRepo;
     private Usuario usuario;
 
     @BeforeEach
@@ -57,9 +58,13 @@ class PlantasServiceTest {
                 mock(MisionService.class), mock(MisionUsuarioRepository.class));
         eventoRepo = mock(EventoDesastreRepository.class);
         EventoService eventos = new EventoService(eventoRepo, usuarioRepo, mock(com.plantia.repositories.TipoDesastreRepository.class));
+        catalogoRepo = mock(PlantaCatalogoRepository.class);
+        com.plantia.models.PlantaCatalogo especie = new com.plantia.models.PlantaCatalogo();
+        especie.setIdCatalogo(5);
+        when(catalogoRepo.findById(5)).thenReturn(Optional.of(especie));
         usuario = new Usuario();
         when(usuarioRepo.findById(any())).thenReturn(Optional.of(usuario));
-        service = new PlantasService(plantaRepo, mock(PlantaCatalogoRepository.class), escaneoRepo, progreso, eventos,
+        service = new PlantasService(plantaRepo, catalogoRepo, escaneoRepo, progreso, eventos,
                 usuarioRepo, new ParametrosJuego(mock(ParametroJuegoRepository.class)), new ObjectMapper());
 
         PlantaUsuario planta = new PlantaUsuario();
@@ -464,5 +469,138 @@ class PlantasServiceTest {
     @Test
     void unaPlantaVivaNoTraeCostoDeRevivir() {
         assertThat(service.resumen(DUENO, 10).costoRevivir()).isNull();
+    }
+
+    // --- Baul, tope de plantas y apodos ---
+
+    private PlantaUsuario enElBaul() {
+        PlantaUsuario p = plantaRepo.findById(10).get();
+        p.setEnBaul(true);
+        return p;
+    }
+
+    @Test
+    void guardarEnElBaulCongelaLaPlantaYLaSacaDelJardin() {
+        PlantaUsuario p = plantaRepo.findById(10).get();
+        p.setEsActiva(true);
+
+        var dto = service.guardarEnBaul(DUENO, 10);
+
+        assertThat(dto.enBaul()).isTrue();
+        assertThat(p.getEsActiva()).isFalse();
+    }
+
+    @Test
+    void unaPlantaGolpeadaNoSePuedeGuardarEnElBaul() {
+        plantaRepo.findById(10).get().setRecuperacionHasta(LocalDateTime.now().plusHours(5));
+
+        assertThatThrownBy(() -> service.guardarEnBaul(DUENO, 10))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+        assertThat(plantaRepo.findById(10).get().getEnBaul()).isFalse();
+    }
+
+    @Test
+    void unaPlantaDelBaulNoSeDesgastaNiCambiaConElTiempo() {
+        PlantaUsuario p = golpeada(LocalDateTime.of(2026, 11, 16, 12, 0));
+        p.setEnBaul(true);
+
+        PlantasService.envejecer(p, LocalDateTime.of(2026, 11, 30, 12, 0));
+
+        assertThat(p.getEtapaCrecimiento()).isEqualTo("BROTE");
+        assertThat(p.getHidratacionPorcentaje()).isEqualTo(80);
+        assertThat(p.getSaludPorcentaje()).isEqualTo(10);
+    }
+
+    @Test
+    void unaPlantaDelBaulNoRecibeCuidadosNiProteccionNiSeElige() {
+        enElBaul();
+        hayDesastreActivo();
+
+        for (Runnable accion : List.<Runnable>of(
+                () -> service.cuidar(DUENO, 10, "REGAR"),
+                () -> service.prevenir(DUENO, 10),
+                () -> service.seleccionar(DUENO, 10))) {
+            assertThatThrownBy(accion::run)
+                    .isInstanceOfSatisfying(ResponseStatusException.class,
+                            e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+        }
+    }
+
+    @Test
+    void sacarDelBaulDevuelveLaPlantaYNoCuentaElTiempoGuardado() {
+        PlantaUsuario p = enElBaul();
+        p.setUpdatedAt(LocalDateTime.now().minusDays(20));
+        when(plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(DUENO)).thenReturn(List.of(p));
+
+        var dto = service.sacarDelBaul(DUENO, 10);
+
+        assertThat(dto.enBaul()).isFalse();
+        assertThat(p.getUpdatedAt()).isAfter(LocalDateTime.now().minusMinutes(1));
+    }
+
+    private List<PlantaUsuario> plantasActivas(int cuantas) {
+        List<PlantaUsuario> lista = new java.util.ArrayList<>();
+        for (int i = 0; i < cuantas; i++) {
+            PlantaUsuario p = new PlantaUsuario();
+            p.setIdUsuario(DUENO);
+            p.setIdPlantaUsuario(100 + i);
+            lista.add(p);
+        }
+        return lista;
+    }
+
+    @Test
+    void conElJardinLlenoNoSePuedeSacarOtraDelBaul() {
+        PlantaUsuario p = enElBaul();
+        List<PlantaUsuario> todas = plantasActivas(12);
+        todas.add(p);
+        when(plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(DUENO)).thenReturn(todas);
+
+        assertThatThrownBy(() -> service.sacarDelBaul(DUENO, 10))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+        assertThat(p.getEnBaul()).isTrue();
+    }
+
+    @Test
+    void conElJardinLlenoNoSeDigitalizaUnaPlantaNueva() {
+        when(plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(DUENO)).thenReturn(plantasActivas(12));
+
+        assertThatThrownBy(() -> service.digitalizar(DUENO, 20, null, null))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+        verify(plantaRepo, never()).save(any());
+    }
+
+    @Test
+    void lasPlantasDelBaulNoCuentanParaElTope() {
+        List<PlantaUsuario> lista = plantasActivas(11);
+        for (int i = 0; i < 5; i++) {
+            PlantaUsuario guardada = new PlantaUsuario();
+            guardada.setEnBaul(true);
+            lista.add(guardada);
+        }
+
+        assertThat(PlantasService.activasDe(lista)).isEqualTo(11);
+    }
+
+    @Test
+    void elApodoSeCambiaSeRecortaYUnoVacioVuelveAlNombreDeLaEspecie() {
+        PlantaUsuario p = plantaRepo.findById(10).get();
+
+        assertThat(service.renombrar(DUENO, 10, "  Mi Monstera  ").name()).isEqualTo("Mi Monstera");
+        assertThat(p.getApodo()).isEqualTo("Mi Monstera");
+        assertThat(service.renombrar(DUENO, 10, "   ").name()).isEqualTo("Planta");
+    }
+
+    @Test
+    void unApodoMuyLargoOUnaPlantaAjenaSeRechazan() {
+        assertThatThrownBy(() -> service.renombrar(DUENO, 10, "x".repeat(51)))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));
+        assertThatThrownBy(() -> service.renombrar(OTRO, 10, "Hola"))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
     }
 }

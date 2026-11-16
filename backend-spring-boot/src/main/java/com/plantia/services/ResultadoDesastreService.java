@@ -92,7 +92,7 @@ public class ResultadoDesastreService {
         // Por usuario: plantas afectadas y cuantas se previnieron (para el premio de evento completo)
         Map<Integer, int[]> porUsuario = new LinkedHashMap<>();
         for (PlantaUsuario p : plantasAfectadas(e)) {
-            if ("MUERTA".equals(p.getEtapaCrecimiento())
+            if ("MUERTA".equals(p.getEtapaCrecimiento()) || Boolean.TRUE.equals(p.getEnBaul())
                     || registroRepo.existsByIdDesastreAndIdPlantaUsuario(e.getIdDesastre(), p.getIdPlantaUsuario())) {
                 continue;
             }

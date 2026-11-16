@@ -129,6 +129,31 @@ public class PlantasController {
         return ResponseEntity.ok(plantasService.prevenir(userId, idPlantaUsuario));
     }
 
+    /** Guarda la planta en el baul (congelada). 409 si esta golpeada por un evento. */
+    @PostMapping("/{id}/baul")
+    public ResponseEntity<PlantSummaryDto> guardarEnBaul(
+            @RequestHeader("X-User-Id") Integer userId,
+            @PathVariable("id") Integer idPlantaUsuario) {
+        return ResponseEntity.ok(plantasService.guardarEnBaul(userId, idPlantaUsuario));
+    }
+
+    /** Saca la planta del baul (409 si el jardin ya tiene el maximo de plantas activas). */
+    @PostMapping("/{id}/sacar-del-baul")
+    public ResponseEntity<PlantSummaryDto> sacarDelBaul(
+            @RequestHeader("X-User-Id") Integer userId,
+            @PathVariable("id") Integer idPlantaUsuario) {
+        return ResponseEntity.ok(plantasService.sacarDelBaul(userId, idPlantaUsuario));
+    }
+
+    /** Cambia el apodo de la planta. Body: { "apodo": "texto" } (vacio = nombre comun de la especie). */
+    @PutMapping("/{id}/apodo")
+    public ResponseEntity<PlantSummaryDto> renombrar(
+            @RequestHeader("X-User-Id") Integer userId,
+            @PathVariable("id") Integer idPlantaUsuario,
+            @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(plantasService.renombrar(userId, idPlantaUsuario, body.get("apodo")));
+    }
+
     /** Revive una planta muerta a cambio de hojas (409 si no esta muerta, 402 si no alcanzan). */
     @PostMapping("/{id}/revivir")
     public ResponseEntity<PlantSummaryDto> revivir(

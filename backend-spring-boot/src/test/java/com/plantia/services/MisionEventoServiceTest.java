@@ -107,6 +107,19 @@ class MisionEventoServiceTest {
     }
 
     @Test
+    void lasPlantasDelBaulNoCuentanEnLaMision() {
+        hayEvento();
+        PlantaUsuario guardada = planta(false, "BROTE");
+        guardada.setEnBaul(true);
+        plantas(planta(true, "BROTE"), guardada);
+
+        DailyMissionDto m = service.deEvento(USER, AHORA).orElseThrow();
+
+        assertThat(m.targetCount()).isEqualTo(1);
+        assertThat(m.isCompleted()).isTrue();
+    }
+
+    @Test
     void sinPlantasVivasNoHayMision() {
         hayEvento();
         plantas(planta(false, "MUERTA"));

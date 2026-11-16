@@ -59,7 +59,7 @@ public class MisionEventoService {
             return Optional.empty();
         }
         List<PlantaUsuario> vivas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId).stream()
-                .filter(p -> !"MUERTA".equals(p.getEtapaCrecimiento()))
+                .filter(p -> !"MUERTA".equals(p.getEtapaCrecimiento()) && !Boolean.TRUE.equals(p.getEnBaul()))
                 .toList();
         if (vivas.isEmpty()) {
             return Optional.empty();

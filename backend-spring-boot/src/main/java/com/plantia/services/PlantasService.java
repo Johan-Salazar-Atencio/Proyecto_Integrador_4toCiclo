@@ -70,7 +70,10 @@ public class PlantasService {
      */
     @Transactional
     public Optional<PlantSummaryDto> activa(Integer userId) {
-        List<PlantaUsuario> plantas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId);
+        // Las plantas del baul no se muestran en el jardin
+        List<PlantaUsuario> plantas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId).stream()
+                .filter(p -> !enBaul(p))
+                .toList();
         return plantas.stream()
                 .filter(p -> Boolean.TRUE.equals(p.getEsActiva()))
                 .findFirst()
@@ -112,6 +115,15 @@ public class PlantasService {
                 .orElseGet(PlantaUsuario::new);
         // Reiniciar una especie que ya tenia no da XP: si no, se podria repetir para ganar
         boolean nueva = planta.getIdPlantaUsuario() == null;
+        if (!nueva && enBaul(planta)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Esa planta esta en el baul: sacala primero");
+        }
+        // Un jardin lleno no recibe plantas nuevas: hay que mandar una al baul
+        int tope = parametros.maxPlantasActivas();
+        if (nueva && activasDe(suyas) >= tope) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Tu jardin esta lleno (" + tope + " plantas). Manda una al baul para sumar otra.");
+        }
         suyas.forEach(p -> p.setEsActiva(false));
 
         LocalDateTime ahora = LocalDateTime.now();
@@ -165,6 +177,7 @@ public class PlantasService {
     @Transactional
     public PlantSummaryDto seleccionar(Integer userId, Integer idPlantaUsuario) {
         PlantaUsuario elegida = propia(userId, idPlantaUsuario);
+        exigirFueraDelBaul(elegida);
         List<PlantaUsuario> suyas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId);
         suyas.forEach(p -> p.setEsActiva(p.getIdPlantaUsuario().equals(elegida.getIdPlantaUsuario())));
         plantaRepo.saveAll(suyas);
@@ -180,6 +193,7 @@ public class PlantasService {
     public PlantSummaryDto cuidar(Integer userId, Integer idPlantaUsuario, String accion) {
         LocalDateTime ahora = LocalDateTime.now();
         PlantaUsuario p = envejecer(propia(userId, idPlantaUsuario), ahora);
+        exigirFueraDelBaul(p);
         if ("MUERTA".equals(p.getEtapaCrecimiento())) {
             plantaRepo.save(p);
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La planta esta muerta: hay que revivirla");
@@ -240,6 +254,7 @@ public class PlantasService {
     @Transactional
     public PlantSummaryDto prevenir(Integer userId, Integer idPlantaUsuario) {
         PlantaUsuario p = propia(userId, idPlantaUsuario);
+        exigirFueraDelBaul(p);
         if ("MUERTA".equals(p.getEtapaCrecimiento())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La planta ya no se puede proteger");
         }
@@ -299,7 +314,8 @@ public class PlantasService {
      * (en la simulacion de la web, recargar a menudo evitaba que la planta se secara).
      */
     static PlantaUsuario envejecer(PlantaUsuario p, LocalDateTime ahora) {
-        if ("MUERTA".equals(p.getEtapaCrecimiento())) {
+        // Una planta muerta o guardada en el baul no cambia con el tiempo
+        if ("MUERTA".equals(p.getEtapaCrecimiento()) || enBaul(p)) {
             return p;
         }
         // Una planta golpeada por un evento que no se abono a tiempo muere
@@ -337,6 +353,76 @@ public class PlantasService {
         return map(p);
     }
 
+    /** Plantas del jardin (las que no estan en el baul); cuentan para el tope, incluso las muertas, que se pueden revivir. */
+    static int activasDe(List<PlantaUsuario> plantas) {
+        return (int) plantas.stream().filter(p -> !enBaul(p)).count();
+    }
+
+    static boolean enBaul(PlantaUsuario p) {
+        return Boolean.TRUE.equals(p.getEnBaul());
+    }
+
+    private static void exigirFueraDelBaul(PlantaUsuario p) {
+        if (enBaul(p)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La planta esta en el baul: sacala primero");
+        }
+    }
+
+    /**
+     * Guarda la planta en el baul: queda congelada tal cual esta (no crece, no se desgasta, no le afectan los eventos
+     * ni da hojas o XP) y libera un lugar del jardin. No se puede con una planta golpeada por un evento: primero hay que
+     * recuperarla, porque si no el baul serviria para esquivar su plazo.
+     */
+    @Transactional
+    public PlantSummaryDto guardarEnBaul(Integer userId, Integer idPlantaUsuario) {
+        PlantaUsuario p = envejecer(propia(userId, idPlantaUsuario), LocalDateTime.now());
+        if (!enBaul(p)) {
+            if (p.getRecuperacionHasta() != null) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Primero recupera la planta: esta golpeada por un evento");
+            }
+            p.setEnBaul(true);
+            p.setEsActiva(false);
+            p.setEstaRefugiada(false);
+            p.setRefugiadaDesde(null);
+            plantaRepo.save(p);
+        }
+        return map(p);
+    }
+
+    /** Saca la planta del baul y la devuelve al jardin; 409 si el jardin ya esta lleno. El tiempo guardado no cuenta como desgaste. */
+    @Transactional
+    public PlantSummaryDto sacarDelBaul(Integer userId, Integer idPlantaUsuario) {
+        PlantaUsuario p = propia(userId, idPlantaUsuario);
+        if (enBaul(p)) {
+            int tope = parametros.maxPlantasActivas();
+            if (activasDe(plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId)) >= tope) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Tu jardin esta lleno (" + tope + " plantas). Manda otra al baul para sacar esta.");
+            }
+            p.setEnBaul(false);
+            p.setUpdatedAt(LocalDateTime.now());
+            plantaRepo.save(p);
+        }
+        return map(p);
+    }
+
+    /** Cambia el apodo de la planta (maximo 50 caracteres); vacio vuelve al nombre comun de la especie. */
+    @Transactional
+    public PlantSummaryDto renombrar(Integer userId, Integer idPlantaUsuario, String apodo) {
+        PlantaUsuario p = propia(userId, idPlantaUsuario);
+        String limpio = apodo == null ? "" : apodo.trim();
+        if (limpio.length() > 50) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El apodo no puede pasar de 50 caracteres");
+        }
+        if (limpio.isEmpty()) {
+            limpio = p.getIdCatalogo() == null ? "Planta"
+                    : catalogoRepo.findById(p.getIdCatalogo()).map(PlantaCatalogo::getNombreComun).orElse("Planta");
+        }
+        p.setApodo(limpio);
+        plantaRepo.save(p);
+        return map(p);
+    }
+
     /** La planta muere: salud en cero, sin plazo de recuperacion. Conserva sus dias para poder revivirla. */
     static void morir(PlantaUsuario p) {
         p.setEtapaCrecimiento("MUERTA");
@@ -353,6 +439,7 @@ public class PlantasService {
     @Transactional
     public PlantSummaryDto revivir(Integer userId, Integer idPlantaUsuario) {
         PlantaUsuario p = propia(userId, idPlantaUsuario);
+        exigirFueraDelBaul(p);
         if (!"MUERTA".equals(p.getEtapaCrecimiento())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La planta no esta muerta");
         }
@@ -485,6 +572,7 @@ public class PlantasService {
                 segundosHasta(p.getRecuperacionHasta()),
                 p.getGolpeTipo(),
                 "MUERTA".equals(p.getEtapaCrecimiento()) && parametros != null ? parametros.costoRevivir() : null,
+                enBaul(p),
                 null);
     }
 
