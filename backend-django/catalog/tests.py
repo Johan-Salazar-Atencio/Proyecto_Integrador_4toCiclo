@@ -521,3 +521,74 @@ class AdminTiendaTests(SimpleTestCase):
         with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: None)):
             respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"activo": False}, pk=99)
         self.assertEqual(respuesta.status_code, 404)
+
+
+class AdminParametrosTests(SimpleTestCase):
+    """Parametros de juego (costo de revivir, plazo de recuperacion...): permisos y rangos."""
+
+    def _llamar(self, vista, metodo, datos=None, admin=True, **kwargs):
+        fabrica = getattr(APIRequestFactory(), metodo)
+        request = fabrica("/api/admin/parametros/", datos, format="json")
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario() if admin else None):
+            return vista.as_view()(request, **kwargs)
+
+    def _fila(self, clave="COSTO_REVIVIR", valor=250):
+        from unittest.mock import MagicMock
+
+        fila = admin_views.ParametroJuego(clave=clave, valor=valor, descripcion="d")
+        fila.save = MagicMock()
+        return fila
+
+    def _con(self, fila):
+        from unittest.mock import MagicMock
+
+        return patch.object(admin_views.ParametroJuego.objects, "filter", return_value=MagicMock(first=lambda: fila))
+
+    def test_sin_admin_devuelve_401(self):
+        self.assertEqual(self._llamar(admin_views.AdminParametrosView, "get", admin=False).status_code, 401)
+        respuesta = self._llamar(admin_views.AdminParametroDetailView, "patch", {"valor": 1}, admin=False,
+                                 clave="COSTO_REVIVIR")
+        self.assertEqual(respuesta.status_code, 401)
+
+    def test_lista_solo_los_parametros_que_usa_spring(self):
+        with patch.object(admin_views.ParametroJuego.objects, "filter") as filtrar:
+            filtrar.return_value.order_by.return_value = [self._fila()]
+            respuesta = self._llamar(admin_views.AdminParametrosView, "get")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.data[0]["clave"], "COSTO_REVIVIR")
+        self.assertCountEqual(filtrar.call_args.kwargs["clave__in"], list(admin_views.PARAMETROS_JUEGO))
+
+    def test_cambia_el_costo_de_revivir(self):
+        fila = self._fila()
+        with self._con(fila):
+            respuesta = self._llamar(admin_views.AdminParametroDetailView, "patch", {"valor": 300},
+                                     clave="COSTO_REVIVIR")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.data["valor"], 300)
+        fila.save.assert_called_once_with(update_fields=["valor"])
+
+    def test_un_valor_fuera_de_rango_da_400_y_no_guarda(self):
+        fila = self._fila("SALUD_REVIVIDA", 50)
+        with self._con(fila):
+            respuesta = self._llamar(admin_views.AdminParametroDetailView, "patch", {"valor": 150},
+                                     clave="SALUD_REVIVIDA")
+        self.assertEqual(respuesta.status_code, 400)
+        fila.save.assert_not_called()
+
+    def test_un_valor_que_no_es_entero_da_400(self):
+        fila = self._fila()
+        for malo in ("300", 3.5, True, None):
+            with self._con(fila):
+                respuesta = self._llamar(admin_views.AdminParametroDetailView, "patch", {"valor": malo},
+                                         clave="COSTO_REVIVIR")
+            self.assertEqual(respuesta.status_code, 400, malo)
+
+    def test_una_clave_desconocida_da_404(self):
+        respuesta = self._llamar(admin_views.AdminParametroDetailView, "patch", {"valor": 1}, clave="OTRA")
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_una_clave_sin_fila_da_404(self):
+        with self._con(None):
+            respuesta = self._llamar(admin_views.AdminParametroDetailView, "patch", {"valor": 5},
+                                     clave="COSTO_REVIVIR")
+        self.assertEqual(respuesta.status_code, 404)

@@ -23,8 +23,8 @@ from rest_framework.views import APIView
 
 from . import fondos_imagen
 from .models import (
-    EventoDesastre, FondoEscena, ItemTienda, Mision, PlantaCatalogo, Region, RegistroDesastreUsuario,
-    TemaFondo, TipoDesastre, Usuario,
+    EventoDesastre, FondoEscena, ItemTienda, Mision, ParametroJuego, PlantaCatalogo, Region,
+    RegistroDesastreUsuario, TemaFondo, TipoDesastre, Usuario,
 )
 
 # Hash BCrypt valido para comparar cuando el correo no existe: asi el tiempo de
@@ -265,6 +265,50 @@ class AdminMisionDetailView(APIView):
         if valores:
             mision.save(update_fields=list(valores))
         return Response(_mision_a_dict(mision))
+
+
+# Parametros de juego que Spring lee de verdad, con el rango que acepta el admin (minimo, maximo)
+PARAMETROS_JUEGO = {
+    "COSTO_REVIVIR": (0, 100000),
+    "HORAS_RECUPERACION": (1, 720),
+    "ABONO_RECUPERACION": (1, 100),
+    "SALUD_REVIVIDA": (1, 100),
+}
+
+
+def _parametro_a_dict(p):
+    return {"clave": p.clave, "valor": p.valor, "descripcion": p.descripcion}
+
+
+class AdminParametrosView(APIView):
+    """GET /api/admin/parametros/  los valores ajustables del juego (costo de revivir, plazos...)."""
+
+    def get(self, request):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        filas = ParametroJuego.objects.filter(clave__in=list(PARAMETROS_JUEGO)).order_by("clave")
+        return Response([_parametro_a_dict(p) for p in filas])
+
+
+class AdminParametroDetailView(APIView):
+    """PATCH /api/admin/parametros/<clave>/  {valor} cambia un parametro dentro de su rango."""
+
+    def patch(self, request, clave):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        if clave not in PARAMETROS_JUEGO:
+            return Response({"error": "Parametro no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+        parametro = ParametroJuego.objects.filter(pk=clave).first()
+        if parametro is None:
+            return Response({"error": "Parametro no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+        minimo, maximo = PARAMETROS_JUEGO[clave]
+        valor = request.data.get("valor")
+        if isinstance(valor, bool) or not isinstance(valor, int) or not minimo <= valor <= maximo:
+            return Response({"error": f"valor debe ser un entero entre {minimo} y {maximo}"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        parametro.valor = valor
+        parametro.save(update_fields=["valor"])
+        return Response(_parametro_a_dict(parametro))
 
 
 MOMENTOS = ("DIA", "TARDE", "NOCHE")

@@ -321,6 +321,24 @@ class Mision(models.Model):
         return self.titulo
 
 
+class ParametroJuego(models.Model):
+    """Valor del juego que el admin ajusta sin tocar el codigo (Flyway V23): costo de revivir, horas de
+    recuperacion, etc. Spring los lee al momento."""
+
+    clave = models.CharField(max_length=50, primary_key=True)
+    valor = models.IntegerField()
+    descripcion = models.CharField(max_length=200, null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "parametros_juego"
+        verbose_name = "Parametro de juego"
+        verbose_name_plural = "Parametros de juego"
+
+    def __str__(self):
+        return f"{self.clave} = {self.valor}"
+
+
 class PlantaUsuario(models.Model):
     """Planta digital de un usuario (solo los campos que lee el panel admin)."""
 
