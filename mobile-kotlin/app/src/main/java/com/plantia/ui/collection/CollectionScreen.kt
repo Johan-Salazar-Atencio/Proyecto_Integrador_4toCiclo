@@ -63,6 +63,7 @@ import com.plantia.ui.collection.components.TarjetaDigital
 import com.plantia.ui.collection.components.TarjetaEscaneada
 import com.plantia.ui.collection.viewmodel.CollectionUiState
 import com.plantia.ui.collection.viewmodel.CollectionViewModel
+import com.plantia.ui.collection.virtual.ColeccionVirtual
 import com.plantia.ui.components.AvisoToast
 import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.GreenDark
@@ -126,7 +127,31 @@ fun CollectionScreen(
                     boton = "Reintentar",
                     onBoton = viewModel::cargar
                 )
-                is CollectionUiState.Success -> ContenidoColeccion(
+                is CollectionUiState.Success -> if (pestana == PESTANA_DIGITALES) {
+                    val bordeInferior = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                            .padding(bottom = bordeInferior)
+                    ) {
+                        Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 10.dp)) {
+                            Cabecera(estado.escaneadas.size, estado.digitales.size, pestana, { pestana = it }, mostrarContador = false)
+                        }
+                        ColeccionVirtual(
+                            plantas = estado.digitales,
+                            invernadero = viewModel.invernadero,
+                            invernaderosPropios = viewModel.invernaderosPropios,
+                            onElegirInvernadero = viewModel::elegirInvernadero,
+                            onAbrir = { planta -> viewModel.seleccionar(planta) { onPlantaDigital(planta) } },
+                            onRenombrar = viewModel::renombrar,
+                            onGuardarEnBaul = viewModel::guardarEnBaul,
+                            onSacarDelBaul = viewModel::sacarDelBaul,
+                            onScan = onScan,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                } else ContenidoColeccion(
                     escaneadas = estado.escaneadas,
                     digitales = estado.digitales,
                     pestana = pestana,
@@ -211,10 +236,17 @@ internal fun ContenidoColeccion(
 }
 
 @Composable
-private fun Cabecera(nEscaneadas: Int, nDigitales: Int, pestana: Int, onPestana: (Int) -> Unit) {
+private fun Cabecera(
+    nEscaneadas: Int,
+    nDigitales: Int,
+    pestana: Int,
+    onPestana: (Int) -> Unit,
+    /** En la coleccion virtual el espacio es del invernadero: el contador de descubiertas se omite. */
+    mostrarContador: Boolean = true
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Contador abierto: la base de datos es dinamica, no hay un tope de especies.
-        Card(
+        if (mostrarContador) Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = SurfaceWhite),

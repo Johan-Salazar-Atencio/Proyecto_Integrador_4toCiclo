@@ -18,6 +18,8 @@ import com.plantia.data.repository.PlantaActivaResultado
 import com.plantia.data.repository.PlantaResultado
 import com.plantia.data.repository.PlantasResultado
 import com.plantia.data.repository.ScanRepository
+import com.plantia.data.repository.UsuarioRepository
+import com.plantia.data.model.Region
 import com.plantia.data.model.RecentScan
 import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -216,5 +218,28 @@ class FakeArteRepository(var arte: com.plantia.data.model.Arte? = null) : com.pl
     override suspend fun cargar(): com.plantia.data.model.Arte? {
         consultas++
         return arte
+    }
+}
+
+/** Usuario falso: el perfil, las regiones y el invernadero se configuran por separado. */
+class FakeUsuarioRepository : UsuarioRepository {
+    var perfil: UserSummary? = usuarioEjemplo()
+    var alCambiarInvernadero: UserSummary? = null
+    val invernaderos = mutableListOf<Int>()
+    val fotos = mutableListOf<File>()
+    var alCambiarFoto: UserSummary? = null
+
+    override suspend fun perfil() = perfil
+    override suspend fun regiones(): List<Region>? = emptyList()
+    override suspend fun cambiarRegion(codigo: String): UserSummary? = perfil
+
+    override suspend fun cambiarInvernadero(idItem: Int): UserSummary? {
+        invernaderos += idItem
+        return alCambiarInvernadero
+    }
+
+    override suspend fun cambiarFoto(foto: File): UserSummary? {
+        fotos += foto
+        return alCambiarFoto
     }
 }
