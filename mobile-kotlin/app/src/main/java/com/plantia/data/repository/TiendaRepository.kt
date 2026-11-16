@@ -121,7 +121,7 @@ class RemoteTiendaRepository(
                     nivelRequerido = it.nivelRequerido,
                     previewUrl = it.previewUrl?.takeIf { url -> url.isNotBlank() }?.let { url -> absoluta(base, url) },
                     variantes = it.variantes.aVariantes(base),
-                    comprado = it.comprado, bloqueado = it.bloqueado
+                    comprado = it.comprado, bloqueado = it.bloqueado, codigo = it.codigo
                 )
             }
         )

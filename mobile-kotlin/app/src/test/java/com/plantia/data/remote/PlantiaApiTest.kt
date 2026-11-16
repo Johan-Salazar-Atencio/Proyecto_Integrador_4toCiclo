@@ -50,4 +50,37 @@ class PlantiaApiTest {
         api.golpeVisto(7)
         assertEquals("POST /api/v1/plantas/7/golpe-visto", ruta)
     }
+
+    @Test
+    fun baul_apodo_y_macetas_usan_su_ruta_y_su_cuerpo() = runTest {
+        val una = api("""{"name":"Fifi","id":7,"enBaul":true,"macetaCodigo":"AZUL"}""")
+
+        una.guardarEnBaul(7)
+        assertEquals("POST /api/v1/plantas/7/baul", ruta)
+        una.sacarDelBaul(7)
+        assertEquals("POST /api/v1/plantas/7/sacar-del-baul", ruta)
+        una.renombrarPlanta(7, com.plantia.data.remote.dto.ApodoRequest("Fifi"))
+        assertEquals("PUT /api/v1/plantas/7/apodo", ruta)
+        assertEquals("""{"apodo":"Fifi"}""", cuerpo)
+        val plantas = api("""[{"name":"Fifi","id":7,"enBaul":false,"macetaCodigo":"AZUL"}]""")
+        val respuesta = plantas.ponerMacetas(com.plantia.data.remote.dto.PonerMacetaRequest(10, listOf(7, 8)))
+        assertEquals("PUT /api/v1/plantas/macetas", ruta)
+        assertEquals("""{"idItem":10,"ids":[7,8]}""", cuerpo)
+        assertEquals("AZUL", respuesta.body()?.first()?.macetaCodigo)
+    }
+
+    @Test
+    fun invernadero_y_foto_de_perfil_usan_su_ruta() = runTest {
+        val api = api("""{"name":"Johan","greenhouseCode":"VICTORIANO"}""")
+
+        val perfil = api.cambiarInvernadero(com.plantia.data.remote.dto.ElegirInvernaderoRequest(15))
+        assertEquals("PUT /api/v1/usuarios/me/invernadero", ruta)
+        assertEquals("""{"idItem":15}""", cuerpo)
+        assertEquals("VICTORIANO", perfil.body()?.greenhouseCode)
+        val parte = okhttp3.MultipartBody.Part.createFormData(
+            "foto", "yo.jpg", okhttp3.RequestBody.create("image/jpeg".toMediaType(), byteArrayOf(1, 2))
+        )
+        api.subirFoto(parte)
+        assertEquals("POST /api/v1/usuarios/me/foto", ruta)
+    }
 }

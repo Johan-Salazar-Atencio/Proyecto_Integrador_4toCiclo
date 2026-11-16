@@ -65,7 +65,8 @@ fun UserSummaryDto.toDomain(): UserSummary = UserSummary(
     profileImageUrl = profileImageUrl,
     streakDays = streakDays,
     experienceFromLevel = experienceFromLevel,
-    regionCode = regionCode
+    regionCode = regionCode,
+    greenhouseCode = greenhouseCode.ifBlank { "SELVA" }
 )
 
 fun WeatherAlertDto.toDomain(): WeatherAlert = WeatherAlert(
@@ -107,7 +108,9 @@ fun PlantSummaryDto.toDomain(): PlantSummary = PlantSummary(
     enRecuperacion = enRecuperacion,
     recuperacionSegundos = recuperacionSegundos?.coerceAtLeast(0),
     golpeTipo = golpeTipo,
-    costoRevivir = costoRevivir
+    costoRevivir = costoRevivir,
+    enBaul = enBaul,
+    macetaCodigo = macetaCodigo.ifBlank { "TERRACOTA" }
 )
 
 fun DailyMissionDto.toDomain(): DailyMission = DailyMission(

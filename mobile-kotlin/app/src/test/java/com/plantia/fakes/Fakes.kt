@@ -96,6 +96,14 @@ class FakeGardenRepository : GardenRepository {
     val revividos = mutableListOf<Int>()
     val golpesVistos = mutableListOf<Int>()
     val digitalizados = mutableListOf<Pair<Int, Int?>>()
+    var alBaul: PlantaResultado = PlantaResultado.Con(planta().copy(enBaul = true))
+    var alSacar: PlantaResultado = PlantaResultado.Con(planta())
+    var alRenombrar: PlantaResultado = PlantaResultado.Con(planta())
+    var alPonerMaceta: PlantasResultado = PlantasResultado.Con(emptyList())
+    val guardados = mutableListOf<Int>()
+    val sacados = mutableListOf<Int>()
+    val apodos = mutableListOf<Pair<Int, String>>()
+    val macetas = mutableListOf<Pair<Int, List<Int>>>()
 
     override suspend fun plantaActiva() = activa
     override suspend fun listar() = lista
@@ -125,6 +133,26 @@ class FakeGardenRepository : GardenRepository {
     override suspend fun golpeVisto(idPlanta: Int): PlantaResultado {
         golpesVistos += idPlanta
         return alGolpeVisto
+    }
+
+    override suspend fun guardarEnBaul(idPlanta: Int): PlantaResultado {
+        guardados += idPlanta
+        return alBaul
+    }
+
+    override suspend fun sacarDelBaul(idPlanta: Int): PlantaResultado {
+        sacados += idPlanta
+        return alSacar
+    }
+
+    override suspend fun renombrar(idPlanta: Int, apodo: String): PlantaResultado {
+        apodos += idPlanta to apodo
+        return alRenombrar
+    }
+
+    override suspend fun ponerMaceta(idItem: Int, idPlantas: List<Int>): PlantasResultado {
+        macetas += idItem to idPlantas
+        return alPonerMaceta
     }
 }
 

@@ -28,7 +28,11 @@ data class PlantSummary(
     /** Evento que la golpeo y cuya animacion aun no se vio (null = ninguna pendiente). */
     val golpeTipo: String? = null,
     /** Hojas que cuesta revivirla; solo llega cuando la planta esta muerta. */
-    val costoRevivir: Int? = null
+    val costoRevivir: Int? = null,
+    /** Guardada en el baul: congelada, solo ocupa espacio y no se cuida. */
+    val enBaul: Boolean = false,
+    /** Codigo de la maceta que tiene puesta (TERRACOTA si no eligio otra). */
+    val macetaCodigo: String = "TERRACOTA"
 ) {
     /** Murio por no abonarla a tiempo: se puede revivir a cambio de hojas. */
     val muerta: Boolean get() = fase == "MUERTA"

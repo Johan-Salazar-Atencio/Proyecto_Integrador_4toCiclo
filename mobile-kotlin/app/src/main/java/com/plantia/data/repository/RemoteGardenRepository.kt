@@ -6,7 +6,9 @@ import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.remote.PlantiaApi
 import com.plantia.data.remote.RetrofitClient
+import com.plantia.data.remote.dto.ApodoRequest
 import com.plantia.data.remote.dto.PlantSummaryDto
+import com.plantia.data.remote.dto.PonerMacetaRequest
 import com.plantia.util.normalizarUrlLocal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -67,9 +69,33 @@ class RemoteGardenRepository(
     override suspend fun golpeVisto(idPlanta: Int): PlantaResultado =
         planta { api().golpeVisto(idPlanta) }
 
-    /** [errores] traduce un codigo HTTP a un mensaje para el usuario; los demas dicen lo que respondio el servidor. */
+    override suspend fun guardarEnBaul(idPlanta: Int): PlantaResultado =
+        planta(delServidor = true) { api().guardarEnBaul(idPlanta) }
+
+    override suspend fun sacarDelBaul(idPlanta: Int): PlantaResultado =
+        planta(delServidor = true) { api().sacarDelBaul(idPlanta) }
+
+    override suspend fun renombrar(idPlanta: Int, apodo: String): PlantaResultado =
+        planta(delServidor = true) { api().renombrarPlanta(idPlanta, ApodoRequest(apodo)) }
+
+    override suspend fun ponerMaceta(idItem: Int, idPlantas: List<Int>): PlantasResultado =
+        withContext(Dispatchers.IO) {
+            try {
+                val respuesta = api().ponerMacetas(PonerMacetaRequest(idItem, idPlantas))
+                val cuerpo = respuesta.body()
+                if (respuesta.isSuccessful && cuerpo != null) PlantasResultado.Con(cuerpo.map { it.aPlanta() })
+                else PlantasResultado.Fallo(respuesta.mensajeDelServidor())
+            } catch (e: Exception) {
+                PlantasResultado.Fallo(e.message ?: SIN_CONEXION)
+            }
+        }
+
+    /**
+     * [errores] traduce un codigo HTTP a un mensaje para el usuario; los demas dicen lo que respondio el servidor. */
     private suspend fun planta(
         errores: Map<Int, String> = emptyMap(),
+        /** true: si falla se muestra el texto que manda Spring (apodo largo, jardin lleno...). */
+        delServidor: Boolean = false,
         llamada: suspend () -> Response<PlantSummaryDto>
     ): PlantaResultado =
         withContext(Dispatchers.IO) {
@@ -79,7 +105,10 @@ class RemoteGardenRepository(
                 if (respuesta.isSuccessful && cuerpo != null) {
                     PlantaResultado.Con(cuerpo.aPlanta())
                 } else {
-                    PlantaResultado.Fallo(errores[respuesta.code()] ?: "El servidor respondio ${respuesta.code()}")
+                    PlantaResultado.Fallo(
+                        errores[respuesta.code()]
+                            ?: if (delServidor) respuesta.mensajeDelServidor() else "El servidor respondio ${respuesta.code()}"
+                    )
                 }
             } catch (e: Exception) {
                 PlantaResultado.Fallo(e.message ?: SIN_CONEXION)

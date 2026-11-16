@@ -19,7 +19,9 @@ data class TiendaItemDto(
     /** Solo fondos: la escena de cada momento del dia del tema. */
     val variantes: List<VarianteDto> = emptyList(),
     val comprado: Boolean = false,
-    val bloqueado: Boolean = false
+    val bloqueado: Boolean = false,
+    /** Macetas e invernaderos: el identificador con el que la app los dibuja. */
+    val codigo: String? = null
 )
 
 /** Escena de un momento del dia (DIA, TARDE o NOCHE) con su vista previa. */
@@ -37,3 +39,12 @@ data class TemaFondoDto(
     val enUso: Boolean = false,
     val variantes: List<VarianteDto> = emptyList()
 )
+
+/** PUT /api/v1/plantas/macetas: pone una maceta que el usuario tiene a las plantas que elija. */
+data class PonerMacetaRequest(val idItem: Int, val ids: List<Int>)
+
+/** PUT /api/v1/plantas/{id}/apodo (vacio = el nombre comun de la especie). */
+data class ApodoRequest(val apodo: String)
+
+/** PUT /api/v1/usuarios/me/invernadero */
+data class ElegirInvernaderoRequest(val idItem: Int)

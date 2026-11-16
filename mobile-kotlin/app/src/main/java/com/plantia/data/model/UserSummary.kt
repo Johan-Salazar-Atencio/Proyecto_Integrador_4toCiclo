@@ -15,7 +15,9 @@ data class UserSummary(
     /** XP total que marca el inicio del nivel actual (0 si el servidor no lo envia). */
     val experienceFromLevel: Int = 0,
     /** Codigo de la region que decide que desastres le llegan (vacio si el servidor no lo envia). */
-    val regionCode: String = ""
+    val regionCode: String = "",
+    /** Invernadero de su coleccion virtual: SELVA (el predeterminado), VICTORIANO o LUCES. */
+    val greenhouseCode: String = "SELVA"
 ) {
     /** En el ultimo nivel no hay siguiente: el servidor iguala el limite al XP. */
     val esNivelMaximo: Boolean

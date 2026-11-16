@@ -42,4 +42,16 @@ interface GardenRepository {
 
     /** Marca como vista la animacion del evento que golpeo a la planta. */
     suspend fun golpeVisto(idPlanta: Int): PlantaResultado
+
+    /** Guarda la planta en el baul: queda congelada y libera un lugar en el invernadero. */
+    suspend fun guardarEnBaul(idPlanta: Int): PlantaResultado
+
+    /** Saca la planta del baul; falla si el invernadero ya tiene el maximo de plantas activas. */
+    suspend fun sacarDelBaul(idPlanta: Int): PlantaResultado
+
+    /** Cambia el apodo de la planta; vacio vuelve al nombre comun de la especie. */
+    suspend fun renombrar(idPlanta: Int, apodo: String): PlantaResultado
+
+    /** Pone una maceta que el usuario tiene a las plantas elegidas; devuelve esas plantas ya actualizadas. */
+    suspend fun ponerMaceta(idItem: Int, idPlantas: List<Int>): PlantasResultado
 }

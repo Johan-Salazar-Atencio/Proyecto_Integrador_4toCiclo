@@ -7,6 +7,11 @@ import com.plantia.data.model.UserSummary
 import com.plantia.data.model.WeatherAlert
 import com.plantia.data.remote.PlantiaApi
 import com.plantia.data.remote.dto.CambiarRegionRequest
+import com.plantia.data.remote.dto.ElegirInvernaderoRequest
+import com.plantia.util.ImageCompressor
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import com.plantia.data.remote.RetrofitClient
 import com.plantia.util.normalizarUrlLocal
 import kotlinx.coroutines.Dispatchers
@@ -85,6 +90,19 @@ class RemoteUsuarioRepository(
 
     override suspend fun cambiarRegion(codigo: String): UserSummary? = withContext(Dispatchers.IO) {
         val respuesta = runCatching { api().cambiarRegion(CambiarRegionRequest(codigo)) }.getOrNull()
+        if (respuesta != null && respuesta.isSuccessful) respuesta.body()?.toDomain() else null
+    }
+
+    override suspend fun cambiarInvernadero(idItem: Int): UserSummary? = withContext(Dispatchers.IO) {
+        val respuesta = runCatching { api().cambiarInvernadero(ElegirInvernaderoRequest(idItem)) }.getOrNull()
+        if (respuesta != null && respuesta.isSuccessful) respuesta.body()?.toDomain() else null
+    }
+
+    override suspend fun cambiarFoto(foto: java.io.File): UserSummary? = withContext(Dispatchers.IO) {
+        // Un avatar no necesita mas de 512 px: sube rapido y pesa poco
+        val aSubir = runCatching { ImageCompressor.reducirParaSubida(foto, maxLado = 512) }.getOrDefault(foto)
+        val parte = MultipartBody.Part.createFormData("foto", aSubir.name, aSubir.asRequestBody("image/jpeg".toMediaType()))
+        val respuesta = runCatching { api().subirFoto(parte) }.getOrNull()
         if (respuesta != null && respuesta.isSuccessful) respuesta.body()?.toDomain() else null
     }
 }

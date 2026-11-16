@@ -53,4 +53,10 @@ interface UsuarioRepository {
 
     /** Cambia la region y devuelve el perfil actualizado, o null si el servidor la rechazo. */
     suspend fun cambiarRegion(codigo: String): UserSummary?
+
+    /** Elige el invernadero de la coleccion (el predeterminado o uno comprado); null si el servidor lo rechazo. */
+    suspend fun cambiarInvernadero(idItem: Int): UserSummary?
+
+    /** Sube la foto de perfil y devuelve el perfil con la nueva URL; null si no se pudo. */
+    suspend fun cambiarFoto(foto: java.io.File): UserSummary?
 }

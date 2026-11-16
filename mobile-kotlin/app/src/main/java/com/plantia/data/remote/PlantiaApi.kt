@@ -8,7 +8,10 @@ import com.plantia.data.remote.dto.CatalogoItemDto
 import com.plantia.data.remote.dto.ColeccionDetalleDto
 import com.plantia.data.remote.dto.ColeccionItemDto
 import com.plantia.data.remote.dto.CuidadoSeccionDto
+import com.plantia.data.remote.dto.ApodoRequest
 import com.plantia.data.remote.dto.CambiarRegionRequest
+import com.plantia.data.remote.dto.ElegirInvernaderoRequest
+import com.plantia.data.remote.dto.PonerMacetaRequest
 import com.plantia.data.remote.dto.DailyMissionDto
 import com.plantia.data.remote.dto.FondoDto
 import com.plantia.data.remote.dto.RegionDto
@@ -88,6 +91,15 @@ interface PlantiaApi {
     @PUT("api/v1/usuarios/me")
     suspend fun cambiarRegion(@Body cuerpo: CambiarRegionRequest): Response<UserSummaryDto>
 
+    /** Elige el invernadero de la coleccion virtual (409 si todavia no lo compro). */
+    @PUT("api/v1/usuarios/me/invernadero")
+    suspend fun cambiarInvernadero(@Body cuerpo: ElegirInvernaderoRequest): Response<UserSummaryDto>
+
+    /** Sube la foto de perfil (JPG, PNG o WEBP) y devuelve el perfil con la nueva URL. */
+    @Multipart
+    @POST("api/v1/usuarios/me/foto")
+    suspend fun subirFoto(@Part foto: MultipartBody.Part): Response<UserSummaryDto>
+
     /** Fondos animados de la escena (dia, tarde, noche). */
     @GET("api/v1/fondos")
     suspend fun fondos(): Response<List<FondoDto>>
@@ -146,6 +158,22 @@ interface PlantiaApi {
     /** Marca como vista la animacion del evento que golpeo a la planta. */
     @POST("api/v1/plantas/{id}/golpe-visto")
     suspend fun golpeVisto(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Guarda la planta en el baul: congelada (409 si esta golpeada por un evento). */
+    @POST("api/v1/plantas/{id}/baul")
+    suspend fun guardarEnBaul(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Saca la planta del baul (409 si ya hay el maximo de plantas activas). */
+    @POST("api/v1/plantas/{id}/sacar-del-baul")
+    suspend fun sacarDelBaul(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Cambia el apodo de la planta; vacio vuelve al nombre comun. */
+    @PUT("api/v1/plantas/{id}/apodo")
+    suspend fun renombrarPlanta(@Path("id") idPlanta: Int, @Body cuerpo: ApodoRequest): Response<PlantSummaryDto>
+
+    /** Pone una maceta a las plantas elegidas (409 si no la tiene o una esta en el baul). */
+    @PUT("api/v1/plantas/macetas")
+    suspend fun ponerMacetas(@Body cuerpo: PonerMacetaRequest): Response<List<PlantSummaryDto>>
 
     // Catalogo
 

@@ -32,7 +32,8 @@ data class UserSummaryDto(
     val profileImageUrl: String? = null,
     val streakDays: Int = 0,
     val experienceFromLevel: Int = 0,
-    val regionCode: String = ""
+    val regionCode: String = "",
+    val greenhouseCode: String = "SELVA"
 )
 
 /** GET /api/v1/eventos/activo (204 si no hay desastre activo) */
@@ -71,7 +72,9 @@ data class PlantSummaryDto(
     val enRecuperacion: Boolean = false,
     val recuperacionSegundos: Long? = null,
     val golpeTipo: String? = null,
-    val costoRevivir: Int? = null
+    val costoRevivir: Int? = null,
+    val enBaul: Boolean = false,
+    val macetaCodigo: String = "TERRACOTA"
 )
 
 data class AparienciaDto(

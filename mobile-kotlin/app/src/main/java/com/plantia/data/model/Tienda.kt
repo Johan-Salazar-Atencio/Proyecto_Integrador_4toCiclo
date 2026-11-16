@@ -8,6 +8,8 @@ data class Tienda(
 ) {
     val fondos: List<TiendaItem> get() = items.filter { it.tipo == TiendaItem.FONDO }
     val abono: TiendaItem? get() = items.firstOrNull { it.tipo == TiendaItem.ABONO }
+    val macetas: List<TiendaItem> get() = items.filter { it.tipo == TiendaItem.MACETA }
+    val invernaderos: List<TiendaItem> get() = items.filter { it.tipo == TiendaItem.INVERNADERO }
 }
 
 data class TiendaItem(
@@ -21,11 +23,15 @@ data class TiendaItem(
     /** Solo fondos: la escena de dia, tarde y noche del tema. */
     val variantes: List<VarianteFondo>,
     val comprado: Boolean,
-    val bloqueado: Boolean
+    val bloqueado: Boolean,
+    /** Macetas e invernaderos: el identificador con el que la app los dibuja (AZUL, VICTORIANO...). */
+    val codigo: String? = null
 ) {
     companion object {
         const val FONDO = "FONDO"
         const val ABONO = "ABONO"
+        const val MACETA = "MACETA"
+        const val INVERNADERO = "INVERNADERO"
     }
 }
 

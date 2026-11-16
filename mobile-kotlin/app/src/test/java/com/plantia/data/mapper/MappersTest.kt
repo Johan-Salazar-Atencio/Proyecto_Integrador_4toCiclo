@@ -103,4 +103,26 @@ class MappersTest {
     fun la_mision_diaria_trae_su_tipo() {
         assertEquals("ESCANEO", DailyMissionDto(id = "mission_2", title = "Explorador", type = "ESCANEO").toDomain().type)
     }
+
+    @Test
+    fun la_planta_trae_su_maceta_y_si_esta_en_el_baul() {
+        val planta = PlantSummaryDto(name = "Fifi", macetaCodigo = "ROSA", enBaul = true).toDomain()
+
+        assertEquals("ROSA", planta.macetaCodigo)
+        assertTrue(planta.enBaul)
+    }
+
+    @Test
+    fun un_servidor_antiguo_sin_maceta_ni_baul_da_terracota_y_activa() {
+        val planta = PlantSummaryDto(name = "Fifi", macetaCodigo = "").toDomain()
+
+        assertEquals("TERRACOTA", planta.macetaCodigo)
+        assertFalse(planta.enBaul)
+    }
+
+    @Test
+    fun el_resumen_del_usuario_trae_su_invernadero_y_por_defecto_la_selva() {
+        assertEquals("LUCES", UserSummaryDto(greenhouseCode = "LUCES").toDomain().greenhouseCode)
+        assertEquals("SELVA", UserSummaryDto(greenhouseCode = "").toDomain().greenhouseCode)
+    }
 }
