@@ -25,8 +25,9 @@
   --transicion: 0.25s ease;
 }
 
+/* Oscuro: con la apariencia del navegador (salvo que se elija Claro) o cuando se elige Oscuro en el perfil */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-tema='claro']) {
     --verde: #2fe27a;
     --verde-oscuro: #34d975;
     --verde-claro: #123d27;
@@ -42,4 +43,21 @@
     --linea: #374151;
     --sombra: 0 2px 12px rgba(0, 0, 0, 0.35);
   }
+}
+
+:root[data-tema='oscuro'] {
+  --verde: #2fe27a;
+  --verde-oscuro: #34d975;
+  --verde-claro: #123d27;
+  --degradado: radial-gradient(circle at 50% 0%, #11613a 0%, #0f2a22 40%, #111827 75%);
+  --brillo: 0 8px 28px rgba(47, 226, 122, 0.45);
+  --ambar-claro: #3a2a0e;
+  --azul-claro: #14263d;
+  --rojo-claro: #3d1a1a;
+  --fondo: #111827;
+  --superficie: #1f2937;
+  --texto: #f3f4f6;
+  --texto-suave: #9ca3af;
+  --linea: #374151;
+  --sombra: 0 2px 12px rgba(0, 0, 0, 0.35);
 }

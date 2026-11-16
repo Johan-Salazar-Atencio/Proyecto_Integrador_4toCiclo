@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { RUTAS } from '../routes/rutas'
 import { useSesion } from '../store/Sesion'
+import { avisarSiToca } from '../store/preferencias'
 import Boton from './Boton'
 import './layout.css'
 
@@ -14,6 +15,7 @@ const MENU = [
 ]
 
 const TITULOS = [
+  [RUTAS.EDITAR_DATOS, 'Editar datos'],
   [RUTAS.FICHA, 'Ficha de la planta'],
   [RUTAS.CATALOGO, 'Enciclopedia'],
   [RUTAS.HISTORIAL, 'Historial'],
@@ -28,7 +30,13 @@ export default function Layout() {
   const [confirmando, setConfirmando] = useState(false)
   const irA = useNavigate()
   const { pathname } = useLocation()
-  const titulo = MENU.find((m) => pathname.startsWith(m.ruta))?.texto || TITULOS.find(([ruta]) => pathname.startsWith(ruta))?.[1] || 'Plantia'
+  // Recordatorio diario (si se activo en el perfil): se revisa al abrir y cada minuto
+  useEffect(() => {
+    avisarSiToca()
+    const id = setInterval(() => avisarSiToca(), 60000)
+    return () => clearInterval(id)
+  }, [])
+  const titulo = TITULOS.find(([ruta]) => pathname.startsWith(ruta))?.[1] || MENU.find((m) => pathname.startsWith(m.ruta))?.texto || 'Plantia'
 
   const salir = () => {
     cerrar()

@@ -25,3 +25,51 @@
 .perfil-enlaces .tarjeta span { font-size: 1.3rem; }
 .perfil-enlaces i { margin-left: auto; color: var(--texto-suave); font-style: normal; font-size: 1.3rem; }
 .perfil-salir { color: var(--rojo) !important; }
+
+/* Foto con boton de camara */
+.perfil-foto { position: relative; }
+.perfil-avatar { position: relative; overflow: hidden; }
+.perfil-avatar b { font-family: var(--fuente-pixel); font-weight: 500; }
+.perfil-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.perfil-subiendo { position: absolute; inset: 0; margin: auto; width: 32px; height: 32px; }
+.perfil-camara { position: absolute; right: -2px; bottom: 6px; width: 30px; height: 30px; border: 3px solid var(--superficie); border-radius: 50%; background: var(--ambar); font-size: 0.8rem; line-height: 1; cursor: pointer; }
+
+/* Estadisticas con su color */
+.perfil-dato { background: var(--superficie); border: 1.5px solid color-mix(in srgb, var(--color) 55%, transparent); border-radius: 18px; box-shadow: var(--sombra); text-align: center; }
+.perfil-dato small { font-size: 0.75rem; }
+@media (max-width: 480px) { .perfil-datos { grid-template-columns: repeat(3, 1fr); } }
+
+/* Apariencia */
+.perfil-seccion { display: flex; flex-direction: column; gap: 6px; }
+.perfil-seccion small { padding-left: 4px; color: var(--texto-suave); }
+.perfil-segmentos { display: flex; gap: 3px; padding: 3px; border-radius: 14px; background: color-mix(in srgb, var(--linea) 50%, var(--superficie)); }
+.perfil-segmentos button { flex: 1; padding: 9px 0; border: 0; border-radius: 11px; background: transparent; color: var(--texto-suave); font: inherit; cursor: pointer; }
+.perfil-segmentos button.activa { background: var(--verde); color: #fff; font-weight: 700; }
+
+/* Region */
+.perfil-region { display: flex; flex-direction: column; gap: 10px; }
+.perfil-region h3 { font-size: 1rem; }
+.perfil-region small { color: var(--texto-suave); }
+.perfil-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.perfil-chips button { padding: 7px 14px; border: 1.5px solid var(--linea); border-radius: 999px; background: transparent; color: var(--texto-suave); font: inherit; font-weight: 600; cursor: pointer; }
+.perfil-chips button.activa { background: var(--verde); border-color: var(--verde); color: #fff; }
+
+/* Recordatorios */
+.perfil-recordatorio div { display: flex; flex-direction: column; flex: 1; }
+.perfil-recordatorio small { color: var(--texto-suave); font-weight: 500; }
+.perfil-interruptor { position: relative; width: 44px; height: 24px; flex-shrink: 0; margin-left: auto; border-radius: 999px; background: var(--linea); transition: background var(--transicion); }
+.perfil-interruptor::after { content: ''; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform var(--transicion); }
+.perfil-interruptor.activo { background: var(--verde); }
+.perfil-interruptor.activo::after { transform: translateX(20px); }
+
+/* Editar datos */
+.editar { gap: 12px; }
+.editar-volver { color: var(--verde-oscuro); font-weight: 700; }
+.editar h3 { margin-top: 6px; }
+.editar-vacio { color: var(--texto-suave); }
+.editar-fila { display: flex; flex-direction: column; gap: 8px; }
+.editar-fila small { color: var(--texto-suave); font-style: italic; }
+.editar-fila div { display: flex; gap: 8px; }
+.editar-fila input { flex: 1; min-width: 0; padding: 10px 12px; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--fondo); color: var(--texto); font: inherit; }
+.editar-fila .boton { min-height: 44px; padding: 0 18px; }
+.editar-fila .boton:disabled { opacity: 0.5; cursor: default; }

@@ -22,6 +22,7 @@ import Jardin from './pages/user/jardin/Jardin'
 import MisionesUsuario from './pages/user/misiones/MisionesUsuario'
 import Terminos from './pages/user/legal/Terminos'
 import Tienda from './pages/user/tienda/Tienda'
+import EditarDatos from './pages/user/perfil/EditarDatos'
 import Perfil from './pages/user/perfil/Perfil'
 import Ficha from './pages/user/planta/Ficha'
 import Welcome from './pages/user/welcome/Welcome'
@@ -58,6 +59,7 @@ export default function App() {
         <Route path={`${RUTAS.CATALOGO}/:id`} element={<DetalleCatalogo />} />
         <Route path={RUTAS.HISTORIAL} element={<Historial />} />
         <Route path={RUTAS.PERFIL} element={<Perfil />} />
+        <Route path={RUTAS.EDITAR_DATOS} element={<EditarDatos />} />
       </Route>
 
       <Route path={RUTAS_ADMIN.LOGIN} element={<LoginAdmin />} />
