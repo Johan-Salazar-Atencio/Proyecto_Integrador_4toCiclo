@@ -338,7 +338,7 @@ private fun Estadistica(valor: String, etiqueta: String, borde: androidx.compose
         border = BorderStroke(1.5.dp, borde.copy(alpha = 0.55f))
     ) {
         Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(valor, fontSize = 22.sp, fontWeight = FontWeight.Medium, fontFamily = com.plantia.ui.theme.FuentePixel, color = TextPrimary)
+            Text(valor, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
             Text(etiqueta, fontSize = 11.sp, color = TextSecondary)
         }
     }
