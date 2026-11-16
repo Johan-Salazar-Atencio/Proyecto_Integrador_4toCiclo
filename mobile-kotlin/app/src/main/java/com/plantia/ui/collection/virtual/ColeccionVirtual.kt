@@ -11,6 +11,8 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -253,35 +255,42 @@ private fun PaginaInvernadero(
     onMenu: (PlantSummary) -> Unit,
     onScan: () -> Unit
 ) {
-    // La escena ocupa todo el ancho (68 x 102 pixeles de cuadricula); si la pantalla es mas baja se recorta el zocalo
+    // La escena ocupa todo el ancho (68 x 102 pixeles de cuadricula). En horizontal el alto falta: la escena queda
+    // angosta (con su proporcion), centrada, y la pagina se desplaza hacia abajo.
     BoxWithConstraints(Modifier.fillMaxSize().clipToBounds()) {
-        val ancho = maxWidth
+        val horizontal = maxWidth > maxHeight
+        val ancho = if (horizontal) minOf(maxWidth, 420.dp) else maxWidth
         val u = ancho / ANCHO_PAGINA
         val libre = if (plantas.size < PLANTAS_POR_PAGINA) plantas.size else null
-        val alto = if (maxHeight > u * ALTO_PAGINA) maxHeight else u * ALTO_PAGINA
-        Box(Modifier.align(Alignment.TopStart).width(ancho).height(alto)) {
-            FondoInvernadero(codigo, Modifier.fillMaxSize(), huecoLibre = libre)
-            for (fila in 0 until 2) {
-                for (columna in 0 until 3) {
-                    val indice = fila * 3 + columna
-                    val lado = u * 22f
-                    val x = u * (HuecoInvernadero.izquierda(columna) + HuecoInvernadero.ANCHO / 2f - 11f)
-                    val y = u * (HuecoInvernadero.repisa(fila) - 22f)
-                    val planta = plantas.getOrNull(indice)
-                    Box(Modifier.offset(x, y).size(lado)) {
-                        if (planta != null) PlantaEnEstante(planta, { onAbrir(planta) }, { onMenu(planta) })
-                        else if (indice == plantas.size) Box(Modifier.fillMaxSize().clickable(onClickLabel = "Escanear una planta", onClick = onScan))
+        val alto = if (!horizontal && maxHeight > u * ALTO_PAGINA) maxHeight else u * ALTO_PAGINA
+        Box(
+            Modifier.fillMaxSize().then(if (horizontal) Modifier.verticalScroll(rememberScrollState()) else Modifier),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Box(Modifier.width(ancho).height(alto)) {
+                FondoInvernadero(codigo, Modifier.fillMaxSize(), huecoLibre = libre)
+                for (fila in 0 until 2) {
+                    for (columna in 0 until 3) {
+                        val indice = fila * 3 + columna
+                        val lado = u * 22f
+                        val x = u * (HuecoInvernadero.izquierda(columna) + HuecoInvernadero.ANCHO / 2f - 11f)
+                        val y = u * (HuecoInvernadero.repisa(fila) - 22f)
+                        val planta = plantas.getOrNull(indice)
+                        Box(Modifier.offset(x, y).size(lado)) {
+                            if (planta != null) PlantaEnEstante(planta, { onAbrir(planta) }, { onMenu(planta) })
+                            else if (indice == plantas.size) Box(Modifier.fillMaxSize().clickable(onClickLabel = "Escanear una planta", onClick = onScan))
+                        }
                     }
                 }
+                Box(Modifier.fillMaxSize()) { indicador() }
+                if (vacioPorBusqueda) {
+                    Text(
+                        "Ninguna planta coincide con tu búsqueda",
+                        modifier = Modifier.align(Alignment.Center).background(SurfaceWhite.copy(alpha = 0.9f), RoundedCornerShape(12.dp)).padding(12.dp),
+                        color = TextPrimary, fontSize = 14.sp, textAlign = TextAlign.Center
+                    )
+                }
             }
-        }
-        Box(Modifier.fillMaxSize()) { indicador() }
-        if (vacioPorBusqueda) {
-            Text(
-                "Ninguna planta coincide con tu búsqueda",
-                modifier = Modifier.align(Alignment.Center).background(SurfaceWhite.copy(alpha = 0.9f), RoundedCornerShape(12.dp)).padding(12.dp),
-                color = TextPrimary, fontSize = 14.sp, textAlign = TextAlign.Center
-            )
         }
     }
 }

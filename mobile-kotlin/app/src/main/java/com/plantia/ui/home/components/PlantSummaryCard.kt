@@ -123,6 +123,8 @@ fun PlantSummaryCard(
                         fontFamily = FuentePixel,
                         fontWeight = FontWeight.Medium,
                         color = TextPrimary,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     Text(
