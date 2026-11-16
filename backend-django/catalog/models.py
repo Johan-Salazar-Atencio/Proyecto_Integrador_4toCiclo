@@ -297,7 +297,8 @@ class Mision(models.Model):
     """Mision diaria que ve cada usuario. Las predeterminadas vienen de Flyway V16; el admin las
     edita, las desactiva (activa=False) o crea mas."""
 
-    TIPOS = ["RIEGO", "ESCANEO", "SOL", "ABONO", "COLECCION", "REFUGIO", "DIGITALIZAR"]
+    # CUIDADO cuenta cualquier cuidado (riego, luz o abono); REFUGIO es "prevenir el evento" (V23)
+    TIPOS = ["RIEGO", "ESCANEO", "SOL", "ABONO", "COLECCION", "REFUGIO", "DIGITALIZAR", "CUIDADO"]
 
     id_mision = models.AutoField(primary_key=True)
     titulo = models.CharField(max_length=100)

@@ -169,6 +169,14 @@ class AdminMisionesTests(SimpleTestCase):
         respuesta = self._llamar(admin_views.AdminMisionListCreateView, "post", datos)
         self.assertEqual(respuesta.status_code, 400)
 
+    def test_el_tipo_cuidado_es_valido(self):
+        from unittest.mock import MagicMock
+
+        mision = admin_views.Mision(id_mision=8, titulo="Cuidado Completo", tipo="CUIDADO", meta=3)
+        with patch.object(admin_views.Mision.objects, "create", return_value=mision):
+            respuesta = self._llamar(admin_views.AdminMisionListCreateView, "post", dict(self.DATOS, tipo="CUIDADO"))
+        self.assertEqual(respuesta.status_code, 201)
+
     def test_crear_exige_meta_positiva(self):
         respuesta = self._llamar(admin_views.AdminMisionListCreateView, "post", dict(self.DATOS, meta=0))
         self.assertEqual(respuesta.status_code, 400)

@@ -9,9 +9,10 @@ export const TIPOS_MISION = [
   { valor: 'RIEGO', icono: '💧', texto: 'Regar plantas' },
   { valor: 'ESCANEO', icono: '📷', texto: 'Escanear plantas' },
   { valor: 'DIGITALIZAR', icono: '🪴', texto: 'Digitalizar plantas nuevas' },
-  { valor: 'REFUGIO', icono: '🏠', texto: 'Refugiar en un desastre' },
+  { valor: 'REFUGIO', icono: '🛡️', texto: 'Prevenir un evento' },
   { valor: 'SOL', icono: '☀️', texto: 'Dar sol' },
   { valor: 'ABONO', icono: '🌿', texto: 'Abonar' },
+  { valor: 'CUIDADO', icono: '🌱', texto: 'Cuidar (regar, dar luz o abonar)' },
   { valor: 'COLECCION', icono: '📚', texto: 'Ampliar la colección' },
 ]
 
