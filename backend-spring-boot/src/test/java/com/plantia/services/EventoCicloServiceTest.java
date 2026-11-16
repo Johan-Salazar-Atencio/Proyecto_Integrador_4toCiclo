@@ -40,7 +40,8 @@ class EventoCicloServiceTest {
                 mock(ReglaProgresoRepository.class), mock(HistorialProgresoRepository.class),
                 mock(MisionService.class), mock(MisionUsuarioRepository.class));
         ResultadoDesastreService resultados = new ResultadoDesastreService(
-                eventoRepo, plantaRepo, mock(RegistroDesastreUsuarioRepository.class), mock(TipoDesastreRepository.class), progreso, 6);
+                eventoRepo, plantaRepo, mock(RegistroDesastreUsuarioRepository.class), mock(TipoDesastreRepository.class), progreso,
+                new ParametrosJuego(mock(com.plantia.repositories.ParametroJuegoRepository.class)), 6);
         ciclo = new EventoCicloService(eventoRepo, resultados);
     }
 

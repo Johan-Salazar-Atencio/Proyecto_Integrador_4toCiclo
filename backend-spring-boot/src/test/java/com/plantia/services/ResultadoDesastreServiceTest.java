@@ -31,7 +31,7 @@ import com.plantia.repositories.ReglaProgresoRepository;
 import com.plantia.repositories.TipoDesastreRepository;
 import com.plantia.repositories.UsuarioRepository;
 
-/** Resultado por planta al terminar un evento: SALVADA, DANADA o DESTRUIDA. */
+/** Resultado por planta al terminar un evento: SALVADA (prevenido) o DANADA (casi muerta, con plazo para abonar). */
 class ResultadoDesastreServiceTest {
 
     private static final LocalDateTime AHORA = LocalDateTime.of(2026, 11, 15, 12, 0);
@@ -62,13 +62,20 @@ class ResultadoDesastreServiceTest {
         refugio.setIdRegla(1);
         refugio.setMotivo("REFUGIO");
         refugio.setXp(40);
+        ReglaProgreso completo = new ReglaProgreso();
+        completo.setIdRegla(2);
+        completo.setMotivo("EVENTO_COMPLETO");
+        completo.setXp(80);
+        completo.setMonedas(40);
         ReglaProgresoRepository reglaRepo = mock(ReglaProgresoRepository.class);
         when(reglaRepo.findByMotivo("REFUGIO")).thenReturn(Optional.of(refugio));
+        when(reglaRepo.findByMotivo("EVENTO_COMPLETO")).thenReturn(Optional.of(completo));
         ProgresoService progreso = new ProgresoService(usuarioRepo, mock(NivelRepository.class), reglaRepo,
                 mock(HistorialProgresoRepository.class), mock(MisionService.class),
                 mock(MisionUsuarioRepository.class));
 
-        service = new ResultadoDesastreService(eventoRepo, plantaRepo, registroRepo, tipoRepo, progreso, 6);
+        service = new ResultadoDesastreService(eventoRepo, plantaRepo, registroRepo, tipoRepo, progreso,
+                new ParametrosJuego(mock(com.plantia.repositories.ParametroJuegoRepository.class)), 6);
     }
 
     private static EventoDesastre evento(String severidad, LocalDateTime fin) {
@@ -121,8 +128,10 @@ class ResultadoDesastreServiceTest {
 
         service.procesar(evento("CRITICO", AHORA.minusMinutes(1)), AHORA);
 
+        // 40 por la planta prevenida y 80 por completar el evento (era la unica planta)
         assertThat(registroGuardado().getXpOtorgado()).isEqualTo(40);
-        assertThat(usuario.getExperienciaXp()).isEqualTo(40);
+        assertThat(usuario.getExperienciaXp()).isEqualTo(120);
+        assertThat(usuario.getMonedas()).isEqualTo(40);
         assertThat(usuario.getUltimaActividad()).isNull();
     }
 
@@ -138,35 +147,49 @@ class ResultadoDesastreServiceTest {
     }
 
     @Test
-    void plantaSinRefugioPierdeSaludSegunSeveridad() {
+    void plantaSinPrevenirQuedaCasiMuertaSegunSeveridadYConPlazoParaAbonar() {
         PlantaUsuario p = planta(7, 100, false);
+        EventoDesastre e = evento("CRITICO", AHORA.minusMinutes(1));
+        e.setTipoEvento("OLA_DE_CALOR");
         when(plantaRepo.findAll()).thenReturn(List.of(p));
 
-        service.procesar(evento("CRITICO", AHORA.minusMinutes(1)), AHORA);
+        service.procesar(e, AHORA);
 
         RegistroDesastreUsuario r = registroGuardado();
         assertThat(r.getEstadoFinal()).isEqualTo("DANADA");
-        assertThat(r.getDanoSaludAplicado()).isEqualTo(50);
-        assertThat(p.getSaludPorcentaje()).isEqualTo(50);
+        assertThat(r.getDanoSaludAplicado()).isEqualTo(90);
+        assertThat(p.getSaludPorcentaje()).isEqualTo(10);
+        assertThat(p.getRecuperacionHasta()).isEqualTo(AHORA.plusHours(24));
+        assertThat(p.getGolpeTipo()).isEqualTo("OLA_DE_CALOR");
     }
 
     @Test
-    void saludQueLlegaACeroQuedaDestruidaYElDanoEsLoQueTenia() {
-        PlantaUsuario p = planta(7, 20, false);
+    void laSeveridadBajaDejaMasSaludQueLaCritica() {
+        PlantaUsuario p = planta(7, 100, false);
+        when(plantaRepo.findAll()).thenReturn(List.of(p));
+
+        service.procesar(evento("BAJO", AHORA.minusMinutes(1)), AHORA);
+
+        assertThat(p.getSaludPorcentaje()).isEqualTo(40);
+    }
+
+    @Test
+    void unaPlantaQueYaTeniaPocaSaludNoSube() {
+        PlantaUsuario p = planta(7, 5, false);
         when(plantaRepo.findAll()).thenReturn(List.of(p));
 
         service.procesar(evento("CRITICO", AHORA.minusMinutes(1)), AHORA);
 
         RegistroDesastreUsuario r = registroGuardado();
-        assertThat(r.getEstadoFinal()).isEqualTo("DESTRUIDA");
-        assertThat(r.getDanoSaludAplicado()).isEqualTo(20);
-        assertThat(p.getSaludPorcentaje()).isZero();
+        assertThat(r.getDanoSaludAplicado()).isZero();
+        assertThat(p.getSaludPorcentaje()).isEqualTo(5);
+        assertThat(p.getRecuperacionHasta()).isNotNull();
     }
 
     @Test
-    void usaElDanoDelTipoDeDesastreCuandoExiste() {
+    void usaLaSaludFinalDelTipoDeDesastreCuandoExiste() {
         TipoDesastre tipo = new TipoDesastre();
-        tipo.setDanoModerado(40);
+        tipo.setSaludFinalModerado(35);
         EventoDesastre e = evento("MODERADO", AHORA.minusMinutes(1));
         e.setIdTipoDesastre(3);
         when(tipoRepo.findById(3)).thenReturn(Optional.of(tipo));
@@ -175,7 +198,20 @@ class ResultadoDesastreServiceTest {
 
         service.procesar(e, AHORA);
 
-        assertThat(p.getSaludPorcentaje()).isEqualTo(60);
+        assertThat(p.getSaludPorcentaje()).isEqualTo(35);
+    }
+
+    @Test
+    void prevenirEnTodasLasPlantasCompletaElEventoYEnUnaSolaNo() {
+        PlantaUsuario prevenida = planta(7, 80, true);
+        PlantaUsuario golpeada = planta(8, 80, false);
+        when(plantaRepo.findAll()).thenReturn(List.of(prevenida, golpeada));
+
+        service.procesar(evento("MODERADO", AHORA.minusMinutes(1)), AHORA);
+
+        // Solo el premio por la planta prevenida (40); sin el de evento completo
+        assertThat(usuario.getExperienciaXp()).isEqualTo(40);
+        assertThat(usuario.getMonedas()).isZero();
     }
 
     @Test
@@ -200,7 +236,7 @@ class ResultadoDesastreServiceTest {
         service.procesar(e, AHORA);
 
         verify(plantaRepo, never()).findAll();
-        assertThat(p.getSaludPorcentaje()).isEqualTo(90);
+        assertThat(p.getSaludPorcentaje()).isEqualTo(40);
     }
 
     @Test

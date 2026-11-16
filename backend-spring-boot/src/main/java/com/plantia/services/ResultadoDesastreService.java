@@ -2,7 +2,9 @@ package com.plantia.services;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,23 +22,27 @@ import com.plantia.repositories.RegistroDesastreUsuarioRepository;
 import com.plantia.repositories.TipoDesastreRepository;
 
 /**
- * Cuando un evento termina, cada planta afectada queda SALVADA (estaba refugiada),
- * DANADA (pierde salud segun el tipo y la severidad) o DESTRUIDA (la salud llega a 0).
+ * Cuando un evento termina, cada planta afectada queda SALVADA (se previno el evento) o DANADA: la salud
+ * baja casi a cero segun el tipo y la severidad y empieza una ventana para abonarla; si no se abona a tiempo
+ * muere (ver PlantasService.revisarRecuperacion). Si el usuario previno el evento en todas sus plantas,
+ * ademas completa el evento y recibe un premio extra.
  */
 @Service
 public class ResultadoDesastreService {
 
     private static final Logger log = LoggerFactory.getLogger(ResultadoDesastreService.class);
 
-    static final int DANO_BAJO = 10;
-    static final int DANO_MODERADO = 25;
-    static final int DANO_CRITICO = 50;
+    /** Salud con la que queda una planta que no se previno, si el tipo de evento no define otra. */
+    static final int SALUD_FINAL_BAJO = 40;
+    static final int SALUD_FINAL_MODERADO = 20;
+    static final int SALUD_FINAL_CRITICO = 10;
 
     private final EventoDesastreRepository eventoRepo;
     private final PlantaUsuarioRepository plantaRepo;
     private final RegistroDesastreUsuarioRepository registroRepo;
     private final TipoDesastreRepository tipoRepo;
     private final ProgresoService progreso;
+    private final ParametrosJuego parametros;
     private final Duration gracia;
 
     public ResultadoDesastreService(EventoDesastreRepository eventoRepo,
@@ -44,12 +50,14 @@ public class ResultadoDesastreService {
                                     RegistroDesastreUsuarioRepository registroRepo,
                                     TipoDesastreRepository tipoRepo,
                                     ProgresoService progreso,
+                                    ParametrosJuego parametros,
                                     @Value("${app.eventos.gracia-horas:6}") long graciaHoras) {
         this.eventoRepo = eventoRepo;
         this.plantaRepo = plantaRepo;
         this.registroRepo = registroRepo;
         this.tipoRepo = tipoRepo;
         this.progreso = progreso;
+        this.parametros = parametros;
         this.gracia = Duration.ofHours(graciaHoras);
     }
 
@@ -77,9 +85,12 @@ public class ResultadoDesastreService {
     }
 
     private void aplicar(EventoDesastre e, LocalDateTime ahora) {
-        int dano = danoSegunSeveridad(e);
+        int saludFinal = saludFinalSegunSeveridad(e);
+        LocalDateTime limite = ahora.plusHours(parametros.horasRecuperacion());
         int salvadas = 0;
         int danadas = 0;
+        // Por usuario: plantas afectadas y cuantas se previnieron (para el premio de evento completo)
+        Map<Integer, int[]> porUsuario = new LinkedHashMap<>();
         for (PlantaUsuario p : plantasAfectadas(e)) {
             if ("MUERTA".equals(p.getEtapaCrecimiento())
                     || registroRepo.existsByIdDesastreAndIdPlantaUsuario(e.getIdDesastre(), p.getIdPlantaUsuario())) {
@@ -90,28 +101,39 @@ public class ResultadoDesastreService {
             r.setIdPlantaUsuario(p.getIdPlantaUsuario());
             r.setFechaProcesado(ahora);
 
-            boolean refugiada = Boolean.TRUE.equals(p.getEstaRefugiada());
-            r.setEstabaRefugiada(refugiada);
-            if (refugiada) {
+            int[] cuenta = porUsuario.computeIfAbsent(p.getIdUsuario(), k -> new int[2]);
+            cuenta[0]++;
+            boolean prevenida = Boolean.TRUE.equals(p.getEstaRefugiada());
+            r.setEstabaRefugiada(prevenida);
+            if (prevenida) {
                 r.setEstadoFinal("SALVADA");
                 p.setEstaRefugiada(false);
                 p.setRefugiadaDesde(null);
-                // La recompensa por haber refugiado a tiempo se da al terminar el evento
+                // El premio por haber prevenido a tiempo se da al terminar el evento
                 r.setXpOtorgado(progreso.otorgarSinRacha(p.getIdUsuario(), "REFUGIO", e.getIdDesastre(), ahora).xpGanado());
+                cuenta[1]++;
                 salvadas++;
             } else {
                 int salud = p.getSaludPorcentaje() == null ? 100 : p.getSaludPorcentaje();
-                int nueva = Math.max(0, salud - dano);
+                int nueva = Math.min(salud, saludFinal);
                 r.setDanoSaludAplicado(salud - nueva);
-                r.setEstadoFinal(nueva == 0 ? "DESTRUIDA" : "DANADA");
+                r.setEstadoFinal("DANADA");
                 p.setSaludPorcentaje(nueva);
+                // Casi muerta: solo el abono la recupera, y tiene un plazo antes de morir
+                p.setRecuperacionHasta(limite);
+                p.setGolpeTipo(e.getTipoEvento());
                 danadas++;
             }
             // updated_at no se toca: PlantasService.envejecer lo usa para contar las horas de desgaste
             plantaRepo.save(p);
             registroRepo.save(r);
         }
-        log.info("Evento {} procesado: {} plantas salvadas, {} afectadas", e.getIdDesastre(), salvadas, danadas);
+        porUsuario.forEach((idUsuario, cuenta) -> {
+            if (cuenta[0] > 0 && cuenta[0] == cuenta[1]) {
+                progreso.otorgarSinRacha(idUsuario, "EVENTO_COMPLETO", e.getIdDesastre(), ahora);
+            }
+        });
+        log.info("Evento {} procesado: {} plantas salvadas, {} golpeadas", e.getIdDesastre(), salvadas, danadas);
     }
 
     private List<PlantaUsuario> plantasAfectadas(EventoDesastre e) {
@@ -121,13 +143,14 @@ public class ResultadoDesastreService {
                 : plantaRepo.findDeUsuariosDeRegion(region);
     }
 
-    int danoSegunSeveridad(EventoDesastre e) {
+    /** Salud con la que queda una planta que no se previno, segun la severidad del evento. */
+    int saludFinalSegunSeveridad(EventoDesastre e) {
         TipoDesastre tipo = e.getIdTipoDesastre() == null ? null : tipoRepo.findById(e.getIdTipoDesastre()).orElse(null);
         String severidad = e.getSeveridad() == null ? "MODERADO" : e.getSeveridad();
         return switch (severidad) {
-            case "BAJO" -> tipo != null ? tipo.getDanoBajo() : DANO_BAJO;
-            case "CRITICO" -> tipo != null ? tipo.getDanoCritico() : DANO_CRITICO;
-            default -> tipo != null ? tipo.getDanoModerado() : DANO_MODERADO;
+            case "BAJO" -> tipo != null ? tipo.getSaludFinalBajo() : SALUD_FINAL_BAJO;
+            case "CRITICO" -> tipo != null ? tipo.getSaludFinalCritico() : SALUD_FINAL_CRITICO;
+            default -> tipo != null ? tipo.getSaludFinalModerado() : SALUD_FINAL_MODERADO;
         };
     }
 }
