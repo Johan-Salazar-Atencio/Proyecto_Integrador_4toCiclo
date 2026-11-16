@@ -490,6 +490,7 @@ public class PlantasService {
                 p.getRecuperacionHasta() != null,
                 segundosHasta(p.getRecuperacionHasta()),
                 p.getGolpeTipo(),
+                "MUERTA".equals(p.getEtapaCrecimiento()) && parametros != null ? parametros.costoRevivir() : null,
                 null);
     }
 

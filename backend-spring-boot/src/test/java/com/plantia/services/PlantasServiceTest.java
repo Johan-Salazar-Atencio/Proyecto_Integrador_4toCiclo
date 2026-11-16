@@ -471,4 +471,16 @@ class PlantasServiceTest {
         assertThat(p.getGolpeTipo()).isNull();
         assertThat(dto.enRecuperacion()).isTrue();
     }
+
+    @Test
+    void unaPlantaMuertaInformaCuantoCuestaRevivirla() {
+        muerta();
+
+        assertThat(service.resumen(DUENO, 10).costoRevivir()).isEqualTo(250);
+    }
+
+    @Test
+    void unaPlantaVivaNoTraeCostoDeRevivir() {
+        assertThat(service.resumen(DUENO, 10).costoRevivir()).isNull();
+    }
 }
