@@ -1,5 +1,10 @@
 package com.plantia.ui.tienda
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material3.MaterialTheme
+import com.plantia.ui.theme.AmberDark
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -74,7 +79,7 @@ fun TiendaScreen(
 ) {
     IconosOscurosEnBarraDeEstado()
     val snackbar = remember { SnackbarHostState() }
-    var pestana by rememberSaveable { mutableStateOf("FONDO") }
+    var pestana by rememberSaveable { mutableStateOf("MACETA") }
 
     LaunchedEffect(viewModel.aviso) {
         viewModel.aviso?.let {
@@ -86,18 +91,9 @@ fun TiendaScreen(
 
     Scaffold(
         containerColor = BackgroundLight,
-        snackbarHost = { SnackbarHost(snackbar) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Tienda", fontWeight = FontWeight.SemiBold, color = TextPrimary) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundLight)
-            )
-        }
+        snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize().padding(padding).statusBarsPadding()) {
             when (val estado = viewModel.uiState) {
                 TiendaUiState.Loading -> CircularProgressIndicator(color = GreenPrimary, modifier = Modifier.align(Alignment.Center))
                 is TiendaUiState.Error -> Column(
@@ -151,34 +147,61 @@ private fun Contenido(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = AmberLight)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("🍃 ${tienda.monedas} monedas", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = AmberAlert)
-                    Text("⭐ Nivel ${tienda.nivel}", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Tienda", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                androidx.compose.material3.Surface(shape = RoundedCornerShape(20.dp), color = SurfaceWhite, shadowElevation = 2.dp) {
+                    Row(
+                        Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(Icons.Filled.Eco, contentDescription = "Hojas", tint = com.plantia.ui.theme.GreenDark, modifier = Modifier.size(16.dp))
+                        Text("${tienda.monedas}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = AmberDark)
+                    }
                 }
             }
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                FilterChip(selected = pestana == "ABONO", onClick = { onPestana("ABONO") }, label = { Text("🌿 Abono") })
-                FilterChip(selected = pestana == "FONDO", onClick = { onPestana("FONDO") }, label = { Text("🖼️ Fondos") })
-                FilterChip(selected = pestana == "MACETA", onClick = { onPestana("MACETA") }, label = { Text("🪴 Macetas") })
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                listOf("ABONO" to "Abono", "FONDO" to "Fondos", "MACETA" to "Macetas").forEach { (clave, texto) ->
+                    val elegida = pestana == clave
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(if (elegida) GreenPrimary else androidx.compose.ui.graphics.Color.Transparent)
+                            .clickable { onPestana(clave) }
+                            .padding(vertical = 9.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            texto,
+                            fontSize = 13.sp,
+                            fontWeight = if (elegida) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (elegida) androidx.compose.ui.graphics.Color.White else TextSecondary
+                        )
+                    }
+                }
             }
         }
         if (pestana == "MACETA") {
             if (tienda.macetas.isEmpty()) {
                 item { Text("Aún no hay macetas a la venta.", color = TextSecondary, fontSize = 14.sp) }
             }
-            items(tienda.macetas, key = { "m${it.id}" }) { maceta ->
-                TarjetaMaceta(maceta, tienda.monedas, ocupado, onComprar, onAplicar)
+            items(tienda.macetas.chunked(2), key = { par -> "m${par.first().id}" }) { par ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    par.forEach { maceta ->
+                        TarjetaMaceta(maceta, tienda.monedas, ocupado, onComprar, onAplicar, Modifier.weight(1f))
+                    }
+                    if (par.size == 1) Spacer(Modifier.weight(1f))
+                }
             }
         } else if (pestana == "FONDO") {
             if (tienda.invernaderos.isNotEmpty()) {
