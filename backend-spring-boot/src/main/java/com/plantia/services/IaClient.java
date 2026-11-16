@@ -9,6 +9,8 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -30,8 +32,20 @@ public class IaClient {
     @Autowired // hay un segundo constructor (para tests): sin esto Spring usaria el vacio
     public IaClient(RestClient.Builder builder,
                     @Value("${app.ia.base-url:http://localhost:8000}") String baseUrl,
-                    @Value("${app.ia.provider:auto}") String provider) {
-        this.restClient = builder.baseUrl(baseUrl).build();
+                    @Value("${app.ia.provider:auto}") String provider,
+                    @Value("${app.ia.timeout-seconds:60}") int timeoutSeconds) {
+        ClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory() {
+            @Override
+            protected void prepareConnection(java.net.HttpURLConnection conn, String httpMethod) throws java.io.IOException {
+                super.prepareConnection(conn, httpMethod);
+                conn.setReadTimeout(timeoutSeconds * 1000);
+                conn.setConnectTimeout(timeoutSeconds * 1000);
+            }
+        };
+        this.restClient = builder
+                .baseUrl(baseUrl)
+                .requestFactory(factory)
+                .build();
         this.provider = provider;
     }
 

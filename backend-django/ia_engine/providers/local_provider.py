@@ -30,7 +30,7 @@ class LocalProvider(IaProvider):
         }
         if imagenes:
             payload["images"] = imagenes
-        resp = requests.post(f"{self.base_url}/api/generate", json=payload, timeout=120)
+        resp = requests.post(f"{self.base_url}/api/generate", json=payload, timeout=(5, 15))
         resp.raise_for_status()
         texto = resp.json().get("response", "")
         return texto

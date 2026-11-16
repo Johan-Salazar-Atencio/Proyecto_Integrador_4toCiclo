@@ -37,6 +37,7 @@ app:
   ia:
     base-url: ${IA_BASE_URL:http://localhost:8000}
     provider: ${IA_PROVIDER:auto}
+    timeout-seconds: ${IA_TIMEOUT:60}
 
 logging:
   level:

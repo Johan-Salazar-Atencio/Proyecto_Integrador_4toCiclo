@@ -19,6 +19,7 @@ import Coleccion from './pages/user/coleccion/Coleccion'
 import DetalleColeccion from './pages/user/coleccion/DetalleColeccion'
 import Escaneo from './pages/user/escaneo/Escaneo'
 import Home from './pages/user/home/Home'
+import DemoPlanta from './pages/user/DemoPlanta'
 import Historial from './pages/user/historial/Historial'
 import Jardin from './pages/user/jardin/Jardin'
 import MisionesUsuario from './pages/user/misiones/MisionesUsuario'
@@ -45,6 +46,7 @@ export default function App() {
   return (
     <Routes>
       <Route path={RUTAS.WELCOME} element={<Welcome />} />
+      <Route path={RUTAS.DEMO_PLANTA} element={<DemoPlanta />} />
       <Route path={RUTAS.ACCESO} element={<Auth />} />
       <Route path={RUTAS.TERMINOS} element={<Terminos />} />
 
