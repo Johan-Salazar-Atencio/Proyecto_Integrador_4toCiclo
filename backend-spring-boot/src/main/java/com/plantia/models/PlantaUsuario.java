@@ -81,6 +81,14 @@ public class PlantaUsuario {
     @Column(name = "ultimo_dia_abono_tienda")
     private LocalDate ultimoDiaAbonoTienda;
 
+    /** Hasta cuando se puede abonar una planta golpeada por un evento antes de que muera; null = no esta en recuperacion. */
+    @Column(name = "recuperacion_hasta")
+    private LocalDateTime recuperacionHasta;
+
+    /** Tipo de desastre que la golpeo y cuya animacion aun no se mostro; null = nada pendiente. */
+    @Column(name = "golpe_tipo")
+    private String golpeTipo;
+
     /** Tema de fondo elegido para esta planta; null = el predeterminado. */
     @Column(name = "id_tema_fondo")
     private Integer idTemaFondo;
@@ -137,6 +145,10 @@ public class PlantaUsuario {
     public void setUltimoDiaCuidado(LocalDate ultimoDiaCuidado) { this.ultimoDiaCuidado = ultimoDiaCuidado; }
     public LocalDate getUltimoDiaAbonoTienda() { return ultimoDiaAbonoTienda; }
     public void setUltimoDiaAbonoTienda(LocalDate d) { this.ultimoDiaAbonoTienda = d; }
+    public LocalDateTime getRecuperacionHasta() { return recuperacionHasta; }
+    public void setRecuperacionHasta(LocalDateTime recuperacionHasta) { this.recuperacionHasta = recuperacionHasta; }
+    public String getGolpeTipo() { return golpeTipo; }
+    public void setGolpeTipo(String golpeTipo) { this.golpeTipo = golpeTipo; }
     public Integer getIdTemaFondo() { return idTemaFondo; }
     public void setIdTemaFondo(Integer idTemaFondo) { this.idTemaFondo = idTemaFondo; }
     public String getApariencia() { return apariencia; }

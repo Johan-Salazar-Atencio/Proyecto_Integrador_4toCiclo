@@ -43,6 +43,23 @@ public class TipoDesastre {
     @Column(name = "dano_critico", nullable = false)
     private Integer danoCritico = 50;
 
+    @Column(name = "imagen_url")
+    private String imagenUrl;
+
+    /** Consejo corto de campo que se muestra al prevenir el evento. */
+    @Column(name = "consejo")
+    private String consejo;
+
+    /** Salud con la que queda una planta que no se previno, segun la severidad del evento. */
+    @Column(name = "salud_final_bajo", nullable = false)
+    private Integer saludFinalBajo = 40;
+
+    @Column(name = "salud_final_moderado", nullable = false)
+    private Integer saludFinalModerado = 20;
+
+    @Column(name = "salud_final_critico", nullable = false)
+    private Integer saludFinalCritico = 10;
+
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
 
@@ -70,6 +87,16 @@ public class TipoDesastre {
     public void setDanoModerado(Integer danoModerado) { this.danoModerado = danoModerado; }
     public Integer getDanoCritico() { return danoCritico; }
     public void setDanoCritico(Integer danoCritico) { this.danoCritico = danoCritico; }
+    public String getImagenUrl() { return imagenUrl; }
+    public void setImagenUrl(String imagenUrl) { this.imagenUrl = imagenUrl; }
+    public String getConsejo() { return consejo; }
+    public void setConsejo(String consejo) { this.consejo = consejo; }
+    public Integer getSaludFinalBajo() { return saludFinalBajo; }
+    public void setSaludFinalBajo(Integer v) { this.saludFinalBajo = v; }
+    public Integer getSaludFinalModerado() { return saludFinalModerado; }
+    public void setSaludFinalModerado(Integer v) { this.saludFinalModerado = v; }
+    public Integer getSaludFinalCritico() { return saludFinalCritico; }
+    public void setSaludFinalCritico(Integer v) { this.saludFinalCritico = v; }
     public Boolean getActivo() { return activo; }
     public void setActivo(Boolean activo) { this.activo = activo; }
     public Integer getIdCreador() { return idCreador; }
