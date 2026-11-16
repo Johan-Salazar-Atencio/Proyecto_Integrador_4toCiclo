@@ -61,6 +61,19 @@ public class UsuarioService {
      * de la tabla regiones (las crea o desactiva el admin). Guarda el codigo y la llave a la vez.
      */
     @Transactional
+    public UserSummaryDto cambiarNombre(Integer userId, String nombre) {
+        String limpio = nombre == null ? "" : nombre.trim();
+        if (limpio.length() < 2 || limpio.length() > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre debe tener entre 2 y 100 caracteres");
+        }
+        Usuario u = usuarioRepo.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        u.setNombre(limpio);
+        usuarioRepo.save(u);
+        return resumen(u);
+    }
+
+    @Transactional
     public UserSummaryDto cambiarRegion(Integer userId, String codigo) {
         Usuario u = usuarioRepo.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));

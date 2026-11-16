@@ -49,6 +49,14 @@ public class UsuarioController {
         return usuarioService.cambiarInvernadero(userId, body.get("idItem"));
     }
 
+    /** Cambia el nombre con el que se muestra el usuario y devuelve su resumen. */
+    @PutMapping("/me/nombre")
+    public UserSummaryDto cambiarNombre(
+            @RequestHeader("X-User-Id") Integer userId,
+            @Valid @RequestBody com.plantia.dto.CambiarNombreRequest request) {
+        return usuarioService.cambiarNombre(userId, request.nombre());
+    }
+
     /** Cambia la region del usuario (decide que desastres le llegan) y devuelve su resumen. */
     @PutMapping("/me")
     public UserSummaryDto cambiarRegion(

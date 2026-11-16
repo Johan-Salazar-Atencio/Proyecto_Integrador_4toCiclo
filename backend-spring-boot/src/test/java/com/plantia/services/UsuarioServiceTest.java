@@ -157,6 +157,35 @@ class UsuarioServiceTest {
     }
 
     @Test
+    void cambiarNombreGuardaElNombreSinEspaciosSobrantes() {
+        usuario(1, 0);
+
+        UserSummaryDto dto = service.cambiarNombre(1, "  Johan Salazar  ");
+
+        ArgumentCaptor<Usuario> guardado = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarioRepo).save(guardado.capture());
+        assertThat(guardado.getValue().getNombre()).isEqualTo("Johan Salazar");
+        assertThat(dto.name()).isEqualTo("Johan Salazar");
+    }
+
+    @Test
+    void unNombreMuyCortoDa400YNoGuarda() {
+        usuario(1, 0);
+
+        assertThatThrownBy(() -> service.cambiarNombre(1, " J "))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("entre 2 y 100");
+        verify(usuarioRepo, never()).save(any());
+    }
+
+    @Test
+    void cambiarNombreDeUnUsuarioInexistenteDa404() {
+        when(usuarioRepo.findById(9)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.cambiarNombre(9, "Ana")).isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
     void lasRegionesSalenConCodigoYNombre() {
         when(regionRepo.findByActivaTrueOrderByNombreAsc())
                 .thenReturn(List.of(region(1, "GLOBAL", "Global"), region(3, "LIMA", "Lima Metropolitana")));
