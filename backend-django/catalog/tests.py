@@ -67,6 +67,8 @@ class CrearEventoTiposTests(SimpleTestCase):
         with patch.object(admin_views, "_admin_desde_request", return_value=_usuario()), patch.object(
             admin_views.TipoDesastre.objects, "filter", return_value=MagicMock(first=lambda: tipo)
         ), patch.object(
+            admin_views.EventoDesastre.objects, "filter", return_value=MagicMock(first=lambda: None)
+        ), patch.object(
             admin_views.Region.objects, "get_or_create", return_value=(region, region_creada)
         ), patch.object(
             admin_views.EventoDesastre.objects, "create", return_value=MagicMock(id_desastre=5, estado="ACTIVO")
@@ -888,3 +890,29 @@ class TipoDesastreEnElAdminTests(SimpleTestCase):
         form = TipoDesastreForm(data={}, files={"subir_imagen": SimpleUploadedFile("chica.png", buf.getvalue())})
         form.is_valid()
         self.assertIn("subir_imagen", form.errors)
+
+
+class EventoUnoALaVezTests(SimpleTestCase):
+    """Solo puede haber un evento en curso: el segundo se rechaza con 409."""
+
+    def _datos(self):
+        from datetime import timedelta
+        ahora = timezone.now()
+        return {"tipo_evento": "HUAYCO", "region": "GLOBAL", "mensaje_notificacion": "m",
+                "fecha_inicio": ahora.isoformat(), "fecha_fin": (ahora + timedelta(hours=2)).isoformat()}
+
+    def test_segundo_evento_activo_da_409(self):
+        from unittest import mock
+        from rest_framework.test import APIRequestFactory
+        from . import admin_views
+        from .models import EventoDesastre
+        vigente = mock.MagicMock(id_desastre=7)
+        with mock.patch.object(admin_views, "_admin_desde_request", return_value=object()), \
+             mock.patch.object(admin_views.TipoDesastre.objects, "filter") as tipo, \
+             mock.patch.object(EventoDesastre.objects, "filter") as ev:
+            tipo.return_value.first.return_value = object()
+            ev.return_value.first.return_value = vigente
+            req = APIRequestFactory().post("/api/admin/eventos/", self._datos(), format="json")
+            resp = admin_views.AdminEventoCreateView.as_view()(req)
+        self.assertEqual(resp.status_code, 409)
+        self.assertEqual(resp.data["id_desastre_activo"], 7)

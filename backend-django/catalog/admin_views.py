@@ -23,7 +23,7 @@ from rest_framework.views import APIView
 
 from . import eventos_imagen, fondos_imagen
 from .models import (
-    EventoDesastre, FondoEscena, ItemTienda, Mision, ParametroJuego, PlantaCatalogo, Region,
+    EscaneoHistorial, EventoDesastre, FondoEscena, ItemTienda, Mision, ParametroJuego, PlantaCatalogo, Region,
     RegistroDesastreUsuario, ReglaProgreso, TemaFondo, TipoDesastre, Usuario,
 )
 
@@ -151,6 +151,14 @@ class AdminEventoCreateView(APIView):
             if fin <= inicio:
                 return Response({"error": "fecha_fin debe ser posterior a fecha_inicio"},
                                 status=status.HTTP_400_BAD_REQUEST)
+            # Solo un evento a la vez: hasta que el actual termine o se cancele no se lanza otro
+            vigente = EventoDesastre.objects.filter(estado="ACTIVO", fecha_fin__gt=timezone.now()).first()
+            if vigente is not None:
+                return Response(
+                    {"error": "Ya hay un evento en curso. Cancelalo o espera a que termine antes de lanzar otro.",
+                     "id_desastre_activo": vigente.id_desastre},
+                    status=status.HTTP_409_CONFLICT,
+                )
             codigo_region = data.get("region") or "GLOBAL"
             # Si la region no existe todavia, se crea: el panel ofrece nombres libres
             region, _ = Region.objects.get_or_create(codigo=codigo_region, defaults={"nombre": codigo_region})
@@ -187,18 +195,73 @@ class AdminEventoFinalizarView(APIView):
 
 
 class AdminStatsView(APIView):
-    """GET /api/admin/stats/  conteos basicos para el dashboard."""
+    """GET /api/admin/stats/  cifras reales del dashboard (todo sale de la base de datos)."""
 
     def get(self, request):
         admin = _admin_desde_request(request)
         if admin is None:
             return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
         from django.db.models import Count
+        from django.db.models.functions import TruncDate, TruncMinute
+
+        ahora = timezone.localtime()
+        hoy = ahora.date()
+        inicio_hoy = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
+        inicio_mes = inicio_hoy.replace(day=1)
+        mes_pasado = (inicio_mes - timedelta(days=1)).replace(day=1)
+
+        usuarios = Usuario.objects.count()
+        nuevos_mes = Usuario.objects.filter(fecha_registro__gte=inicio_mes).count()
+        nuevos_mes_pasado = Usuario.objects.filter(fecha_registro__gte=mes_pasado, fecha_registro__lt=inicio_mes).count()
+        if nuevos_mes_pasado:
+            crecimiento = round((nuevos_mes - nuevos_mes_pasado) * 100 / nuevos_mes_pasado)
+        else:
+            crecimiento = None
+
+        escaneos_hoy_qs = EscaneoHistorial.objects.filter(fecha_escaneo__gte=inicio_hoy)
+        pico = (
+            escaneos_hoy_qs.annotate(m=TruncMinute("fecha_escaneo")).values("m").annotate(n=Count("id_escaneo"))
+            .order_by("-n").values_list("n", flat=True).first()
+        ) or 0
+
+        desde = inicio_hoy - timedelta(days=13)
+        por_dia_usuarios = dict(
+            Usuario.objects.filter(fecha_registro__gte=desde).annotate(d=TruncDate("fecha_registro"))
+            .values("d").annotate(n=Count("id_usuario")).values_list("d", "n")
+        )
+        por_dia_escaneos = dict(
+            EscaneoHistorial.objects.filter(fecha_escaneo__gte=desde).annotate(d=TruncDate("fecha_escaneo"))
+            .values("d").annotate(n=Count("id_escaneo")).values_list("d", "n")
+        )
+        actividad = []
+        for i in range(14):
+            d = hoy - timedelta(days=13 - i)
+            actividad.append({"fecha": d.isoformat(), "usuarios": por_dia_usuarios.get(d, 0),
+                              "escaneos": por_dia_escaneos.get(d, 0)})
+
+        ultimos = []
+        for e in EscaneoHistorial.objects.select_related("id_usuario", "id_catalogo").order_by("-fecha_escaneo")[:8]:
+            ultimos.append({
+                "id": e.id_escaneo,
+                "usuario": e.id_usuario.nombre if e.id_usuario else "Usuario eliminado",
+                "especie": e.id_catalogo.nombre_comun if e.id_catalogo else "Sin identificar",
+                "cientifico": e.id_catalogo.nombre_cientifico if e.id_catalogo else "",
+                "confianza": float(e.confianza_ia) if e.confianza_ia is not None else None,
+                "fecha": e.fecha_escaneo.isoformat(),
+            })
+
         return Response({
             "especies": PlantaCatalogo.objects.count(),
-            "eventos_activos": EventoDesastre.objects.filter(estado="ACTIVO").count(),
+            "toxicas": PlantaCatalogo.objects.filter(es_toxica_mascotas=True).count(),
+            "eventos_activos": EventoDesastre.objects.filter(estado="ACTIVO", fecha_fin__gt=timezone.now()).count(),
             "eventos_total": EventoDesastre.objects.count(),
-            "usuarios": Usuario.objects.count(),
+            "usuarios": usuarios,
+            "usuarios_nuevos_mes": nuevos_mes,
+            "crecimiento_usuarios": crecimiento,
+            "escaneos_hoy": escaneos_hoy_qs.count(),
+            "pico_por_minuto": pico,
+            "actividad": actividad,
+            "ultimos_escaneos": ultimos,
         })
 
 
