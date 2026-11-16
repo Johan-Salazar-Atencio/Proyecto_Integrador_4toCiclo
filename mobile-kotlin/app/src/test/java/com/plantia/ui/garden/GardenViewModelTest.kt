@@ -274,4 +274,58 @@ class GardenViewModelTest {
 
         assertTrue(garden.revividos.isEmpty())
     }
+
+    // --- Efectos del evento ---
+
+    @Test
+    fun prevenir_dispara_el_efecto_del_escudo() {
+        val vm = vmConEvento()
+        assertEquals(0, vm.proteccionesNuevas)
+
+        vm.prevenir {}
+
+        assertEquals(1, vm.proteccionesNuevas)
+    }
+
+    @Test
+    fun un_prevenir_que_falla_no_dispara_el_efecto() {
+        garden.alPrevenir = PlantaResultado.Fallo("Ya no hay un evento activo para prevenir")
+        val vm = vmConEvento()
+
+        vm.prevenir {}
+
+        assertEquals(0, vm.proteccionesNuevas)
+    }
+
+    @Test
+    fun marcar_el_golpe_como_visto_lo_apaga() {
+        garden.activa = PlantaActivaResultado.ConPlanta(planta().copy(golpeTipo = "OLA_DE_CALOR", enRecuperacion = true))
+        garden.alGolpeVisto = PlantaResultado.Con(planta().copy(enRecuperacion = true))
+        val vm = GardenViewModel(garden)
+
+        vm.golpeVisto()
+
+        assertEquals(listOf(1), garden.golpesVistos)
+        assertNull((vm.uiState as GardenUiState.Success).planta.golpeTipo)
+    }
+
+    @Test
+    fun si_el_servidor_no_responde_el_golpe_se_apaga_igual_en_pantalla() {
+        garden.activa = PlantaActivaResultado.ConPlanta(planta().copy(golpeTipo = "HELADA"))
+        garden.alGolpeVisto = PlantaResultado.Fallo("sin conexion")
+        val vm = GardenViewModel(garden)
+
+        vm.golpeVisto()
+
+        assertNull((vm.uiState as GardenUiState.Success).planta.golpeTipo)
+    }
+
+    @Test
+    fun sin_golpe_pendiente_no_se_llama_al_servidor() {
+        val vm = GardenViewModel(garden)
+
+        vm.golpeVisto()
+
+        assertTrue(garden.golpesVistos.isEmpty())
+    }
 }

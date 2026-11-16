@@ -123,6 +123,18 @@ fun VirtualGardenScreen(
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    // Si el evento golpeo la planta, al entrar se muestra una sola vez como arraso con ella
+    var arrasando by remember { mutableStateOf(false) }
+    val golpe = (viewModel.uiState as? GardenUiState.Success)?.planta?.golpeTipo
+    LaunchedEffect(golpe) {
+        if (golpe != null) {
+            arrasando = true
+            delay(3_500)
+            arrasando = false
+            viewModel.golpeVisto()
+        }
+    }
+
     // Un evento que lanza el admin aparece solo (y el boton de prevenir con el): se consulta mientras el jardin esta a la vista
     val ciclo = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(ciclo) {
@@ -205,6 +217,8 @@ fun VirtualGardenScreen(
                     abono = viewModel.abono,
                     evento = if (viewModel.puedePrevenir || estado.planta.refugiada) viewModel.evento else null,
                     previniendo = viewModel.previniendo,
+                    efectoProteccion = viewModel.proteccionesNuevas,
+                    arrasando = arrasando,
                     reviviendo = viewModel.reviviendo,
                     onRevivir = {
                         viewModel.revivir { mensaje ->
@@ -266,6 +280,9 @@ internal fun JardinContenido(
     /** La planta murio: se ofrece revivirla a cambio de hojas. */
     reviviendo: Boolean = false,
     onRevivir: () -> Unit = {},
+    /** Efectos: escudo al prevenir el evento y golpe del evento sobre la planta (ver PlantFrame). */
+    efectoProteccion: Int = 0,
+    arrasando: Boolean = false,
     onAbono: () -> Unit = {},
     onTienda: () -> Unit = {},
     onFondos: (() -> Unit)? = null,
@@ -295,6 +312,10 @@ internal fun JardinContenido(
                     diasTotales = planta.diasTotales,
                     marchita = planta.healthPercent < 30 || planta.muerta,
                     onFondos = onFondos,
+                    desastreActivo = !planta.refugiada,
+                    efectoProteccion = efectoProteccion,
+                    arrasando = arrasando,
+                    tipoGolpe = planta.golpeTipo,
                     modifier = Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true)
                 )
             }
@@ -329,6 +350,10 @@ internal fun JardinContenido(
                 diasTotales = planta.diasTotales,
                 marchita = planta.healthPercent < 30 || planta.muerta,
                 onFondos = onFondos,
+                    desastreActivo = !planta.refugiada,
+                    efectoProteccion = efectoProteccion,
+                    arrasando = arrasando,
+                    tipoGolpe = planta.golpeTipo,
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f)
             )
             CuerpoJardin(planta, evento, previniendo, onPrevenir, abono, onAbono, onTienda, reviviendo, onRevivir, onCuidar)

@@ -54,6 +54,26 @@ class GardenViewModel(
             return evento != null && !planta.refugiada && !planta.muerta && !planta.enRecuperacion
         }
 
+    /** Sube cada vez que se previene el evento en la planta: la pantalla dispara el efecto del escudo. */
+    var proteccionesNuevas: Int by mutableStateOf(0)
+        private set
+
+    /**
+     * La animacion de como el evento arraso con la planta ya se mostro: se avisa al servidor para que no vuelva a
+     * salir. Si no responde se apaga de todos modos aqui, para que no se repita mientras esta pantalla siga abierta.
+     */
+    fun golpeVisto() {
+        val actual = (uiState as? GardenUiState.Success)?.planta ?: return
+        val id = actual.id ?: return
+        if (actual.golpeTipo == null) return
+        viewModelScope.launch {
+            uiState = when (val r = garden.golpeVisto(id)) {
+                is PlantaResultado.Con -> GardenUiState.Success(r.planta)
+                is PlantaResultado.Fallo -> GardenUiState.Success(actual.copy(golpeTipo = null))
+            }
+        }
+    }
+
     /** Hay una peticion de revivir en curso: evita el doble toque (y el doble cobro). */
     var reviviendo: Boolean by mutableStateOf(false)
         private set
@@ -97,6 +117,7 @@ class GardenViewModel(
             when (val r = garden.prevenir(id)) {
                 is PlantaResultado.Con -> {
                     uiState = GardenUiState.Success(r.planta)
+                    proteccionesNuevas++
                     alTerminar(buildString {
                         append("${actual.name} esta protegida del evento")
                         if (!consejo.isNullOrBlank()) append(". $consejo")

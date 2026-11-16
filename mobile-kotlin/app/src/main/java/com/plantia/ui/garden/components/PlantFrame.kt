@@ -1,5 +1,7 @@
 package com.plantia.ui.garden.components
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -72,7 +74,15 @@ fun PlantFrame(
     diasTotales: Int = 0,
     marchita: Boolean = false,
     /** Si se da, aparece arriba a la derecha el icono que abre los fondos de esta planta. */
-    onFondos: (() -> Unit)? = null
+    onFondos: (() -> Unit)? = null,
+    /** false cuando la planta ya esta protegida: la animacion del desastre se desvanece de la escena. */
+    desastreActivo: Boolean = true,
+    /** Sube cada vez que se previene el evento: dispara el escudo que lo aleja (0 = ninguno). */
+    efectoProteccion: Int = 0,
+    /** true mientras se muestra, una sola vez, como el evento arraso con la planta. */
+    arrasando: Boolean = false,
+    /** Tipo de evento que la golpeo (para el texto del golpe). */
+    tipoGolpe: String? = null
 ) {
     val sprites = rememberSprites()
     Box(
@@ -118,7 +128,15 @@ fun PlantFrame(
                 }
             }
         }}
-        if (escena != null) EscenaPixel(escena, Modifier.fillMaxSize(), planta) else planta()
+        if (escena != null) {
+            // Al proteger la planta el desastre se desvanece (1,2 s) y queda el fondo de siempre
+            Crossfade(targetState = desastreActivo, animationSpec = tween(1_200), label = "desastre") { activo ->
+                EscenaPixel(if (activo) escena else escena.copy(desastreFrames = emptyList()), Modifier.fillMaxSize(), planta)
+            }
+        } else {
+            planta()
+        }
+        EfectoProteccion(efectoProteccion, Modifier.fillMaxSize())
 
         // Chip compacto: animo, dia de crecimiento y fase; el nombre va fuera del marco para no tapar la escena
         ChipCrecimiento(
@@ -128,6 +146,7 @@ fun PlantFrame(
             marchita = marchita,
             modifier = Modifier.align(Alignment.TopStart).padding(10.dp)
         )
+        EfectoArraso(arrasando, tipoGolpe, Modifier.fillMaxSize())
         if (onFondos != null) {
             Box(
                 modifier = Modifier
