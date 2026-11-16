@@ -100,20 +100,12 @@ def helada(f):
 
 def calor(f):
     im = capa((255, 150, 40, 45))
-    # sol enorme que pulsa
-    cx, cy, r = 78, 12, 13
-    for y in range(cy - r - 1, cy + r + 2):
-        for x in range(cx - r - 1, cx + r + 2):
-            d = (x - cx) ** 2 + (y - cy) ** 2
-            if d <= (r + 1) ** 2:
-                p(im, x, y, (255, 170, 40))
-            if d <= r * r:
-                p(im, x, y, (255, 232, 90))
-    largo = 4 + (f % 2) * 2
-    for ang in range(0, 360, 30):
-        a = math.radians(ang)
-        for d in range(r + 3, r + 3 + largo):
-            p(im, cx + round(math.cos(a) * d), cy + round(math.sin(a) * d), (255, 215, 80))
+    # resplandor de calor que cae desde arriba y late. No se dibuja otro sol: el fondo ya trae el suyo
+    # (o la luna, de noche) y dos astros a la vez se veian mal
+    for y in range(0, 44):
+        alfa = int((70 + 18 * math.sin(2 * math.pi * f / FRAMES)) * (1 - y / 44))
+        for x in range(N):
+            p(im, x, y, (255, 120, 30), max(0, alfa))
     # ondas de calor sobre el suelo
     for y in range(48, 72, 3):
         for x in range(N):
