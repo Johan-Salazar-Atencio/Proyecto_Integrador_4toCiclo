@@ -10,8 +10,9 @@ const MARCHITA = 6
 const rects = (lista) =>
   lista.map((t) => <rect key={`${t.x}-${t.y}`} x={t.x} y={t.y} width={t.ancho} height="1" fill={t.color} />)
 
+// `sinSuelo` quita el monton de tierra (cuando la maceta se dibuja aparte, como en el invernadero).
 // `maceta` es el codigo de la maceta puesta (AZUL, ROSA...): con ella se dibuja la maceta en lugar del monton de tierra.
-export default function PlantaPixel({ etapa = 0, apariencia = null, titulo, animar = true, className = '', maceta = null }) {
+export default function PlantaPixel({ etapa = 0, apariencia = null, titulo, animar = true, className = '', maceta = null, sinSuelo = false }) {
   const indice = Math.max(0, Math.min(MARCHITA, etapa))
   const { planta, suelo } = useMemo(() => {
     const paleta = paletaDe(apariencia)
@@ -33,7 +34,7 @@ export default function PlantaPixel({ etapa = 0, apariencia = null, titulo, anim
         <g transform={`translate(${(LADO - 13) / 2} 27) scale(${13 / COLUMNAS})`}>
           {celdasDeMaceta(maceta).map((c) => <rect key={`${c.x}-${c.y}`} x={c.x} y={c.y} width="1.03" height="1.03" fill={c.color} />)}
         </g>
-      ) : rects(suelo)}
+      ) : sinSuelo ? null : rects(suelo)}
     </svg>
   )
 }

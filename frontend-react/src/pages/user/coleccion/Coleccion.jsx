@@ -5,10 +5,12 @@ import { RUTAS } from '../../../routes/rutas'
 import { listarColeccion } from '../../../services/coleccion'
 import { urlImagen } from '../../../services/home'
 import { listarPlantasDigitales, seleccionarPlanta } from '../../../services/jardin'
+import ColeccionVirtual from './ColeccionVirtual'
 import './coleccion.css'
 
 export default function Coleccion() {
-  const [pestana, setPestana] = useState('escaneadas')
+  const [pestana, setPestana] = useState('virtuales')
+  const [aviso, setAviso] = useState('')
   const [escaneadas, setEscaneadas] = useState([])
   const [digitales, setDigitales] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -40,6 +42,13 @@ export default function Coleccion() {
     }
   }
 
+  // Un cambio en una planta (apodo, baul) devuelto por el servidor se refleja en la lista sin volver a pedirla
+  const actualizarPlanta = (nueva) => setDigitales((lista) => lista.map((p) => (p.id === nueva.id ? nueva : p)))
+  const avisar = (texto) => {
+    setAviso(texto)
+    setTimeout(() => setAviso(''), 2500)
+  }
+
   const lista = pestana === 'escaneadas' ? escaneadas : digitales
 
   // Virtualizacion de la lista de escaneadas (web). Antes se renderizaban
@@ -55,15 +64,11 @@ export default function Coleccion() {
   return (
     <div className="coleccion">
       <header className="coleccion-cabecera aparece">
-        <div>
-          <h2>Mis plantas</h2>
-          <p>{escaneadas.length + digitales.length} / ∞</p>
-        </div>
-        <div className="coleccion-pestanas" role="tablist">
+        <div className="coleccion-pestanas coleccion-segmentos" role="tablist">
+          <button role="tab" aria-selected={pestana === 'virtuales'} className={pestana === 'virtuales' ? 'activa' : ''}
+            onClick={() => setPestana('virtuales')}>Virtuales · {digitales.length}</button>
           <button role="tab" aria-selected={pestana === 'escaneadas'} className={pestana === 'escaneadas' ? 'activa' : ''}
-            onClick={() => setPestana('escaneadas')}>Escaneadas <b>{escaneadas.length}</b></button>
-          <button role="tab" aria-selected={pestana === 'digitales'} className={pestana === 'digitales' ? 'activa' : ''}
-            onClick={() => setPestana('digitales')}>Digitales <b>{digitales.length}</b></button>
+            onClick={() => setPestana('escaneadas')}>Escaneos · {escaneadas.length}</button>
         </div>
       </header>
 
@@ -77,7 +82,7 @@ export default function Coleccion() {
       )}
 
       {!cargando && !error && (
-        lista.length === 0 ? (
+        pestana === 'escaneadas' && lista.length === 0 ? (
           <div className="coleccion-vacio aparece">
             <span>🌱</span>
             <h2>Aún no tienes plantas</h2>
@@ -122,27 +127,11 @@ export default function Coleccion() {
               </div>
             </div>
           ) : (
-            <div className="coleccion-grilla">
-              {digitales.map((p, i) => (
-                <button key={p.id} className="planta-card aparece" style={{ animationDelay: `${i * 0.05}s` }} onClick={() => abrirDigital(p)}>
-                  <Foto url={urlImagen(p.fotoUrl)} nombre={p.name} />
-                  <div className="planta-card-datos">
-                    <b>{p.name}</b>
-                    <small>{p.species}</small>
-                    <div className="planta-card-chips">
-                      {p.activa && <span className="chip-activo">Activo</span>}
-                    </div>
-                  </div>
-                </button>
-              ))}
-              <Link to={RUTAS.ESCANEAR} className="planta-card planta-card-mas aparece">
-                <span>🔍</span>
-                <b>¡Descubre más plantas!</b>
-              </Link>
-            </div>
+            <ColeccionVirtual digitales={digitales} onCambio={actualizarPlanta} onAbrir={abrirDigital} onAviso={avisar} />
           )
         )
       )}
+      {aviso && <div className="jardin-aviso" role="status">{aviso}</div>}
     </div>
   )
 }
