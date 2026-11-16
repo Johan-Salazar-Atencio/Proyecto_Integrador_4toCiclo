@@ -2,6 +2,8 @@ package com.plantia.ui.escena
 
 import android.content.Context
 import androidx.compose.foundation.Canvas
+import com.plantia.ui.collection.virtual.dibujarMaceta
+import com.plantia.ui.collection.virtual.paletaDeMaceta
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -21,6 +23,7 @@ private const val LADO_ESCENA = 96f
 private const val ESCALA = 2
 private const val FILA_TIERRA_ESCENA = 75
 private const val FILA_TIERRA_SPRITE = 27
+private const val ANCHO_MACETA_ESCENA = 26f
 
 private var cache: PlantaSpritesJson? = null
 
@@ -52,7 +55,9 @@ fun PlantaPixel(
     diasTotales: Int,
     marchita: Boolean,
     descripcion: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Codigo de la maceta puesta a la planta; con ella se dibuja la maceta en lugar del monton de tierra. */
+    macetaCodigo: String? = null
 ) {
     val indice = indiceSprite(diasCuidados, diasTotales, marchita)
     val paleta = remember(sprites, apariencia) { paletaDe(sprites, apariencia) }
@@ -74,7 +79,16 @@ fun PlantaPixel(
             val y1 = (origenY + (t.y + 1) * ESCALA * unidad).roundToInt()
             drawRect(Color(t.color), Offset(x0.toFloat(), y0.toFloat()), Size((x1 - x0).toFloat(), (y1 - y0).toFloat()))
         }
-        dibujar(planta)
-        dibujar(suelo)
+        if (macetaCodigo != null) {
+            // La maceta se apoya en el suelo de la escena y la planta sale de ella
+            val ancho = ANCHO_MACETA_ESCENA * unidad
+            val izquierda = (size.width - lado) / 2f + (LADO_ESCENA - ANCHO_MACETA_ESCENA) / 2f * unidad
+            val arriba = (size.height - lado) / 2f + FILA_TIERRA_ESCENA * unidad
+            dibujarMaceta(paletaDeMaceta(macetaCodigo), Offset(izquierda, arriba), ancho / 16f)
+            dibujar(planta)
+        } else {
+            dibujar(planta)
+            dibujar(suelo)
+        }
     }
 }

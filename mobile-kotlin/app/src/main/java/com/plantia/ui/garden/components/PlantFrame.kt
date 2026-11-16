@@ -82,7 +82,9 @@ fun PlantFrame(
     /** true mientras se muestra, una sola vez, como el evento arraso con la planta. */
     arrasando: Boolean = false,
     /** Tipo de evento que la golpeo (para el texto del golpe). */
-    tipoGolpe: String? = null
+    tipoGolpe: String? = null,
+    /** Maceta puesta a la planta (null = el monton de tierra de siempre). */
+    macetaCodigo: String? = null
 ) {
     val sprites = rememberSprites()
     Box(
@@ -99,7 +101,8 @@ fun PlantFrame(
                     diasTotales = diasTotales,
                     marchita = marchita,
                     descripcion = nombre,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    macetaCodigo = macetaCodigo
                 )
             }
         } else {{

@@ -33,30 +33,32 @@ const val PROPORCION_MACETA = COLUMNAS / FILAS.toFloat()
 @Composable
 fun MacetaPixel(codigo: String, modifier: Modifier = Modifier) {
     val paleta = paletaDeMaceta(codigo)
-    Canvas(modifier) {
-        val px = size.width / COLUMNAS
-        for (fila in 0 until FILAS) {
-            val ancho = ANCHO_POR_FILA[fila]
-            val izquierda = (COLUMNAS - ancho) / 2
-            for (col in 0 until ancho) {
-                val color = when {
-                    fila == 0 -> paleta.luz
-                    col == 0 && fila > 1 -> paleta.luz
-                    col >= ancho - 2 && fila > 1 -> paleta.sombra
-                    fila == FILAS - 1 -> paleta.sombra
-                    else -> paleta.cuerpo
-                }
-                celda(izquierda + col, fila, px, color)
+    Canvas(modifier) { dibujarMaceta(paleta, Offset.Zero, size.width / COLUMNAS) }
+}
+
+/** Dibuja la maceta con su esquina superior izquierda en [origen]; cada pixel mide [px]. */
+fun DrawScope.dibujarMaceta(paleta: PaletaMaceta, origen: Offset, px: Float) {
+    for (fila in 0 until FILAS) {
+        val ancho = ANCHO_POR_FILA[fila]
+        val izquierda = (COLUMNAS - ancho) / 2
+        for (col in 0 until ancho) {
+            val color = when {
+                fila == 0 -> paleta.luz
+                col == 0 && fila > 1 -> paleta.luz
+                col >= ancho - 2 && fila > 1 -> paleta.sombra
+                fila == FILAS - 1 -> paleta.sombra
+                else -> paleta.cuerpo
             }
+            celda(origen, izquierda + col, fila, px, color)
         }
     }
 }
 
-private fun DrawScope.celda(columna: Int, fila: Int, px: Float, color: Color) {
+private fun DrawScope.celda(origen: Offset, columna: Int, fila: Int, px: Float, color: Color) {
     // Los bordes se redondean para que no queden costuras entre pixeles
-    val x0 = (columna * px).roundToInt()
-    val x1 = ((columna + 1) * px).roundToInt()
-    val y0 = (fila * px).roundToInt()
-    val y1 = ((fila + 1) * px).roundToInt()
+    val x0 = (origen.x + columna * px).roundToInt()
+    val x1 = (origen.x + (columna + 1) * px).roundToInt()
+    val y0 = (origen.y + fila * px).roundToInt()
+    val y1 = (origen.y + (fila + 1) * px).roundToInt()
     drawRect(color, Offset(x0.toFloat(), y0.toFloat()), Size((x1 - x0).toFloat(), (y1 - y0).toFloat()))
 }

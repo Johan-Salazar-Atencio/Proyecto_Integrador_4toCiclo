@@ -317,6 +317,7 @@ internal fun JardinContenido(
                     efectoProteccion = efectoProteccion,
                     arrasando = arrasando,
                     tipoGolpe = planta.golpeTipo,
+                macetaCodigo = planta.macetaCodigo,
                     modifier = Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true)
                 )
             }
@@ -355,6 +356,7 @@ internal fun JardinContenido(
                     efectoProteccion = efectoProteccion,
                     arrasando = arrasando,
                     tipoGolpe = planta.golpeTipo,
+                macetaCodigo = planta.macetaCodigo,
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f)
             )
             CuerpoJardin(planta, evento, previniendo, onPrevenir, abono, onAbono, onTienda, reviviendo, onRevivir, onCuidar)

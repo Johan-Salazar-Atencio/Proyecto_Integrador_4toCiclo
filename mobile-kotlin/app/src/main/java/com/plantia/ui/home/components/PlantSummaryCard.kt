@@ -89,6 +89,7 @@ fun PlantSummaryCard(
                     marchita = plant.healthPercent < 30 || plant.muerta,
                     desastreActivo = !plant.refugiada,
                     tipoGolpe = plant.golpeTipo,
+                    macetaCodigo = plant.macetaCodigo,
                     modifier = Modifier.fillMaxWidth().aspectRatio(1.35f).clickable(onClick = onEnterGarden)
                 )
                 if (total > 1) {
