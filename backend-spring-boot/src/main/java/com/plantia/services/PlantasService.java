@@ -20,10 +20,12 @@ import com.plantia.dto.ProgresoDto;
 import com.plantia.models.EscaneoHistorial;
 import com.plantia.models.PlantaUsuario;
 import com.plantia.models.PlantaCatalogo;
+import com.plantia.models.Usuario;
 import com.plantia.repositories.CatalogosPorId;
 import com.plantia.repositories.EscaneoHistorialRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
 import com.plantia.repositories.PlantaUsuarioRepository;
+import com.plantia.repositories.UsuarioRepository;
 
 @Service
 public class PlantasService {
@@ -33,6 +35,8 @@ public class PlantasService {
     private final EscaneoHistorialRepository escaneoRepo;
     private final ProgresoService progresoService;
     private final EventoService eventoService;
+    private final UsuarioRepository usuarioRepo;
+    private final ParametrosJuego parametros;
     private final ObjectMapper json;
 
     public PlantasService(PlantaUsuarioRepository plantaRepo,
@@ -40,12 +44,16 @@ public class PlantasService {
                           EscaneoHistorialRepository escaneoRepo,
                           ProgresoService progresoService,
                           EventoService eventoService,
+                          UsuarioRepository usuarioRepo,
+                          ParametrosJuego parametros,
                           ObjectMapper json) {
         this.plantaRepo = plantaRepo;
         this.catalogoRepo = catalogoRepo;
         this.escaneoRepo = escaneoRepo;
         this.progresoService = progresoService;
         this.eventoService = eventoService;
+        this.usuarioRepo = usuarioRepo;
+        this.parametros = parametros;
         this.json = json;
     }
 
@@ -56,15 +64,17 @@ public class PlantasService {
     private static final int DESGASTE_LUZ_HORA = 3;
     private static final int DESGASTE_SALUD_HORA = 2;
 
-    /** Planta de "Mi jardin": la elegida como activa o, si no hay, la ultima plantada. */
+    /**
+     * Planta de "Mi jardin": la elegida como activa o, si no hay, la ultima plantada viva. Una planta
+     * muerta tambien puede ser la activa, para que el usuario vea el boton de revivirla.
+     */
     @Transactional
     public Optional<PlantSummaryDto> activa(Integer userId) {
-        List<PlantaUsuario> plantas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId).stream()
-                .filter(p -> !"MUERTA".equals(p.getEtapaCrecimiento()))
-                .toList();
+        List<PlantaUsuario> plantas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId);
         return plantas.stream()
                 .filter(p -> Boolean.TRUE.equals(p.getEsActiva()))
                 .findFirst()
+                .or(() -> plantas.stream().filter(p -> !"MUERTA".equals(p.getEtapaCrecimiento())).findFirst())
                 .or(() -> plantas.stream().findFirst())
                 .map(p -> map(plantaRepo.save(envejecer(p, LocalDateTime.now()))));
     }
@@ -118,6 +128,8 @@ public class PlantasService {
         planta.setEtapaCrecimiento("SEMILLA");
         planta.setModoTiempo("REAL");
         planta.setEstaRefugiada(false);
+        planta.setRecuperacionHasta(null);
+        planta.setGolpeTipo(null);
         planta.setUltimoRiego(ahora);
         planta.setUltimoSol(ahora);
         planta.setUltimoAbono(ahora);
@@ -284,6 +296,14 @@ public class PlantasService {
      * (en la simulacion de la web, recargar a menudo evitaba que la planta se secara).
      */
     static PlantaUsuario envejecer(PlantaUsuario p, LocalDateTime ahora) {
+        if ("MUERTA".equals(p.getEtapaCrecimiento())) {
+            return p;
+        }
+        // Una planta golpeada por un evento que no se abono a tiempo muere
+        if (p.getRecuperacionHasta() != null && ahora.isAfter(p.getRecuperacionHasta())) {
+            morir(p);
+            return p;
+        }
         LocalDateTime desde = p.getUpdatedAt() != null ? p.getUpdatedAt() : ahora;
         long horas = Duration.between(desde, ahora).toHours();
         if (horas <= 0) {
@@ -301,6 +321,50 @@ public class PlantasService {
         }
         p.setUpdatedAt(desde.plusHours(horas));
         return p;
+    }
+
+    /** La planta muere: salud en cero, sin plazo de recuperacion. Conserva sus dias para poder revivirla. */
+    static void morir(PlantaUsuario p) {
+        p.setEtapaCrecimiento("MUERTA");
+        p.setSaludPorcentaje(0);
+        p.setRecuperacionHasta(null);
+        p.setEstaRefugiada(false);
+        p.setRefugiadaDesde(null);
+    }
+
+    /**
+     * Revive una planta muerta a cambio de hojas (el costo lo fija el admin). Vuelve con media salud y
+     * con la fase que le correspondia por sus dias de cuidado. 409 si no esta muerta, 402 sin hojas.
+     */
+    @Transactional
+    public PlantSummaryDto revivir(Integer userId, Integer idPlantaUsuario) {
+        PlantaUsuario p = propia(userId, idPlantaUsuario);
+        if (!"MUERTA".equals(p.getEtapaCrecimiento())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La planta no esta muerta");
+        }
+        Usuario u = usuarioRepo.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        int costo = parametros.costoRevivir();
+        if (valor(u.getMonedas()) < costo) {
+            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED, "No te alcanzan las hojas");
+        }
+        u.setMonedas(valor(u.getMonedas()) - costo);
+        usuarioRepo.save(u);
+
+        LocalDateTime ahora = LocalDateTime.now();
+        p.setSaludPorcentaje(parametros.saludRevivida());
+        p.setHidratacionPorcentaje(50);
+        p.setSolPorcentaje(50);
+        p.setRecuperacionHasta(null);
+        p.setGolpeTipo(null);
+        p.setEstaRefugiada(false);
+        p.setRefugiadaDesde(null);
+        p.setEtapaCrecimiento(CrecimientoPlanta.faseSegun(valor(p.getDiasCuidados()),
+                CrecimientoPlanta.diasTotales(deJson(p.getApariencia()))));
+        p.setUltimoRiego(ahora);
+        p.setUltimoSol(ahora);
+        p.setUpdatedAt(ahora);
+        return map(plantaRepo.save(p));
     }
 
     /**

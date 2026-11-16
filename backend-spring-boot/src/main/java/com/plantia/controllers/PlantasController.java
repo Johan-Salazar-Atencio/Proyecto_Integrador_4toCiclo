@@ -141,6 +141,14 @@ public class PlantasController {
         return ResponseEntity.ok(plantasService.prevenir(userId, idPlantaUsuario));
     }
 
+    /** Revive una planta muerta a cambio de hojas (409 si no esta muerta, 402 si no alcanzan). */
+    @PostMapping("/{id}/revivir")
+    public ResponseEntity<PlantSummaryDto> revivir(
+            @RequestHeader("X-User-Id") Integer userId,
+            @PathVariable("id") Integer idPlantaUsuario) {
+        return ResponseEntity.ok(plantasService.revivir(userId, idPlantaUsuario));
+    }
+
     /** Activa una planta digital (cambia su etapa). */
     @PostMapping("/{id}/activar")
     public ResponseEntity<PlantSummaryDto> activar(

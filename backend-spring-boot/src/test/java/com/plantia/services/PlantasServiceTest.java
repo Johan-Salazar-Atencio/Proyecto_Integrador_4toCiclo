@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +27,7 @@ import com.plantia.repositories.EventoDesastreRepository;
 import com.plantia.repositories.HistorialProgresoRepository;
 import com.plantia.repositories.MisionUsuarioRepository;
 import com.plantia.repositories.NivelRepository;
+import com.plantia.repositories.ParametroJuegoRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
 import com.plantia.repositories.PlantaUsuarioRepository;
 import com.plantia.repositories.ReglaProgresoRepository;
@@ -41,20 +43,24 @@ class PlantasServiceTest {
     private EscaneoHistorialRepository escaneoRepo;
     private EventoDesastreRepository eventoRepo;
     private PlantasService service;
+    private UsuarioRepository usuarioRepo;
+    private Usuario usuario;
 
     @BeforeEach
     void preparar() {
         plantaRepo = mock(PlantaUsuarioRepository.class);
         escaneoRepo = mock(EscaneoHistorialRepository.class);
         // Sin reglas cargadas: el progreso no suma nada, pero el flujo de cuidar y digitalizar se ejecuta completo
-        UsuarioRepository usuarioRepo = mock(UsuarioRepository.class);
-        when(usuarioRepo.findById(any())).thenReturn(Optional.of(new Usuario()));
+        usuarioRepo = mock(UsuarioRepository.class);
         ProgresoService progreso = new ProgresoService(usuarioRepo, mock(NivelRepository.class),
                 mock(ReglaProgresoRepository.class), mock(HistorialProgresoRepository.class),
                 mock(MisionService.class), mock(MisionUsuarioRepository.class));
         eventoRepo = mock(EventoDesastreRepository.class);
         EventoService eventos = new EventoService(eventoRepo, usuarioRepo);
-        service = new PlantasService(plantaRepo, mock(PlantaCatalogoRepository.class), escaneoRepo, progreso, eventos, new ObjectMapper());
+        usuario = new Usuario();
+        when(usuarioRepo.findById(any())).thenReturn(Optional.of(usuario));
+        service = new PlantasService(plantaRepo, mock(PlantaCatalogoRepository.class), escaneoRepo, progreso, eventos,
+                usuarioRepo, new ParametrosJuego(mock(ParametroJuegoRepository.class)), new ObjectMapper());
 
         PlantaUsuario planta = new PlantaUsuario();
         planta.setIdUsuario(DUENO);
@@ -288,5 +294,107 @@ class PlantasServiceTest {
         hayDesastreActivo();
 
         assertThat(service.refugiar(DUENO, 10).refugiada()).isTrue();
+    }
+
+    // --- Morir sin abono y revivir ---
+
+    private static PlantaUsuario golpeada(LocalDateTime limite) {
+        PlantaUsuario p = new PlantaUsuario();
+        p.setHidratacionPorcentaje(80);
+        p.setSolPorcentaje(80);
+        p.setSaludPorcentaje(10);
+        p.setEtapaCrecimiento("BROTE");
+        p.setDiasCuidados(3);
+        p.setRecuperacionHasta(limite);
+        p.setUpdatedAt(limite.minusHours(24));
+        return p;
+    }
+
+    @Test
+    void unaPlantaGolpeadaMuereCuandoPasaElPlazoSinAbonar() {
+        LocalDateTime limite = LocalDateTime.of(2026, 11, 16, 12, 0);
+        PlantaUsuario p = golpeada(limite);
+
+        PlantasService.envejecer(p, limite.plusMinutes(1));
+
+        assertThat(p.getEtapaCrecimiento()).isEqualTo("MUERTA");
+        assertThat(p.getSaludPorcentaje()).isZero();
+        assertThat(p.getRecuperacionHasta()).isNull();
+    }
+
+    @Test
+    void dentroDelPlazoSigueViva() {
+        LocalDateTime limite = LocalDateTime.of(2026, 11, 16, 12, 0);
+        PlantaUsuario p = golpeada(limite);
+
+        PlantasService.envejecer(p, limite.minusHours(2));
+
+        assertThat(p.getEtapaCrecimiento()).isEqualTo("BROTE");
+        assertThat(p.getRecuperacionHasta()).isEqualTo(limite);
+    }
+
+    @Test
+    void unaPlantaMuertaNoSeDesgastaMas() {
+        PlantaUsuario p = golpeada(LocalDateTime.of(2026, 11, 16, 12, 0));
+        p.setEtapaCrecimiento("MUERTA");
+        p.setRecuperacionHasta(null);
+        p.setSaludPorcentaje(0);
+
+        PlantasService.envejecer(p, LocalDateTime.of(2026, 11, 20, 12, 0));
+
+        assertThat(p.getHidratacionPorcentaje()).isEqualTo(80);
+    }
+
+    private PlantaUsuario muerta() {
+        PlantaUsuario p = plantaRepo.findById(10).get();
+        p.setEtapaCrecimiento("MUERTA");
+        p.setSaludPorcentaje(0);
+        p.setDiasCuidados(3);
+        return p;
+    }
+
+    @Test
+    void revivirCuestaHojasYDevuelveLaPlantaConMediaSalud() {
+        PlantaUsuario p = muerta();
+        usuario.setMonedas(300);
+
+        var dto = service.revivir(DUENO, 10);
+
+        assertThat(usuario.getMonedas()).isEqualTo(50);
+        assertThat(dto.healthPercent()).isEqualTo(50);
+        assertThat(dto.fase()).isNotEqualTo("MUERTA");
+        assertThat(p.getDiasCuidados()).isEqualTo(3);
+    }
+
+    @Test
+    void revivirSinHojasDa402YNoCobra() {
+        muerta();
+        usuario.setMonedas(249);
+
+        assertThatThrownBy(() -> service.revivir(DUENO, 10))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.PAYMENT_REQUIRED));
+        assertThat(usuario.getMonedas()).isEqualTo(249);
+        assertThat(plantaRepo.findById(10).get().getEtapaCrecimiento()).isEqualTo("MUERTA");
+    }
+
+    @Test
+    void soloSeRevivePlantasMuertas() {
+        usuario.setMonedas(500);
+
+        assertThatThrownBy(() -> service.revivir(DUENO, 10))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+        assertThat(usuario.getMonedas()).isEqualTo(500);
+    }
+
+    @Test
+    void revivirPlantaAjenaDa404() {
+        muerta();
+        usuario.setMonedas(500);
+
+        assertThatThrownBy(() -> service.revivir(OTRO, 10))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
     }
 }

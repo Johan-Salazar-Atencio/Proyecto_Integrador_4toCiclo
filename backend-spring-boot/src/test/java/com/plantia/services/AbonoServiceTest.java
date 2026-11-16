@@ -39,7 +39,7 @@ class AbonoServiceTest {
         plantaRepo = mock(PlantaUsuarioRepository.class);
         usuarioRepo = mock(UsuarioRepository.class);
         ItemTiendaRepository itemRepo = mock(ItemTiendaRepository.class);
-        PlantasService plantas = new PlantasService(plantaRepo, null, null, null, null, new com.fasterxml.jackson.databind.ObjectMapper());
+        PlantasService plantas = new PlantasService(plantaRepo, null, null, null, null, null, null, new com.fasterxml.jackson.databind.ObjectMapper());
         service = new AbonoService(plantaRepo, itemRepo, usuarioRepo, plantas);
 
         planta = new PlantaUsuario();
