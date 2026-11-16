@@ -10,7 +10,6 @@ import hmac
 import os
 import secrets
 from datetime import timedelta
-from datetime import timezone as dt_timezone
 
 import bcrypt
 from django.conf import settings
@@ -35,10 +34,10 @@ _DURACION_SESION = timedelta(days=30)
 
 
 def _como_aware(valor):
-    """session_expira es TIMESTAMP sin zona y Django la guarda en UTC: si llega sin zona, es UTC.
-    (Spring la escribe en hora local; con 30 dias de duracion, unas horas de diferencia no importan.)"""
+    """session_expira es TIMESTAMP sin zona: Spring y Django (DATABASES TIME_ZONE) la guardan en hora de Lima,
+    asi que si llega sin zona es hora de Lima."""
     if timezone.is_naive(valor):
-        return timezone.make_aware(valor, dt_timezone.utc)
+        return timezone.make_aware(valor, timezone.get_default_timezone())
     return valor
 
 

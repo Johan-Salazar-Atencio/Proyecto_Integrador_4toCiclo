@@ -108,6 +108,9 @@ else:
             "HOST": os.getenv("DB_HOST", "localhost"),
             "PORT": os.getenv("DB_PORT", "5432"),
             "OPTIONS": {"connect_timeout": 5},
+            # Las columnas de fecha de las tablas que comparte con Spring son "timestamp sin zona" y Spring guarda y
+            # compara la hora de Lima: sin esto Django escribia y leia en UTC y los eventos aparecian 5 horas tarde.
+            "TIME_ZONE": "America/Lima",
         }
     }
 

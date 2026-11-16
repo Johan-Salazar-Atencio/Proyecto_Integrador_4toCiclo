@@ -49,8 +49,8 @@ class AdminDesdeRequestTests(SimpleTestCase):
         usuario = _usuario(rol="USER")
         self.assertIsNone(self._admin(usuario, {"HTTP_X_ADMIN_ID": "8", "HTTP_X_ADMIN_TOKEN": TOKEN}))
 
-    def test_fecha_sin_zona_se_lee_como_utc(self):
-        naive = timezone.make_naive(timezone.now() + timedelta(hours=1), admin_views.dt_timezone.utc)
+    def test_fecha_sin_zona_se_lee_como_hora_de_lima(self):
+        naive = timezone.make_naive(timezone.now() + timedelta(hours=1), timezone.get_default_timezone())
         self.assertTrue(admin_views._como_aware(naive) > timezone.now())
 
 
