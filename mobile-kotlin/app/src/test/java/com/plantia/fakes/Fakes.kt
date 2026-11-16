@@ -54,7 +54,7 @@ fun alerta() = WeatherAlert(
     description = "Resguarda tus plantas",
     severity = AlertSeverity.HIGH,
     timeRemaining = "01h 00m",
-    actionText = "Refugiar Planta"
+    actionText = "Prevenir evento"
 )
 
 /** Home falso: la carga inicial y cada consulta del sondeo se configuran por separado. */
@@ -87,10 +87,16 @@ class FakeGardenRepository : GardenRepository {
     var alDigitalizar: PlantaResultado = PlantaResultado.Con(planta())
     var alSeleccionar: PlantaResultado = PlantaResultado.Con(planta())
     var alCuidar: PlantaResultado = PlantaResultado.Con(planta())
-    var alRefugiar: PlantaResultado = PlantaResultado.Con(planta().copy(refugiada = true))
+    var alPrevenir: PlantaResultado = PlantaResultado.Con(planta().copy(refugiada = true))
+    var alPrevenirVarias: PlantasResultado = PlantasResultado.Con(emptyList())
+    var alRevivir: PlantaResultado = PlantaResultado.Con(planta())
+    var alGolpeVisto: PlantaResultado = PlantaResultado.Con(planta())
 
     val cuidados = mutableListOf<Pair<Int, AccionCuidado>>()
-    val refugiados = mutableListOf<Int>()
+    val prevenidos = mutableListOf<Int>()
+    val prevenidosVarios = mutableListOf<List<Int>>()
+    val revividos = mutableListOf<Int>()
+    val golpesVistos = mutableListOf<Int>()
     val digitalizados = mutableListOf<Pair<Int, Int?>>()
 
     override suspend fun plantaActiva() = activa
@@ -108,9 +114,24 @@ class FakeGardenRepository : GardenRepository {
         return alCuidar
     }
 
-    override suspend fun refugiar(idPlanta: Int): PlantaResultado {
-        refugiados += idPlanta
-        return alRefugiar
+    override suspend fun prevenir(idPlanta: Int): PlantaResultado {
+        prevenidos += idPlanta
+        return alPrevenir
+    }
+
+    override suspend fun prevenirVarias(ids: List<Int>): PlantasResultado {
+        prevenidosVarios += ids
+        return alPrevenirVarias
+    }
+
+    override suspend fun revivir(idPlanta: Int): PlantaResultado {
+        revividos += idPlanta
+        return alRevivir
+    }
+
+    override suspend fun golpeVisto(idPlanta: Int): PlantaResultado {
+        golpesVistos += idPlanta
+        return alGolpeVisto
     }
 }
 

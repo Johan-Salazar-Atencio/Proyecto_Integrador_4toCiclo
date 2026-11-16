@@ -34,6 +34,15 @@ interface GardenRepository {
 
     suspend fun cuidar(idPlanta: Int, accion: AccionCuidado): PlantaResultado
 
-    /** Pone la planta a resguardo del desastre en curso; falla si ya no hay desastre activo. */
-    suspend fun refugiar(idPlanta: Int): PlantaResultado
+    /** Previene el evento en curso en la planta; falla si ya no hay evento activo. */
+    suspend fun prevenir(idPlanta: Int): PlantaResultado
+
+    /** Previene el evento en varias plantas a la vez; falla entera si una no se puede. */
+    suspend fun prevenirVarias(ids: List<Int>): PlantasResultado
+
+    /** Revive una planta muerta a cambio de hojas; falla con un mensaje si no alcanzan. */
+    suspend fun revivir(idPlanta: Int): PlantaResultado
+
+    /** Marca como vista la animacion del evento que golpeo a la planta. */
+    suspend fun golpeVisto(idPlanta: Int): PlantaResultado
 }

@@ -18,8 +18,22 @@ data class PlantSummary(
     val apariencia: Apariencia? = null,
     /** Dias con cuidado contados y dias necesarios para crecer del todo (0 si el servidor no los manda). */
     val diasCuidados: Int = 0,
-    val diasTotales: Int = 0
-)
+    val diasTotales: Int = 0,
+    /** Fase de la planta: SEMILLA, BROTE, ADULTA o MUERTA (vacia si el servidor no la manda). */
+    val fase: String = "",
+    /** Golpeada por un evento: solo el abono la salva antes de que se acabe el plazo. */
+    val enRecuperacion: Boolean = false,
+    /** Segundos que quedan para abonarla; null si no esta en recuperacion. */
+    val recuperacionSegundos: Long? = null,
+    /** Evento que la golpeo y cuya animacion aun no se vio (null = ninguna pendiente). */
+    val golpeTipo: String? = null
+) {
+    /** Murio por no abonarla a tiempo: se puede revivir a cambio de hojas. */
+    val muerta: Boolean get() = fase == "MUERTA"
+
+    /** El evento ya esta prevenido (a resguardo) o la planta no se puede proteger. */
+    val protegida: Boolean get() = refugiada
+}
 
 /** Apariencia que da la IA al escanear; cada campo ausente toma el valor por defecto del sprite. */
 data class Apariencia(

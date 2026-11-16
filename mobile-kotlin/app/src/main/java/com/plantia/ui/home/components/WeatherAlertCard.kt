@@ -35,10 +35,10 @@ fun WeatherAlertCard(
     alert: WeatherAlert,
     onActionClick: () -> Unit,
     modifier: Modifier = Modifier,
-    /** La planta ya esta a resguardo: el boton pasa a ser una confirmacion y no se puede volver a tocar. */
+    /** El evento ya esta prevenido en la planta: el boton pasa a ser una confirmacion y no se puede volver a tocar. */
     refugiada: Boolean = false,
-    /** Hay una peticion de refugio en curso. */
-    refugiando: Boolean = false
+    /** Hay una peticion de prevenir en curso. */
+    previniendo: Boolean = false
 ) {
     Surface(
         modifier = modifier
@@ -116,21 +116,21 @@ fun WeatherAlertCard(
 
             Button(
                 onClick = onActionClick,
-                enabled = !refugiada && !refugiando,
+                enabled = !refugiada && !previniendo,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = TextPrimary,
-                    // Refugiada: se ve como confirmacion (verde), no como un boton apagado
+                    // Prevenido: se ve como confirmacion (verde), no como un boton apagado
                     disabledContainerColor = if (refugiada) GreenLight else MaterialTheme.colorScheme.surface,
                     disabledContentColor = if (refugiada) Color(0xFF16A34A) else TextSecondary
                 )
             ) {
                 Text(
                     text = when {
-                        refugiada -> "Planta refugiada"
-                        refugiando -> "Refugiando..."
+                        refugiada -> "Evento prevenido"
+                        previniendo -> "Previniendo..."
                         else -> alert.actionText
                     },
                     style = MaterialTheme.typography.bodyMedium,

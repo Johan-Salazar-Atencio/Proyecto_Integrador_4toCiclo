@@ -66,42 +66,42 @@ class HomeViewModel(
     var uiState by mutableStateOf(HomeUiState())
         private set
 
-    /** Mensaje breve para el usuario (resultado de refugiar); la pantalla lo muestra y llama a [avisoMostrado]. */
+    /** Mensaje breve para el usuario (resultado de prevenir); la pantalla lo muestra y llama a [avisoMostrado]. */
     var aviso by mutableStateOf<String?>(null)
         private set
 
-    /** Hay una peticion de refugio en curso: evita doble toque y bloquea el refresco de la planta. */
-    var refugiando by mutableStateOf(false)
+    /** Hay una peticion de prevenir en curso: evita doble toque y bloquea el refresco de la planta. */
+    var previniendo by mutableStateOf(false)
         private set
 
     fun avisoMostrado() {
         aviso = null
     }
 
-    /** Refugia la planta del Home del desastre activo. */
-    fun refugiar() {
+    /** Previene el evento activo en la planta del Home. */
+    fun prevenir() {
         val planta = uiState.planta
         val id = planta?.id
         if (id == null) {
-            aviso = "Aun no tienes una planta para refugiar"
+            aviso = "Aun no tienes una planta para proteger"
             return
         }
-        if (refugiando || planta.refugiada) return
+        if (previniendo || planta.refugiada) return
         viewModelScope.launch {
-            refugiando = true
-            when (val resultado = garden.refugiar(id)) {
+            previniendo = true
+            when (val resultado = garden.prevenir(id)) {
                 is PlantaResultado.Con -> {
                     uiState = uiState.copy(planta = uiState.planta?.copy(refugiada = true))
-                    aviso = "${planta.name} esta a resguardo"
+                    aviso = "${planta.name} esta protegida"
                 }
                 is PlantaResultado.Fallo -> {
                     aviso = resultado.mensaje
-                    refugiando = false
-                    // Lo mas probable es que el desastre ya termino: se refresca la alerta
+                    previniendo = false
+                    // Lo mas probable es que el evento ya termino: se refresca la alerta
                     actualizarEnVivo()
                 }
             }
-            refugiando = false
+            previniendo = false
         }
     }
 
@@ -158,15 +158,15 @@ class HomeViewModel(
             }
             nuevo = nuevo.copy(usuario = usuario)
         }
-        // Mientras se refugia no se pisa la planta con una lectura anterior a la respuesta del servidor
-        if (planta is PlantaActivaResultado.ConPlanta && !refugiando) {
+        // Mientras se previene no se pisa la planta con una lectura anterior a la respuesta del servidor
+        if (planta is PlantaActivaResultado.ConPlanta && !previniendo) {
             nuevo = nuevo.copy(planta = fusionar(nuevo.planta, planta.planta))
         }
         uiState = nuevo
     }
 
     /**
-     * Misma planta: solo se copia lo que cambia (salud, agua, luz y refugio) y se conserva su imagen,
+     * Misma planta: solo se copia lo que cambia (salud, agua, luz, proteccion y recuperacion) y se conserva su imagen,
      * que el Home resolvio con otra ruta. Otra planta: se reemplaza completa.
      */
     private fun fusionar(actual: PlantSummary?, remota: PlantSummary): PlantSummary =
@@ -176,7 +176,11 @@ class HomeViewModel(
                 humidityPercent = remota.humidityPercent,
                 lightPercent = remota.lightPercent,
                 lastWatered = remota.lastWatered,
-                refugiada = remota.refugiada
+                refugiada = remota.refugiada,
+                fase = remota.fase,
+                enRecuperacion = remota.enRecuperacion,
+                recuperacionSegundos = remota.recuperacionSegundos,
+                golpeTipo = remota.golpeTipo
             )
         } else {
             remota

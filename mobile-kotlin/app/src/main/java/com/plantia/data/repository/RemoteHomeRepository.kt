@@ -4,9 +4,11 @@ import com.plantia.data.mapper.toDomain
 import com.plantia.data.model.DailyMission
 import com.plantia.data.model.Region
 import com.plantia.data.model.UserSummary
+import com.plantia.data.model.WeatherAlert
 import com.plantia.data.remote.PlantiaApi
 import com.plantia.data.remote.dto.CambiarRegionRequest
 import com.plantia.data.remote.RetrofitClient
+import com.plantia.util.normalizarUrlLocal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.Response
@@ -27,7 +29,7 @@ class RemoteHomeRepository(
         val respuestas = listOf(usuario, accesos, alerta, planta, misiones)
         HomeDatos(
             usuario = usuario.cuerpo()?.toDomain(),
-            alerta = alerta.cuerpo()?.toDomain(),
+            alerta = alerta.cuerpo()?.toDomain()?.conImagenCompleta(),
             planta = planta.cuerpo()?.toDomain(),
             accesos = accesos.cuerpo()?.map { it.toDomain() }.orEmpty(),
             misiones = misiones.cuerpo()?.map { it.toDomain() }.orEmpty(),
@@ -42,7 +44,7 @@ class RemoteHomeRepository(
         when {
             respuesta == null || !respuesta.isSuccessful -> AlertaResultado.Fallo
             cuerpo == null -> AlertaResultado.Sin
-            else -> AlertaResultado.Con(cuerpo.toDomain())
+            else -> AlertaResultado.Con(cuerpo.toDomain().conImagenCompleta())
         }
     }
 
@@ -53,6 +55,9 @@ class RemoteHomeRepository(
     override suspend fun usuario(): UserSummary? = withContext(Dispatchers.IO) {
         intentar { api().usuarioMe() }.cuerpo()?.toDomain()
     }
+
+    /** La imagen del evento llega como ruta relativa: se completa con el servidor que responde. */
+    private fun WeatherAlert.conImagenCompleta(): WeatherAlert = copy(imageUrl = normalizarUrlLocal(imageUrl))
 
     /** Ejecuta la llamada y captura cualquier excepcion (red caida, timeout). */
     private suspend fun <T> intentar(llamada: suspend () -> Response<T>): Response<T>? = try {

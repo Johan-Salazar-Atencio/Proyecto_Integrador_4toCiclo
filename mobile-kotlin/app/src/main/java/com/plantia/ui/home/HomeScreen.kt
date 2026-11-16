@@ -258,9 +258,9 @@ fun HomeScreen(
                 state.alerta?.let { alerta ->
                     WeatherAlertCard(
                         alert = alerta,
-                        onActionClick = homeViewModel::refugiar,
+                        onActionClick = homeViewModel::prevenir,
                         refugiada = state.planta?.refugiada == true,
-                        refugiando = homeViewModel.refugiando
+                        previniendo = homeViewModel.previniendo
                     )
                 }
 

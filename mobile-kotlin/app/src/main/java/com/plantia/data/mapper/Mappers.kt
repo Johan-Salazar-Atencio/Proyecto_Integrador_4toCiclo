@@ -79,7 +79,12 @@ fun WeatherAlertDto.toDomain(): WeatherAlert = WeatherAlert(
     timeRemaining = timeRemaining,
     actionText = actionText,
     disasterType = disasterType,
-    phase = phase
+    phase = phase,
+    eventName = eventName,
+    imageUrl = imageUrl,
+    info = info,
+    tip = tip,
+    endsInSeconds = endsInSeconds?.coerceAtLeast(0)
 )
 
 fun PlantSummaryDto.toDomain(): PlantSummary = PlantSummary(
@@ -97,7 +102,11 @@ fun PlantSummaryDto.toDomain(): PlantSummary = PlantSummary(
         Apariencia(it.forma, it.colorHoja, it.tieneFlor, it.colorFlor, it.tieneFruto, it.colorFruto)
     },
     diasCuidados = diasCuidados.coerceAtLeast(0),
-    diasTotales = diasTotales.coerceAtLeast(0)
+    diasTotales = diasTotales.coerceAtLeast(0),
+    fase = fase.orEmpty(),
+    enRecuperacion = enRecuperacion,
+    recuperacionSegundos = recuperacionSegundos?.coerceAtLeast(0),
+    golpeTipo = golpeTipo
 )
 
 fun DailyMissionDto.toDomain(): DailyMission = DailyMission(
@@ -107,7 +116,10 @@ fun DailyMissionDto.toDomain(): DailyMission = DailyMission(
     progress = progress.coerceIn(0f, 1f),
     currentCount = currentCount,
     targetCount = targetCount,
-    isCompleted = isCompleted
+    isCompleted = isCompleted,
+    kind = kind,
+    eventType = eventType,
+    endsInSeconds = endsInSeconds?.coerceAtLeast(0)
 )
 
 fun RecentScanDto.toDomain(): RecentScan = RecentScan(

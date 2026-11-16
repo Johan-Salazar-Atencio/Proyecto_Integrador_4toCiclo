@@ -135,9 +135,21 @@ interface PlantiaApi {
         @Body body: Map<String, String>
     ): Response<PlantSummaryDto>
 
-    /** Refugia la planta del desastre activo (409 si no hay desastre, 404 si no es del usuario). */
-    @POST("api/v1/plantas/{id}/refugio")
-    suspend fun refugiarPlanta(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+    /** Previene el evento activo en la planta (409 si no hay evento o la planta murio, 404 si no es del usuario). */
+    @POST("api/v1/plantas/{id}/prevenir")
+    suspend fun prevenirPlanta(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Previene el evento en varias plantas. Body: { "ids": [1, 2] } */
+    @POST("api/v1/plantas/prevenir")
+    suspend fun prevenirPlantas(@Body body: Map<String, List<Int>>): Response<List<PlantSummaryDto>>
+
+    /** Revive una planta muerta a cambio de hojas (402 si no alcanzan, 409 si no esta muerta). */
+    @POST("api/v1/plantas/{id}/revivir")
+    suspend fun revivirPlanta(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Marca como vista la animacion del evento que golpeo a la planta. */
+    @POST("api/v1/plantas/{id}/golpe-visto")
+    suspend fun golpeVisto(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
 
     // Catalogo
 

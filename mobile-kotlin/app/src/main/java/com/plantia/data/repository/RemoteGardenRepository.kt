@@ -58,22 +58,33 @@ class RemoteGardenRepository(
     override suspend fun cuidar(idPlanta: Int, accion: AccionCuidado): PlantaResultado =
         planta { api().cuidarPlanta(idPlanta, mapOf("accion" to accion.name)) }
 
-    override suspend fun refugiar(idPlanta: Int): PlantaResultado = withContext(Dispatchers.IO) {
+    override suspend fun prevenir(idPlanta: Int): PlantaResultado =
+        planta(errores = ERRORES_PREVENIR) { api().prevenirPlanta(idPlanta) }
+
+    override suspend fun prevenirVarias(ids: List<Int>): PlantasResultado = withContext(Dispatchers.IO) {
         try {
-            val respuesta = api().refugiarPlanta(idPlanta)
+            val respuesta = api().prevenirPlantas(mapOf("ids" to ids))
             val cuerpo = respuesta.body()
             when {
-                respuesta.isSuccessful && cuerpo != null -> PlantaResultado.Con(cuerpo.aPlanta())
-                respuesta.code() == 409 -> PlantaResultado.Fallo("Ya no hay un desastre activo para refugiar la planta")
-                respuesta.code() == 404 -> PlantaResultado.Fallo("No se encontro la planta")
-                else -> PlantaResultado.Fallo("El servidor respondio ${respuesta.code()}")
+                respuesta.isSuccessful && cuerpo != null -> PlantasResultado.Con(cuerpo.map { it.aPlanta() })
+                else -> PlantasResultado.Fallo(ERRORES_PREVENIR[respuesta.code()] ?: "El servidor respondio ${respuesta.code()}")
             }
         } catch (e: Exception) {
-            PlantaResultado.Fallo(e.message ?: SIN_CONEXION)
+            PlantasResultado.Fallo(e.message ?: SIN_CONEXION)
         }
     }
 
-    private suspend fun planta(llamada: suspend () -> Response<PlantSummaryDto>): PlantaResultado =
+    override suspend fun revivir(idPlanta: Int): PlantaResultado =
+        planta(errores = ERRORES_REVIVIR) { api().revivirPlanta(idPlanta) }
+
+    override suspend fun golpeVisto(idPlanta: Int): PlantaResultado =
+        planta { api().golpeVisto(idPlanta) }
+
+    /** [errores] traduce un codigo HTTP a un mensaje para el usuario; los demas dicen lo que respondio el servidor. */
+    private suspend fun planta(
+        errores: Map<Int, String> = emptyMap(),
+        llamada: suspend () -> Response<PlantSummaryDto>
+    ): PlantaResultado =
         withContext(Dispatchers.IO) {
             try {
                 val respuesta = llamada()
@@ -81,7 +92,7 @@ class RemoteGardenRepository(
                 if (respuesta.isSuccessful && cuerpo != null) {
                     PlantaResultado.Con(cuerpo.aPlanta())
                 } else {
-                    PlantaResultado.Fallo("El servidor respondio ${respuesta.code()}")
+                    PlantaResultado.Fallo(errores[respuesta.code()] ?: "El servidor respondio ${respuesta.code()}")
                 }
             } catch (e: Exception) {
                 PlantaResultado.Fallo(e.message ?: SIN_CONEXION)
@@ -102,5 +113,14 @@ class RemoteGardenRepository(
 
     private companion object {
         const val SIN_CONEXION = "No se pudo conectar con el servidor"
+        val ERRORES_PREVENIR = mapOf(
+            409 to "Ya no hay un evento activo para prevenir",
+            404 to "No se encontro la planta"
+        )
+        val ERRORES_REVIVIR = mapOf(
+            402 to "No te alcanzan las hojas para revivirla",
+            409 to "La planta no esta muerta",
+            404 to "No se encontro la planta"
+        )
     }
 }

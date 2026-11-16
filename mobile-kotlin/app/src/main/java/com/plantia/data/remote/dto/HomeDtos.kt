@@ -43,7 +43,12 @@ data class WeatherAlertDto(
     val timeRemaining: String = "",
     val actionText: String = "",
     val disasterType: String = "",
-    val phase: String = "PICO"
+    val phase: String = "PICO",
+    val eventName: String? = null,
+    val imageUrl: String? = null,
+    val info: String? = null,
+    val tip: String? = null,
+    val endsInSeconds: Long? = null
 )
 
 /** GET /api/v1/plantas/activa (204 si no tiene plantas), GET /api/v1/plantas y acciones sobre una planta. */
@@ -61,7 +66,11 @@ data class PlantSummaryDto(
     val refugiada: Boolean = false,
     val apariencia: AparienciaDto? = null,
     val diasCuidados: Int = 0,
-    val diasTotales: Int = 0
+    val diasTotales: Int = 0,
+    val fase: String? = null,
+    val enRecuperacion: Boolean = false,
+    val recuperacionSegundos: Long? = null,
+    val golpeTipo: String? = null
 )
 
 data class AparienciaDto(
@@ -81,5 +90,8 @@ data class DailyMissionDto(
     val progress: Float = 0f,
     val currentCount: Int = 0,
     val targetCount: Int = 0,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val kind: String? = null,
+    val eventType: String? = null,
+    val endsInSeconds: Long? = null
 )

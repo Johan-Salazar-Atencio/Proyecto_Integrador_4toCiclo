@@ -7,5 +7,12 @@ data class DailyMission(
     val progress: Float,
     val currentCount: Int,
     val targetCount: Int,
-    val isCompleted: Boolean
-)
+    val isCompleted: Boolean,
+    /** "EVENT" en la mision del evento activo (tarjeta roja); null en las misiones diarias. */
+    val kind: String? = null,
+    val eventType: String? = null,
+    /** Segundos que faltan para que termine el evento; null en las misiones diarias. */
+    val endsInSeconds: Long? = null
+) {
+    val esEvento: Boolean get() = kind == "EVENT"
+}
