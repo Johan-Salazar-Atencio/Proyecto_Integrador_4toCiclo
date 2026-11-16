@@ -5,7 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-/** Articulo de la tienda: ABONO (se usa al comprarlo), FONDO (se equipa) o MACETA (aun sin usar). */
+/** Articulo de la tienda: ABONO (se usa al comprarlo), FONDO (se equipa), MACETA o INVERNADERO (se compran una vez y se eligen). */
 @Entity
 @Table(name = "items_tienda")
 public class ItemTienda {
@@ -41,6 +41,10 @@ public class ItemTienda {
     @Column(name = "descripcion")
     private String descripcion;
 
+    /** Identificador estable de un articulo de pixel art (macetas e invernaderos); la app lo dibuja por este codigo. */
+    @Column(name = "codigo")
+    private String codigo;
+
     /** El admin lo desactiva para quitarlo de la tienda sin perder lo que ya compraron. */
     @Column(name = "activo")
     private Boolean activo = true;
@@ -49,6 +53,8 @@ public class ItemTienda {
     public void setIdItem(Integer idItem) { this.idItem = idItem; }
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
+    public String getCodigo() { return codigo; }
+    public void setCodigo(String codigo) { this.codigo = codigo; }
     public String getTipo() { return tipo; }
     public void setTipo(String tipo) { this.tipo = tipo; }
     public Integer getPrecioMonedas() { return precioMonedas; }

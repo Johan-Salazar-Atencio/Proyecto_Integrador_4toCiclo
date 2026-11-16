@@ -37,6 +37,8 @@ public record PlantSummaryDto(
         @JsonInclude(JsonInclude.Include.NON_NULL) Integer costoRevivir,
         /** true si esta guardada en el baul: congelada, solo ocupa espacio. */
         boolean enBaul,
+        /** Codigo de la maceta que tiene puesta (TERRACOTA si no eligio otra); la app la dibuja con ese codigo. */
+        String macetaCodigo,
         /** XP y nivel ganados con la accion (digitalizar, cuidar); no se envia en las consultas. */
         @JsonInclude(JsonInclude.Include.NON_NULL) ProgresoDto progreso
 ) {
@@ -48,19 +50,19 @@ public record PlantSummaryDto(
                            int diasCuidados, int diasTotales, String fase) {
         this(name, species, healthPercent, humidityPercent, lightPercent, lastWatered, imageUrl,
                 id, crecimiento, apariencia, fotoUrl, activa, refugiada, diasCuidados, diasTotales, fase,
-                false, null, null, null, false, null);
+                false, null, null, null, false, "TERRACOTA", null);
     }
 
     /** Solo los campos del contrato con el movil. */
     public PlantSummaryDto(String name, String species, int healthPercent, int humidityPercent,
                            int lightPercent, String lastWatered, String imageUrl) {
         this(name, species, healthPercent, humidityPercent, lightPercent, lastWatered, imageUrl,
-                null, 0, null, null, false, false, 0, 0, null, false, null, null, null, false, null);
+                null, 0, null, null, false, false, 0, 0, null, false, null, null, null, false, "TERRACOTA", null);
     }
 
     public PlantSummaryDto conProgreso(ProgresoDto progreso) {
         return new PlantSummaryDto(name, species, healthPercent, humidityPercent, lightPercent, lastWatered,
                 imageUrl, id, crecimiento, apariencia, fotoUrl, activa, refugiada, diasCuidados, diasTotales, fase,
-                enRecuperacion, recuperacionSegundos, golpeTipo, costoRevivir, enBaul, progreso);
+                enRecuperacion, recuperacionSegundos, golpeTipo, costoRevivir, enBaul, macetaCodigo, progreso);
     }
 }

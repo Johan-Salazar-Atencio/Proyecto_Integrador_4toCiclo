@@ -31,6 +31,8 @@ import com.plantia.repositories.UsuarioRepository;
 public class TiendaService {
 
     static final String FONDO = "FONDO";
+    static final String MACETA = "MACETA";
+    static final String INVERNADERO = "INVERNADERO";
     private static final List<String> ORDEN_MOMENTOS = List.of("DIA", "TARDE", "NOCHE");
 
     private final ItemTiendaRepository itemRepo;
@@ -50,9 +52,7 @@ public class TiendaService {
     public TiendaDto listar(Integer userId) {
         Usuario u = usuario(userId);
         List<Integer> comprados = inventarioRepo.findByIdUsuario(userId).stream().map(InventarioUsuario::getIdItem).toList();
-        List<ItemTienda> items = itemRepo.findByActivoTrueOrderByTipoAscPrecioMonedasAscIdItemAsc().stream()
-                .filter(i -> !"MACETA".equals(i.getTipo()))
-                .toList();
+        List<ItemTienda> items = itemRepo.findByActivoTrueOrderByTipoAscPrecioMonedasAscIdItemAsc();
         Map<Integer, List<TemaFondoDto.Variante>> variantes = variantesDe(
                 items.stream().map(ItemTienda::getIdTema).filter(Objects::nonNull).distinct().toList());
         int nivel = valor(u.getNivel(), 1);
@@ -61,23 +61,34 @@ public class TiendaService {
                         i.getDescripcion() != null ? i.getDescripcion() : "",
                         valor(i.getPrecioMonedas(), 0), valor(i.getNivelRequerido(), 1), i.getAssetUrl(),
                         i.getIdTema() != null ? variantes.getOrDefault(i.getIdTema(), List.of()) : List.of(),
-                        comprados.contains(i.getIdItem()), valor(i.getNivelRequerido(), 1) > nivel))
+                        esSuyo(i, comprados), valor(i.getNivelRequerido(), 1) > nivel, i.getCodigo()))
                 .toList());
     }
 
-    /** Compra un tema de fondo. 404 si no existe o esta desactivado; 409 si ya lo tiene, falta nivel o no es un fondo; 402 sin monedas. */
+    /** Un articulo gratis (precio 0) es de todos los usuarios; los demas son del que los compro. */
+    static boolean esSuyo(ItemTienda item, List<Integer> comprados) {
+        return valor(item.getPrecioMonedas(), 0) == 0 && !"ABONO".equals(item.getTipo())
+                || comprados.contains(item.getIdItem());
+    }
+
+    /**
+     * Compra un fondo, una maceta o un invernadero: cada uno se compra una sola vez. 404 si no existe o esta
+     * desactivado; 409 si ya lo tiene, falta nivel o no se vende (el abono se usa desde la planta); 402 sin monedas.
+     */
     @Transactional
     public TiendaDto comprar(Integer userId, Integer idItem) {
         ItemTienda item = itemRepo.findById(idItem)
                 .filter(i -> Boolean.TRUE.equals(i.getActivo()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Articulo no encontrado"));
-        if (!FONDO.equals(item.getTipo()) || item.getIdTema() == null) {
+        boolean fondoConTema = FONDO.equals(item.getTipo()) && item.getIdTema() != null;
+        if (!fondoConTema && !MACETA.equals(item.getTipo()) && !INVERNADERO.equals(item.getTipo())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "ABONO".equals(item.getTipo()) ? "El abono se usa desde la planta del jardin" : "Este articulo aun no esta a la venta");
         }
         Usuario u = usuario(userId);
-        if (inventarioRepo.findByIdUsuario(userId).stream().anyMatch(i -> idItem.equals(i.getIdItem()))) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya tienes este fondo");
+        List<Integer> comprados = inventarioRepo.findByIdUsuario(userId).stream().map(InventarioUsuario::getIdItem).toList();
+        if (esSuyo(item, comprados)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya lo tienes");
         }
         if (valor(item.getNivelRequerido(), 1) > valor(u.getNivel(), 1)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Necesitas el nivel " + item.getNivelRequerido());

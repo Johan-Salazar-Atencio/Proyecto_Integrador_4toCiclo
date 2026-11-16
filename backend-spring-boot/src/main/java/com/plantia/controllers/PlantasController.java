@@ -18,6 +18,7 @@ import com.plantia.models.EscaneoHistorial;
 import com.plantia.dto.TemaFondoDto;
 import com.plantia.services.AbonoService;
 import com.plantia.services.FondosPlantaService;
+import com.plantia.services.MacetasService;
 import com.plantia.services.PlantasService;
 
 @RestController
@@ -27,12 +28,14 @@ public class PlantasController {
     private final PlantasService plantasService;
     private final AbonoService abonoService;
     private final FondosPlantaService fondosPlantaService;
+    private final MacetasService macetasService;
 
     public PlantasController(PlantasService plantasService, AbonoService abonoService,
-                             FondosPlantaService fondosPlantaService) {
+                             FondosPlantaService fondosPlantaService, MacetasService macetasService) {
         this.plantasService = plantasService;
         this.abonoService = abonoService;
         this.fondosPlantaService = fondosPlantaService;
+        this.macetasService = macetasService;
     }
 
     /**
@@ -127,6 +130,25 @@ public class PlantasController {
             @RequestHeader("X-User-Id") Integer userId,
             @PathVariable("id") Integer idPlantaUsuario) {
         return ResponseEntity.ok(plantasService.prevenir(userId, idPlantaUsuario));
+    }
+
+    /**
+     * Pone una maceta que el usuario tiene a las plantas que elija. Body: { "idItem": n, "ids": [1, 2] }.
+     * 409 si no tiene la maceta o una planta esta en el baul.
+     */
+    @PutMapping("/macetas")
+    public List<PlantSummaryDto> ponerMaceta(
+            @RequestHeader("X-User-Id") Integer userId,
+            @RequestBody Map<String, Object> body) {
+        Integer idItem = entero(body.get("idItem"));
+        List<Integer> ids = body.get("ids") instanceof List<?> lista
+                ? lista.stream().map(PlantasController::entero).filter(java.util.Objects::nonNull).toList()
+                : List.of();
+        if (idItem == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Falta idItem");
+        }
+        return macetasService.aplicar(userId, idItem, ids);
     }
 
     /** Guarda la planta en el baul (congelada). 409 si esta golpeada por un evento. */

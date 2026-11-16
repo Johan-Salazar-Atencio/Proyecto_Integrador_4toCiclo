@@ -45,6 +45,7 @@ class PlantasServiceTest {
     private PlantasService service;
     private UsuarioRepository usuarioRepo;
     private PlantaCatalogoRepository catalogoRepo;
+    private com.plantia.repositories.ItemTiendaRepository itemRepo;
     private Usuario usuario;
 
     @BeforeEach
@@ -59,13 +60,14 @@ class PlantasServiceTest {
         eventoRepo = mock(EventoDesastreRepository.class);
         EventoService eventos = new EventoService(eventoRepo, usuarioRepo, mock(com.plantia.repositories.TipoDesastreRepository.class));
         catalogoRepo = mock(PlantaCatalogoRepository.class);
+        itemRepo = mock(com.plantia.repositories.ItemTiendaRepository.class);
         com.plantia.models.PlantaCatalogo especie = new com.plantia.models.PlantaCatalogo();
         especie.setIdCatalogo(5);
         when(catalogoRepo.findById(5)).thenReturn(Optional.of(especie));
         usuario = new Usuario();
         when(usuarioRepo.findById(any())).thenReturn(Optional.of(usuario));
         service = new PlantasService(plantaRepo, catalogoRepo, escaneoRepo, progreso, eventos,
-                usuarioRepo, new ParametrosJuego(mock(ParametroJuegoRepository.class)), new ObjectMapper());
+                usuarioRepo, new ParametrosJuego(mock(ParametroJuegoRepository.class)), itemRepo, new ObjectMapper());
 
         PlantaUsuario planta = new PlantaUsuario();
         planta.setIdUsuario(DUENO);
@@ -602,5 +604,21 @@ class PlantasServiceTest {
         assertThatThrownBy(() -> service.renombrar(OTRO, 10, "Hola"))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    @Test
+    void sinMacetaElegidaLaPlantaTieneLaTerracota() {
+        assertThat(service.resumen(DUENO, 10).macetaCodigo()).isEqualTo("TERRACOTA");
+    }
+
+    @Test
+    void laPlantaTraeElCodigoDeSuMacetaPuesta() {
+        com.plantia.models.ItemTienda rosa = new com.plantia.models.ItemTienda();
+        rosa.setIdItem(77);
+        rosa.setCodigo("ROSA");
+        when(itemRepo.findById(77)).thenReturn(Optional.of(rosa));
+        plantaRepo.findById(10).get().setIdMaceta(77);
+
+        assertThat(service.resumen(DUENO, 10).macetaCodigo()).isEqualTo("ROSA");
     }
 }

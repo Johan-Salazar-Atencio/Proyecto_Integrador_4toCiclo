@@ -19,10 +19,12 @@ import com.plantia.dto.PlantSummaryDto;
 import com.plantia.dto.ProgresoDto;
 import com.plantia.models.EscaneoHistorial;
 import com.plantia.models.PlantaUsuario;
+import com.plantia.models.ItemTienda;
 import com.plantia.models.PlantaCatalogo;
 import com.plantia.models.Usuario;
 import com.plantia.repositories.CatalogosPorId;
 import com.plantia.repositories.EscaneoHistorialRepository;
+import com.plantia.repositories.ItemTiendaRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
 import com.plantia.repositories.PlantaUsuarioRepository;
 import com.plantia.repositories.UsuarioRepository;
@@ -37,6 +39,7 @@ public class PlantasService {
     private final EventoService eventoService;
     private final UsuarioRepository usuarioRepo;
     private final ParametrosJuego parametros;
+    private final ItemTiendaRepository itemRepo;
     private final ObjectMapper json;
 
     public PlantasService(PlantaUsuarioRepository plantaRepo,
@@ -46,6 +49,7 @@ public class PlantasService {
                           EventoService eventoService,
                           UsuarioRepository usuarioRepo,
                           ParametrosJuego parametros,
+                          ItemTiendaRepository itemRepo,
                           ObjectMapper json) {
         this.plantaRepo = plantaRepo;
         this.catalogoRepo = catalogoRepo;
@@ -54,6 +58,7 @@ public class PlantasService {
         this.eventoService = eventoService;
         this.usuarioRepo = usuarioRepo;
         this.parametros = parametros;
+        this.itemRepo = itemRepo;
         this.json = json;
     }
 
@@ -573,7 +578,16 @@ public class PlantasService {
                 p.getGolpeTipo(),
                 "MUERTA".equals(p.getEtapaCrecimiento()) && parametros != null ? parametros.costoRevivir() : null,
                 enBaul(p),
+                macetaDe(p),
                 null);
+    }
+
+    /** Codigo de la maceta puesta; la terracota si no eligio otra (o si el articulo ya no existe). */
+    private String macetaDe(PlantaUsuario p) {
+        if (p.getIdMaceta() == null || itemRepo == null) {
+            return "TERRACOTA";
+        }
+        return itemRepo.findById(p.getIdMaceta()).map(ItemTienda::getCodigo).orElse("TERRACOTA");
     }
 
     /** Segundos que faltan para el momento dado (0 si ya paso); null si no hay momento. */

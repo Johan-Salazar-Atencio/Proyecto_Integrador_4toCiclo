@@ -166,4 +166,69 @@ class TiendaServiceTest {
         }
         assertThat(usuario.getMonedas()).isEqualTo(300);
     }
+
+    // --- Macetas e invernaderos ---
+
+    private ItemTienda articulo(int id, String tipo, int precio, String codigo) {
+        ItemTienda i = item(id, tipo, precio, 1, null, true);
+        i.setCodigo(codigo);
+        when(itemRepo.findById(id)).thenReturn(Optional.of(i));
+        return i;
+    }
+
+    @Test
+    void lasMacetasYLosInvernaderosGratisYaSonDelUsuarioYLosDemasNo() {
+        ItemTienda terracota = articulo(10, "MACETA", 0, "TERRACOTA");
+        ItemTienda crema = articulo(11, "MACETA", 80, "CREMA");
+        ItemTienda selva = articulo(12, "INVERNADERO", 0, "SELVA");
+        when(itemRepo.findByActivoTrueOrderByTipoAscPrecioMonedasAscIdItemAsc()).thenReturn(List.of(terracota, crema, selva));
+
+        TiendaDto t = service.listar(USER);
+
+        assertThat(en(t, 10).comprado()).isTrue();
+        assertThat(en(t, 11).comprado()).isFalse();
+        assertThat(en(t, 12).comprado()).isTrue();
+        assertThat(en(t, 11).codigo()).isEqualTo("CREMA");
+    }
+
+    @Test
+    void comprarUnaMacetaCobraYLaGuarda() {
+        ItemTienda crema = articulo(11, "MACETA", 80, "CREMA");
+        when(itemRepo.findByActivoTrueOrderByTipoAscPrecioMonedasAscIdItemAsc()).thenReturn(List.of(crema));
+
+        TiendaDto t = service.comprar(USER, 11);
+
+        assertThat(usuario.getMonedas()).isEqualTo(220);
+        assertThat(en(t, 11).comprado()).isTrue();
+    }
+
+    @Test
+    void comprarUnInvernaderoTambienSePuede() {
+        ItemTienda victoriano = articulo(13, "INVERNADERO", 150, "VICTORIANO");
+        when(itemRepo.findByActivoTrueOrderByTipoAscPrecioMonedasAscIdItemAsc()).thenReturn(List.of(victoriano));
+
+        service.comprar(USER, 13);
+
+        assertThat(usuario.getMonedas()).isEqualTo(150);
+    }
+
+    @Test
+    void unaMacetaGratisNoSeCompra() {
+        articulo(10, "MACETA", 0, "TERRACOTA");
+
+        assertThatThrownBy(() -> service.comprar(USER, 10))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+        assertThat(usuario.getMonedas()).isEqualTo(300);
+    }
+
+    @Test
+    void sinMonedasNoSeCompraUnaMaceta() {
+        usuario.setMonedas(50);
+        articulo(11, "MACETA", 80, "CREMA");
+
+        assertThatThrownBy(() -> service.comprar(USER, 11))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.PAYMENT_REQUIRED));
+    }
 }
