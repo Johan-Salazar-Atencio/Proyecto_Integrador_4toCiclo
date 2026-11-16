@@ -8,3 +8,6 @@ data class RegionDto(
 
 /** Cuerpo de PUT /api/v1/usuarios/me */
 data class CambiarRegionRequest(val region: String)
+
+/** Cuerpo de PUT /api/v1/usuarios/me/nombre */
+data class CambiarNombreRequest(val nombre: String)

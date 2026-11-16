@@ -6,6 +6,7 @@ import com.plantia.data.model.Region
 import com.plantia.data.model.UserSummary
 import com.plantia.data.model.WeatherAlert
 import com.plantia.data.remote.PlantiaApi
+import com.plantia.data.remote.dto.CambiarNombreRequest
 import com.plantia.data.remote.dto.CambiarRegionRequest
 import com.plantia.data.remote.dto.ElegirInvernaderoRequest
 import com.plantia.util.ImageCompressor
@@ -90,6 +91,11 @@ class RemoteUsuarioRepository(
 
     override suspend fun cambiarRegion(codigo: String): UserSummary? = withContext(Dispatchers.IO) {
         val respuesta = runCatching { api().cambiarRegion(CambiarRegionRequest(codigo)) }.getOrNull()
+        if (respuesta != null && respuesta.isSuccessful) respuesta.body()?.toDomain() else null
+    }
+
+    override suspend fun cambiarNombre(nombre: String): UserSummary? = withContext(Dispatchers.IO) {
+        val respuesta = runCatching { api().cambiarNombre(CambiarNombreRequest(nombre)) }.getOrNull()
         if (respuesta != null && respuesta.isSuccessful) respuesta.body()?.toDomain() else null
     }
 

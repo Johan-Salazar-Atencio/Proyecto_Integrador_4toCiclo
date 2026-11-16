@@ -28,6 +28,7 @@ object Routes {
     const val TIENDA = "tienda"
     const val MISIONES = "misiones"
     const val PERFIL = "perfil"
+    const val EDITAR_DATOS = "editar_datos"
 
     const val ARG_PLANT_ID = "plantId"
     const val PLANT_DETAIL = "PlantDetailScreen/{$ARG_PLANT_ID}"

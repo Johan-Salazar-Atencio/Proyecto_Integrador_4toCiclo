@@ -37,6 +37,7 @@ import com.plantia.ui.garden.VirtualGardenScreen
 import com.plantia.ui.misiones.MisionesScreen
 import com.plantia.ui.home.HomeScreen
 import com.plantia.ui.legal.TermsScreen
+import com.plantia.ui.profile.EditarDatosScreen
 import com.plantia.ui.profile.PerfilScreen
 import com.plantia.ui.profile.viewmodel.PerfilViewModel
 import com.plantia.ui.scan.HistorialScreen
@@ -279,7 +280,6 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 usuario = perfilViewModel.usuario,
                 cargando = perfilViewModel.cargando,
                 error = perfilViewModel.error,
-                escaneadas = perfilViewModel.escaneadas,
                 digitales = perfilViewModel.digitales,
                 modoTema = modoTema,
                 regiones = perfilViewModel.regiones,
@@ -296,12 +296,17 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onReintentar = { perfilViewModel.recargar() },
                 onVerHistorial = { navController.navigate(Routes.HISTORIAL) },
                 onVerTerminos = { navController.navigate(Routes.TERMINOS) },
+                onEditarDatos = { navController.navigate(Routes.EDITAR_DATOS) },
+                onVerEnciclopedia = { navController.navigate(Routes.CATALOGO) },
                 onCerrarSesion = {
                     perfilViewModel.cerrarSesion()
                     navController.navigate(Routes.WELCOME) { popUpTo(Routes.HOME) { inclusive = true } }
-                },
-                onVolver = { navController.popBackStack() }
+                }
             )
+        }
+
+        composable(Routes.EDITAR_DATOS) {
+            EditarDatosScreen(onBack = { navController.popBackStack() })
         }
     }
     }

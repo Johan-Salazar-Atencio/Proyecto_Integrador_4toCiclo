@@ -66,7 +66,8 @@ fun UserSummaryDto.toDomain(): UserSummary = UserSummary(
     streakDays = streakDays,
     experienceFromLevel = experienceFromLevel,
     regionCode = regionCode,
-    greenhouseCode = greenhouseCode.ifBlank { "SELVA" }
+    greenhouseCode = greenhouseCode.ifBlank { "SELVA" },
+    email = email
 )
 
 fun WeatherAlertDto.toDomain(): WeatherAlert = WeatherAlert(

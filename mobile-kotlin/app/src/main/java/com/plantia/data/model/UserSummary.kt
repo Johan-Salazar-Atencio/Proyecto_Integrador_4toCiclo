@@ -17,7 +17,9 @@ data class UserSummary(
     /** Codigo de la region que decide que desastres le llegan (vacio si el servidor no lo envia). */
     val regionCode: String = "",
     /** Invernadero de su coleccion virtual: SELVA (el predeterminado), VICTORIANO o LUCES. */
-    val greenhouseCode: String = "SELVA"
+    val greenhouseCode: String = "SELVA",
+    /** Correo con el que se registro (vacio si el servidor no lo envia). */
+    val email: String = ""
 ) {
     /** En el ultimo nivel no hay siguiente: el servidor iguala el limite al XP. */
     val esNivelMaximo: Boolean

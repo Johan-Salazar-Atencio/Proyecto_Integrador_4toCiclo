@@ -233,6 +233,12 @@ class FakeUsuarioRepository : UsuarioRepository {
     override suspend fun regiones(): List<Region>? = emptyList()
     override suspend fun cambiarRegion(codigo: String): UserSummary? = perfil
 
+    val nombres = mutableListOf<String>()
+    override suspend fun cambiarNombre(nombre: String): UserSummary? {
+        nombres += nombre
+        return perfil?.copy(name = nombre)
+    }
+
     override suspend fun cambiarInvernadero(idItem: Int): UserSummary? {
         invernaderos += idItem
         return alCambiarInvernadero

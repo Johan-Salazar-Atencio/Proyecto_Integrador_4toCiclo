@@ -2,6 +2,11 @@ package com.plantia.ui.profile
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Notifications
+import com.plantia.data.local.Recordatorios
+import com.plantia.ui.theme.BlueInfo
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -82,16 +87,15 @@ import com.plantia.ui.theme.TextSecondary
 import com.plantia.util.IconosOscurosEnBarraDeEstado
 
 /**
- * Perfil del usuario: nivel y experiencia, resumen de plantas, tema de la app, accesos y cierre de sesion.
+ * Perfil del usuario (propuesta E): foto con boton de camara, nombre y rango, tres estadisticas (plantas, dias y
+ * hojas), apariencia y una lista con editar datos, recordatorios, historial, enciclopedia, terminos y cierre de sesion.
  * Usa solo colores del tema, asi que se ve bien en claro y en oscuro.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PerfilScreen(
     usuario: UserSummary?,
     cargando: Boolean,
     error: String?,
-    escaneadas: Int?,
     digitales: Int?,
     modoTema: ModoTema,
     regiones: List<Region>,
@@ -105,8 +109,9 @@ fun PerfilScreen(
     onReintentar: () -> Unit,
     onVerHistorial: () -> Unit,
     onVerTerminos: () -> Unit,
+    onEditarDatos: () -> Unit,
+    onVerEnciclopedia: () -> Unit,
     onCerrarSesion: () -> Unit,
-    onVolver: () -> Unit,
     modifier: Modifier = Modifier,
     subiendoFoto: Boolean = false,
     errorFoto: String? = null,
@@ -114,6 +119,33 @@ fun PerfilScreen(
 ) {
     IconosOscurosEnBarraDeEstado()
     var confirmarSalida by remember { mutableStateOf(false) }
+
+    // Recordatorio diario: pide el permiso de notificaciones (Android 13+) antes de activarlo
+    val contexto = androidx.compose.ui.platform.LocalContext.current
+    var recordar by remember { mutableStateOf(Recordatorios.activos(contexto)) }
+    val pedirPermiso = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) {
+            Recordatorios.activar(contexto)
+            recordar = true
+        }
+    }
+    val alCambiarRecordatorio: (Boolean) -> Unit = { quiere ->
+        if (!quiere) {
+            Recordatorios.desactivar(contexto)
+            recordar = false
+        } else if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                contexto, android.Manifest.permission.POST_NOTIFICATIONS
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            pedirPermiso.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            Recordatorios.activar(contexto)
+            recordar = true
+        }
+    }
 
     if (confirmarSalida) {
         AlertDialog(
@@ -131,32 +163,14 @@ fun PerfilScreen(
         )
     }
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("Perfil", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
+    Scaffold(modifier = modifier, containerColor = MaterialTheme.colorScheme.background) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             when {
                 cargando -> Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
@@ -165,20 +179,24 @@ fun PerfilScreen(
                 usuario == null -> AvisoError(error ?: "No se pudo cargar el perfil", onReintentar)
                 else -> {
                     TarjetaUsuario(usuario, subiendoFoto, errorFoto, onCambiarFoto)
-                    FilaEstadisticas(escaneadas, digitales)
-                    if (regiones.isNotEmpty()) {
-                        SeccionRegion(regiones, usuario.regionCode, cambiandoRegion, errorRegion, onCambiarRegion)
-                    }
+                    FilaEstadisticas(digitales, usuario.streakDays, usuario.leaves)
                 }
             }
 
             SeccionTema(modoTema, onCambiarTema)
 
+            if (usuario != null && regiones.isNotEmpty()) {
+                SeccionRegion(regiones, usuario.regionCode, cambiandoRegion, errorRegion, onCambiarRegion)
+            }
+
             Card(
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
+                FilaAcceso(Icons.Filled.Edit, "Editar datos", onEditarDatos)
+                FilaRecordatorios(recordar, alCambiarRecordatorio)
                 FilaAcceso(Icons.Filled.History, "Historial de escaneos", onVerHistorial)
+                FilaAcceso(Icons.Filled.MenuBook, "Enciclopedia de plantas", onVerEnciclopedia)
                 FilaAcceso(Icons.Filled.Description, "Términos y privacidad", onVerTerminos)
                 FilaAcceso(Icons.AutoMirrored.Filled.ExitToApp, "Cerrar sesión", { confirmarSalida = true }, peligro = true)
             }
@@ -186,6 +204,29 @@ fun PerfilScreen(
             // Solo en versiones de depuracion: el equipo cambia a mano el servidor al que se conecta la app.
             if (BuildConfig.DEBUG) ConexionAvanzada(baseUrlActual, hostManualActual, onGuardarHost)
         }
+    }
+}
+
+/** Fila con interruptor: recibir un recordatorio diario para cuidar las plantas. */
+@Composable
+private fun FilaRecordatorios(activo: Boolean, onCambiar: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable { onCambiar(!activo) }.padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(Modifier.size(38.dp).clip(CircleShape).background(GreenLight), contentAlignment = Alignment.Center) {
+            Icon(Icons.Filled.Notifications, contentDescription = null, tint = GreenDark, modifier = Modifier.size(20.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text("Recordatorios", fontWeight = FontWeight.SemiBold, color = TextPrimary)
+            Text("Un aviso diario a las ${Recordatorios.HORA}:00 para cuidar tus plantas", fontSize = 12.sp, color = TextSecondary)
+        }
+        androidx.compose.material3.Switch(
+            checked = activo,
+            onCheckedChange = onCambiar,
+            colors = androidx.compose.material3.SwitchDefaults.colors(checkedTrackColor = GreenPrimary)
+        )
     }
 }
 
@@ -209,11 +250,6 @@ private fun TarjetaUsuario(
             if (imagen != null) onCambiarFoto(imagen.archivo)
         }
     }
-    val objetivo = usuario.progresoNivel
-    var arranque by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { arranque = true }
-    val progreso by animateFloatAsState(if (arranque) objetivo else 0f, tween(900), label = "xp")
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -241,7 +277,8 @@ private fun TarjetaUsuario(
                 ) {
                     val inicial: @Composable () -> Unit = {
                         Text(
-                            text = usuario.name.trim().firstOrNull()?.uppercase() ?: "?",
+                            text = usuario.name.trim().split(" ").filter { it.isNotBlank() }.take(2)
+                                .joinToString("") { it.first().uppercase() }.ifEmpty { "?" },
                             fontSize = 40.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.surface
@@ -259,7 +296,7 @@ private fun TarjetaUsuario(
                         .background(MaterialTheme.colorScheme.surface)
                         .padding(3.dp)
                         .clip(CircleShape)
-                        .background(GreenDark),
+                        .background(AmberAlert),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(16.dp))
@@ -268,29 +305,9 @@ private fun TarjetaUsuario(
             if (errorFoto != null) Text(errorFoto, fontSize = 12.sp, color = RojoTexto)
 
             Text(usuario.name, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            if (usuario.email.isNotBlank()) Text(usuario.email, fontSize = 13.sp, color = TextSecondary)
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Etiqueta("Nivel ${usuario.level} · ${usuario.badge}", GreenLight, GreenDark)
-                Etiqueta("🍃 ${usuario.leaves} hojas", AmberLight, AmberAlert)
-            }
-
-            Spacer(Modifier.height(4.dp))
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Progreso de nivel", fontSize = 12.sp, color = TextSecondary)
-                    Text("${usuario.experience} / ${usuario.experienceToNextLevel} XP", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GreenDark)
-                }
-                Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))) {
-                    Box(Modifier.fillMaxWidth(progreso).fillMaxSize().clip(RoundedCornerShape(50)).background(GreenPrimary))
-                }
-            }
+            Etiqueta("${usuario.badge} · Nivel ${usuario.level}", GreenLight, GreenDark)
         }
     }
 }
@@ -303,26 +320,25 @@ private fun Etiqueta(texto: String, fondo: androidx.compose.ui.graphics.Color, c
 }
 
 @Composable
-private fun FilaEstadisticas(escaneadas: Int?, digitales: Int?) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Estadistica(Icons.Filled.Collections, escaneadas?.toString() ?: "–", "Escaneadas", Modifier.weight(1f))
-        Estadistica(Icons.Filled.Yard, digitales?.toString() ?: "–", "Digitales", Modifier.weight(1f))
+private fun FilaEstadisticas(plantas: Int?, dias: Int, hojas: Int) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Estadistica(plantas?.toString() ?: "–", "Plantas", GreenPrimary, Modifier.weight(1f))
+        Estadistica(dias.toString(), "Días de racha", BlueInfo, Modifier.weight(1f))
+        Estadistica(hojas.toString(), "Hojas", AmberAlert, Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun Estadistica(icono: ImageVector, valor: String, etiqueta: String, modifier: Modifier = Modifier) {
+private fun Estadistica(valor: String, etiqueta: String, borde: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.5.dp, borde.copy(alpha = 0.55f))
     ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Box(Modifier.size(40.dp).clip(CircleShape).background(GreenLight), contentAlignment = Alignment.Center) {
-                Icon(icono, contentDescription = null, tint = GreenDark, modifier = Modifier.size(22.dp))
-            }
-            Text(valor, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            Text(etiqueta, fontSize = 12.sp, color = TextSecondary)
+        Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(valor, fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, color = TextPrimary)
+            Text(etiqueta, fontSize = 11.sp, color = TextSecondary)
         }
     }
 }
@@ -378,36 +394,35 @@ private fun SeccionRegion(
 
 @Composable
 private fun SeccionTema(actual: ModoTema, onCambiar: (ModoTema) -> Unit) {
-    Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Tema de la app", fontWeight = FontWeight.Bold, color = TextPrimary)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ModoTema.entries.forEach { modo ->
-                    FilterChip(
-                        selected = modo == actual,
-                        onClick = { onCambiar(modo) },
-                        label = { Text(modo.etiqueta) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = GreenPrimary,
-                            selectedLabelColor = MaterialTheme.colorScheme.surface
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = modo == actual,
-                            borderColor = MaterialTheme.colorScheme.outline,
-                            selectedBorderColor = GreenPrimary
-                        )
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Apariencia", fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(start = 4.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            ModoTema.entries.forEach { modo ->
+                val elegido = modo == actual
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(if (elegido) GreenPrimary else androidx.compose.ui.graphics.Color.Transparent)
+                        .clickable { onCambiar(modo) }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        modo.etiqueta,
+                        fontSize = 13.sp,
+                        fontWeight = if (elegido) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (elegido) MaterialTheme.colorScheme.surface else TextSecondary
                     )
                 }
             }
-            Text(
-                if (actual == ModoTema.SISTEMA) "Sigue el modo claro u oscuro de tu teléfono." else "Se queda así aunque cambies el modo del teléfono.",
-                fontSize = 12.sp,
-                color = TextSecondary
-            )
         }
     }
 }

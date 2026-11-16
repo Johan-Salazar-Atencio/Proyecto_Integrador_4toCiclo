@@ -9,6 +9,7 @@ import com.plantia.data.remote.dto.ColeccionDetalleDto
 import com.plantia.data.remote.dto.ColeccionItemDto
 import com.plantia.data.remote.dto.CuidadoSeccionDto
 import com.plantia.data.remote.dto.ApodoRequest
+import com.plantia.data.remote.dto.CambiarNombreRequest
 import com.plantia.data.remote.dto.CambiarRegionRequest
 import com.plantia.data.remote.dto.ElegirInvernaderoRequest
 import com.plantia.data.remote.dto.PonerMacetaRequest
@@ -90,6 +91,10 @@ interface PlantiaApi {
     /** Cambia la region del usuario y devuelve su resumen. */
     @PUT("api/v1/usuarios/me")
     suspend fun cambiarRegion(@Body cuerpo: CambiarRegionRequest): Response<UserSummaryDto>
+
+    /** Cambia el nombre del usuario y devuelve su resumen (400 si es muy corto o muy largo). */
+    @PUT("api/v1/usuarios/me/nombre")
+    suspend fun cambiarNombre(@Body cuerpo: CambiarNombreRequest): Response<UserSummaryDto>
 
     /** Elige el invernadero de la coleccion virtual (409 si todavia no lo compro). */
     @PUT("api/v1/usuarios/me/invernadero")
