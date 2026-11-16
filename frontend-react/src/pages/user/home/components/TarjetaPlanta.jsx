@@ -18,7 +18,6 @@ export default function TarjetaPlanta({ planta, plantas, ocupado, onMover, onCui
   const irA = useNavigate()
   const etapa = etapaDe(planta)
   const animo = estadoAnimo(planta)
-  const posicion = Math.max(1, plantas.findIndex((p) => p.id === planta.id) + 1)
   const entrar = () => irA(RUTAS.JARDIN)
 
   return (
@@ -46,7 +45,6 @@ export default function TarjetaPlanta({ planta, plantas, ocupado, onMover, onCui
             <button className="inicio-flecha inicio-flecha-der" onClick={() => onMover(1)} disabled={ocupado} aria-label="Planta siguiente">›</button>
           </>
         )}
-        {plantas.length > 0 && <span className="inicio-contador">{posicion} / {plantas.length}</span>}
       </div>
 
       <div className="inicio-nombre">

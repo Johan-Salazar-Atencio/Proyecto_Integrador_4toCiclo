@@ -134,7 +134,6 @@ fun HomeScreen(
                 state.planta?.let { planta ->
                     PlantSummaryCard(
                         plant = planta,
-                        posicion = (state.plantas.indexOfFirst { it.id == planta.id } + 1).coerceAtLeast(1),
                         total = state.plantas.size,
                         escena = escenaViewModel.escena,
                         onEnterGarden = onNavigateToGarden,

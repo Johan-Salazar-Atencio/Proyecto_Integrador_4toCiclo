@@ -57,13 +57,12 @@ import com.plantia.ui.theme.TextSecondary
 
 /**
  * Tarjeta de la planta del Inicio (propuesta E): la escena en pixel art con la planta, las flechas para pasar
- * a otra, el contador "1 / 8", el nombre con su especie y los tres cuidados (Regar, Luz, Abono).
+ * a otra, el nombre con su especie y los tres cuidados (Regar, Luz, Abono).
  * Tocar la escena o el nombre entra al jardin virtual.
  */
 @Composable
 fun PlantSummaryCard(
     plant: PlantSummary,
-    posicion: Int,
     total: Int,
     escena: Escena?,
     onEnterGarden: () -> Unit,
@@ -98,19 +97,6 @@ fun PlantSummaryCard(
                 if (total > 1) {
                     FlechaPlanta(Icons.Default.ChevronLeft, "Planta anterior", onAnterior, Modifier.align(Alignment.CenterStart).padding(start = 8.dp))
                     FlechaPlanta(Icons.Default.ChevronRight, "Planta siguiente", onSiguiente, Modifier.align(Alignment.CenterEnd).padding(end = 8.dp))
-                }
-                if (total > 0) {
-                    Text(
-                        "$posicion / $total",
-                        fontSize = 11.sp,
-                        color = GreenDark,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 8.dp)
-                            .clip(CircleShape)
-                            .background(SurfaceWhite.copy(alpha = 0.92f))
-                            .padding(horizontal = 10.dp, vertical = 3.dp)
-                    )
                 }
             }
             Column(modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp)) {

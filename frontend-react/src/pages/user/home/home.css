@@ -49,7 +49,6 @@
 .inicio-flecha:disabled { opacity: 0.5; cursor: default; }
 .inicio-flecha-izq { left: 8px; }
 .inicio-flecha-der { right: 8px; }
-.inicio-contador { position: absolute; left: 50%; bottom: 3%; z-index: 3; transform: translateX(-50%); padding: 3px 12px; background: color-mix(in srgb, var(--superficie) 90%, transparent); border-radius: 999px; color: var(--verde-oscuro); font-size: 0.75rem; }
 .inicio-nombre { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 0 8px; }
 .inicio-nombre-boton { padding: 0; border: 0; background: transparent; color: var(--texto); font-family: var(--fuente-pixel); font-size: 1.35rem; font-weight: 500; cursor: pointer; text-align: left; }
 .inicio-nombre .planta-especie { margin: 0; font-size: 0.8rem; }
