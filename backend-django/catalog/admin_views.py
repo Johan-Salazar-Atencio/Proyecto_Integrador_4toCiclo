@@ -24,7 +24,7 @@ from rest_framework.views import APIView
 from . import eventos_imagen, fondos_imagen
 from .models import (
     EventoDesastre, FondoEscena, ItemTienda, Mision, ParametroJuego, PlantaCatalogo, Region,
-    RegistroDesastreUsuario, TemaFondo, TipoDesastre, Usuario,
+    RegistroDesastreUsuario, ReglaProgreso, TemaFondo, TipoDesastre, Usuario,
 )
 
 # Hash BCrypt valido para comparar cuando el correo no existe: asi el tiempo de
@@ -309,6 +309,76 @@ class AdminParametroDetailView(APIView):
         parametro.valor = valor
         parametro.save(update_fields=["valor"])
         return Response(_parametro_a_dict(parametro))
+
+
+# Nombre que ve el admin de cada regla (el motivo es el codigo que usa Spring)
+NOMBRES_REGLAS = {
+    "ESCANEO_NUEVA": "Escanear una especie nueva",
+    "ESCANEO_REPETIDO": "Escanear una especie ya escaneada",
+    "DIGITALIZAR": "Digitalizar una planta nueva",
+    "REGAR": "Regar (cuidado util)",
+    "SOL": "Dar luz (cuidado util)",
+    "ABONAR": "Abonar (cuidado util)",
+    "RACHA": "Racha diaria",
+    "REFUGIO": "Prevenir el evento en una planta",
+    "EVENTO_COMPLETO": "Completar un evento (prevenirlo en todas las plantas)",
+    "MISION": "Mision (cada una paga lo suyo)",
+}
+
+
+def _regla_a_dict(r):
+    return {
+        "id_regla": r.id_regla, "motivo": r.motivo, "nombre": NOMBRES_REGLAS.get(r.motivo, r.motivo),
+        "xp": r.xp, "monedas": r.monedas, "tope_diario": r.tope_diario, "activa": r.activa,
+    }
+
+
+def _validar_regla(data):
+    valores = {}
+    for campo in ("xp", "monedas"):
+        if campo in data:
+            valor = data[campo]
+            if isinstance(valor, bool) or not isinstance(valor, int) or not 0 <= valor <= 100000:
+                return None, f"{campo} debe ser un entero entre 0 y 100000"
+            valores[campo] = valor
+    if "tope_diario" in data:
+        valor = data["tope_diario"]
+        if valor is not None and (isinstance(valor, bool) or not isinstance(valor, int) or valor < 1):
+            return None, "tope_diario debe ser un entero >= 1 (o vacio para quitar el tope)"
+        valores["tope_diario"] = valor
+    if "activa" in data:
+        if not isinstance(data["activa"], bool):
+            return None, "activa debe ser verdadero o falso"
+        valores["activa"] = data["activa"]
+    return valores, None
+
+
+class AdminReglasView(APIView):
+    """GET /api/admin/reglas/  lo que paga cada accion del juego, en hojas y XP."""
+
+    def get(self, request):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response([_regla_a_dict(r) for r in ReglaProgreso.objects.order_by("id_regla")])
+
+
+class AdminReglaDetailView(APIView):
+    """PATCH /api/admin/reglas/<id>/  {xp, monedas, tope_diario, activa}. El motivo no se cambia."""
+
+    def patch(self, request, pk):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        regla = ReglaProgreso.objects.filter(pk=pk).first()
+        if regla is None:
+            return Response({"error": "Regla no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        valores, error = _validar_regla(request.data)
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+        for campo, valor in valores.items():
+            setattr(regla, campo, valor)
+        if valores:
+            regla.save(update_fields=list(valores))
+        return Response(_regla_a_dict(regla))
 
 
 def _tipo_a_dict(t):

@@ -734,3 +734,62 @@ class AdminTiposDesastreTests(SimpleTestCase):
                                        {"imagen": archivo}, formato="multipart", pk=3)
         self.assertEqual(respuesta.status_code, 400)
         tipo.save.assert_not_called()
+
+
+class AdminReglasTests(SimpleTestCase):
+    """Reglas de progreso: lo que pagan las acciones en hojas y XP."""
+
+    def _regla(self, motivo="REGAR", xp=2, monedas=1, tope=5):
+        from unittest.mock import MagicMock
+
+        regla = admin_views.ReglaProgreso(id_regla=4, motivo=motivo, xp=xp, monedas=monedas, tope_diario=tope, activa=True)
+        regla.save = MagicMock()
+        return regla
+
+    def _llamar(self, vista, metodo, datos=None, admin=True, regla="por-defecto", **kwargs):
+        from unittest.mock import MagicMock
+
+        regla = self._regla() if regla == "por-defecto" else regla
+        request = getattr(APIRequestFactory(), metodo)("/api/admin/reglas/", datos, format="json")
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario() if admin else None), \
+                patch.object(admin_views.ReglaProgreso.objects, "filter", return_value=MagicMock(first=lambda: regla)), \
+                patch.object(admin_views.ReglaProgreso.objects, "order_by", return_value=[regla]):
+            return vista.as_view()(request, **kwargs), regla
+
+    def test_sin_admin_devuelve_401(self):
+        self.assertEqual(self._llamar(admin_views.AdminReglasView, "get", admin=False)[0].status_code, 401)
+        respuesta, _ = self._llamar(admin_views.AdminReglaDetailView, "patch", {"xp": 1}, admin=False, pk=4)
+        self.assertEqual(respuesta.status_code, 401)
+
+    def test_la_lista_trae_el_nombre_legible(self):
+        respuesta, _ = self._llamar(admin_views.AdminReglasView, "get")
+        self.assertEqual(respuesta.data[0]["motivo"], "REGAR")
+        self.assertEqual(respuesta.data[0]["nombre"], "Regar (cuidado util)")
+
+    def test_cambia_hojas_xp_y_tope(self):
+        respuesta, regla = self._llamar(admin_views.AdminReglaDetailView, "patch",
+                                        {"xp": 4, "monedas": 2, "tope_diario": 8}, pk=4)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual((regla.xp, regla.monedas, regla.tope_diario), (4, 2, 8))
+        self.assertCountEqual(regla.save.call_args.kwargs["update_fields"], ["xp", "monedas", "tope_diario"])
+
+    def test_el_tope_vacio_quita_el_tope(self):
+        respuesta, regla = self._llamar(admin_views.AdminReglaDetailView, "patch", {"tope_diario": None}, pk=4)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIsNone(regla.tope_diario)
+
+    def test_valores_invalidos_dan_400_y_no_guardan(self):
+        for malo in ({"xp": -1}, {"monedas": 1.5}, {"xp": True}, {"tope_diario": 0}, {"activa": "si"}):
+            respuesta, regla = self._llamar(admin_views.AdminReglaDetailView, "patch", malo, pk=4)
+            self.assertEqual(respuesta.status_code, 400, malo)
+            regla.save.assert_not_called()
+
+    def test_el_motivo_no_se_puede_cambiar(self):
+        respuesta, regla = self._llamar(admin_views.AdminReglaDetailView, "patch", {"motivo": "OTRO"}, pk=4)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(regla.motivo, "REGAR")
+        regla.save.assert_not_called()
+
+    def test_regla_inexistente_devuelve_404(self):
+        respuesta, _ = self._llamar(admin_views.AdminReglaDetailView, "patch", {"xp": 1}, regla=None, pk=99)
+        self.assertEqual(respuesta.status_code, 404)

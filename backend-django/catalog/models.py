@@ -347,6 +347,27 @@ class ParametroJuego(models.Model):
         return f"{self.clave} = {self.valor}"
 
 
+class ReglaProgreso(models.Model):
+    """Hojas (monedas) y XP que paga cada accion del juego (Flyway V15 y V23). El motivo identifica la
+    accion y no se cambia; el admin ajusta lo que paga, su tope diario y si esta activa."""
+
+    id_regla = models.AutoField(primary_key=True)
+    motivo = models.CharField(max_length=50, unique=True)
+    xp = models.IntegerField(default=0)
+    monedas = models.IntegerField(default=0)
+    tope_diario = models.IntegerField(null=True, blank=True)
+    activa = models.BooleanField(default=True)
+
+    class Meta:
+        managed = False
+        db_table = "reglas_progreso"
+        verbose_name = "Regla de progreso"
+        verbose_name_plural = "Reglas de progreso"
+
+    def __str__(self):
+        return f"{self.motivo}: {self.xp} XP, {self.monedas} hojas"
+
+
 class PlantaUsuario(models.Model):
     """Planta digital de un usuario (solo los campos que lee el panel admin)."""
 
