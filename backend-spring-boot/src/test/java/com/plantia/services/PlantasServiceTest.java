@@ -397,4 +397,78 @@ class PlantasServiceTest {
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
     }
+
+    // --- Recuperacion con abono ---
+
+    private PlantaUsuario enRecuperacion(int salud) {
+        PlantaUsuario p = plantaRepo.findById(10).get();
+        p.setSaludPorcentaje(salud);
+        p.setRecuperacionHasta(LocalDateTime.now().plusHours(20));
+        p.setGolpeTipo("OLA_DE_CALOR");
+        p.setUpdatedAt(LocalDateTime.now());
+        return p;
+    }
+
+    @Test
+    void unAbonoEnRecuperacionSumaMuchoMasQueUnoNormal() {
+        PlantaUsuario p = enRecuperacion(10);
+
+        var dto = service.cuidar(DUENO, 10, "ABONAR");
+
+        assertThat(p.getSaludPorcentaje()).isEqualTo(55);
+        assertThat(dto.enRecuperacion()).isTrue();
+        assertThat(dto.recuperacionSegundos()).isPositive();
+    }
+
+    @Test
+    void dosAbonosDejanLaPlantaAlCienYTerminanLaRecuperacion() {
+        PlantaUsuario p = enRecuperacion(10);
+
+        service.cuidar(DUENO, 10, "ABONAR");
+        var dto = service.cuidar(DUENO, 10, "ABONAR");
+
+        assertThat(p.getSaludPorcentaje()).isEqualTo(100);
+        assertThat(p.getRecuperacionHasta()).isNull();
+        assertThat(dto.enRecuperacion()).isFalse();
+    }
+
+    @Test
+    void regarNoRecuperaUnaPlantaGolpeada() {
+        PlantaUsuario p = enRecuperacion(10);
+
+        service.cuidar(DUENO, 10, "REGAR");
+
+        assertThat(p.getSaludPorcentaje()).isEqualTo(10);
+        assertThat(p.getRecuperacionHasta()).isNotNull();
+    }
+
+    @Test
+    void sinEventoUnAbonoSigueSumandoDiez() {
+        PlantaUsuario p = plantaRepo.findById(10).get();
+
+        service.cuidar(DUENO, 10, "ABONAR");
+
+        assertThat(p.getSaludPorcentaje()).isEqualTo(60);
+    }
+
+    @Test
+    void noSePuedeCuidarUnaPlantaMuerta() {
+        muerta();
+
+        assertThatThrownBy(() -> service.cuidar(DUENO, 10, "ABONAR"))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    @Test
+    void laAnimacionDelGolpeSoloSeMuestraUnaVez() {
+        PlantaUsuario p = enRecuperacion(10);
+
+        assertThat(service.resumen(DUENO, 10).golpeTipo()).isEqualTo("OLA_DE_CALOR");
+        var dto = service.golpeVisto(DUENO, 10);
+
+        assertThat(dto.golpeTipo()).isNull();
+        assertThat(p.getGolpeTipo()).isNull();
+        assertThat(dto.enRecuperacion()).isTrue();
+    }
 }

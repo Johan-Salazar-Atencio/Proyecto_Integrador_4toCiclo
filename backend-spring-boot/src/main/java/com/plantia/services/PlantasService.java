@@ -180,6 +180,10 @@ public class PlantasService {
     public PlantSummaryDto cuidar(Integer userId, Integer idPlantaUsuario, String accion) {
         LocalDateTime ahora = LocalDateTime.now();
         PlantaUsuario p = envejecer(propia(userId, idPlantaUsuario), ahora);
+        if ("MUERTA".equals(p.getEtapaCrecimiento())) {
+            plantaRepo.save(p);
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La planta esta muerta: hay que revivirla");
+        }
         boolean util;
         switch (accion) {
             case "REGAR" -> {
@@ -194,7 +198,12 @@ public class PlantasService {
             }
             case "ABONAR" -> {
                 util = valor(p.getSaludPorcentaje()) < 100;
-                p.setSaludPorcentaje(tope(valor(p.getSaludPorcentaje()) + 10));
+                // Una planta golpeada por un evento solo se recupera con abono, y cada uno rinde mucho mas
+                int sube = p.getRecuperacionHasta() != null ? parametros.abonoRecuperacion() : 10;
+                p.setSaludPorcentaje(tope(valor(p.getSaludPorcentaje()) + sube));
+                if (valor(p.getSaludPorcentaje()) >= 100) {
+                    p.setRecuperacionHasta(null);
+                }
                 p.setUltimoAbono(ahora);
             }
             default -> throw new IllegalArgumentException("Acción inválida: " + accion);
@@ -321,6 +330,17 @@ public class PlantasService {
         }
         p.setUpdatedAt(desde.plusHours(horas));
         return p;
+    }
+
+    /** El usuario ya vio la animacion del evento que golpeo a la planta: no se vuelve a mostrar. */
+    @Transactional
+    public PlantSummaryDto golpeVisto(Integer userId, Integer idPlantaUsuario) {
+        PlantaUsuario p = propia(userId, idPlantaUsuario);
+        if (p.getGolpeTipo() != null) {
+            p.setGolpeTipo(null);
+            plantaRepo.save(p);
+        }
+        return map(p);
     }
 
     /** La planta muere: salud en cero, sin plazo de recuperacion. Conserva sus dias para poder revivirla. */
@@ -466,7 +486,16 @@ public class PlantasService {
                 Boolean.TRUE.equals(p.getEstaRefugiada()),
                 valor(p.getDiasCuidados()),
                 CrecimientoPlanta.diasTotales(deJson(p.getApariencia())),
-                p.getEtapaCrecimiento());
+                p.getEtapaCrecimiento(),
+                p.getRecuperacionHasta() != null,
+                segundosHasta(p.getRecuperacionHasta()),
+                p.getGolpeTipo(),
+                null);
+    }
+
+    /** Segundos que faltan para el momento dado (0 si ya paso); null si no hay momento. */
+    private static Long segundosHasta(LocalDateTime momento) {
+        return momento == null ? null : Math.max(0, Duration.between(LocalDateTime.now(), momento).getSeconds());
     }
 
     private static String etapaUrl(PlantaCatalogo cat, String etapa) {

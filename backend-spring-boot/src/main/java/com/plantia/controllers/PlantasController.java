@@ -149,6 +149,14 @@ public class PlantasController {
         return ResponseEntity.ok(plantasService.revivir(userId, idPlantaUsuario));
     }
 
+    /** Marca como vista la animacion del evento que golpeo a la planta. */
+    @PostMapping("/{id}/golpe-visto")
+    public ResponseEntity<PlantSummaryDto> golpeVisto(
+            @RequestHeader("X-User-Id") Integer userId,
+            @PathVariable("id") Integer idPlantaUsuario) {
+        return ResponseEntity.ok(plantasService.golpeVisto(userId, idPlantaUsuario));
+    }
+
     /** Activa una planta digital (cambia su etapa). */
     @PostMapping("/{id}/activar")
     public ResponseEntity<PlantSummaryDto> activar(
