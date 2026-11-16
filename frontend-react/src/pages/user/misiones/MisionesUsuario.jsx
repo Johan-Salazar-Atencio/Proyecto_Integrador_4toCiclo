@@ -71,7 +71,7 @@ export default function MisionesUsuario() {
   const evento = estado.misiones.filter((m) => m.kind === 'EVENT')
   const diarias = estado.misiones.filter((m) => m.kind !== 'EVENT')
   return (
-    <div className="misiones">
+    <div className="misiones-usuario">
       {evento.map((m) => <MisionEvento key={m.id} mision={m} />)}
       <h2 className="misiones-titulo">Misiones de hoy</h2>
       {diarias.length === 0 && <p className="misiones-vacio">Hoy no hay misiones diarias.</p>}

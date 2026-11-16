@@ -1,4 +1,4 @@
-.misiones { display: flex; flex-direction: column; gap: 14px; max-width: 640px; margin-inline: auto; }
+.misiones-usuario { display: flex; flex-direction: column; gap: 14px; max-width: 640px; margin-inline: auto; }
 .misiones-titulo { font-size: 1.1rem; }
 .misiones-vacio { color: var(--texto-suave); }
 .mision-ir { align-self: flex-start; font-weight: 800; }
