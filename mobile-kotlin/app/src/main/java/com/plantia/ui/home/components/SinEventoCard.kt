@@ -1,6 +1,6 @@
 package com.plantia.ui.home.components
 
-import com.plantia.ui.components.brilloTarjeta
+import com.plantia.ui.components.tarjeta
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -48,7 +48,10 @@ import androidx.compose.ui.unit.sp
 import com.plantia.ui.theme.GreenDark
 import com.plantia.ui.theme.GreenLight
 import com.plantia.ui.theme.GreenPrimary
+import com.plantia.ui.theme.Primario
+import com.plantia.ui.theme.SobrePrimario
 import com.plantia.ui.theme.SurfaceWhite
+import com.plantia.ui.theme.Tinte
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
@@ -95,11 +98,8 @@ fun SinEventoCard(modifier: Modifier = Modifier, consejos: List<String> = Consej
     val paso = pager.currentPage - inicio
     val consejo = if (consejos.isEmpty()) "" else consejos[Math.floorMod(paso, consejos.size)]
 
-    Card(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp).brilloTarjeta(GreenPrimary, RoundedCornerShape(22.dp)),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    Column(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp).tarjeta()
     ) {
         Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {
             HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { pagina ->
@@ -133,9 +133,9 @@ fun SinEventoCard(modifier: Modifier = Modifier, consejos: List<String> = Consej
         }
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Filled.WbSunny, contentDescription = null, tint = GreenPrimary, modifier = Modifier.size(28.dp))
+                Icon(Icons.Filled.WbSunny, contentDescription = null, tint = Primario, modifier = Modifier.size(28.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("No hay eventos por el momento", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text("No hay eventos por el momento", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
                     Text(
                         "Sigue cuidando tus plantas y mantente alerta a los posibles eventos.",
                         fontSize = 12.sp,
@@ -148,12 +148,12 @@ fun SinEventoCard(modifier: Modifier = Modifier, consejos: List<String> = Consej
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(GreenLight)
+                    .background(Tinte)
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(Icons.Filled.Lightbulb, contentDescription = null, tint = GreenDark, modifier = Modifier.size(20.dp))
+                Icon(Icons.Filled.Lightbulb, contentDescription = null, tint = Primario, modifier = Modifier.size(20.dp))
                 AnimatedContent(
                     targetState = consejo,
                     transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -165,20 +165,14 @@ fun SinEventoCard(modifier: Modifier = Modifier, consejos: List<String> = Consej
             }
         }
     }
-    Spacer(Modifier.height(12.dp))
 }
 
 /** Inicio sin plantas: en vez de quedar vacio, invita a escanear la primera. */
 @Composable
 fun SinPlantasCard(onScan: () -> Unit, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
+    run {
         Column(
-            Modifier.fillMaxWidth().padding(20.dp),
+            modifier.fillMaxWidth().padding(horizontal = 12.dp).tarjeta().padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -194,9 +188,8 @@ fun SinPlantasCard(onScan: () -> Unit, modifier: Modifier = Modifier) {
             Button(
                 onClick = onScan,
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+                colors = ButtonDefaults.buttonColors(containerColor = Primario, contentColor = SobrePrimario)
             ) { Text("Escanear una planta", fontWeight = FontWeight.SemiBold) }
         }
     }
-    Spacer(Modifier.height(12.dp))
 }

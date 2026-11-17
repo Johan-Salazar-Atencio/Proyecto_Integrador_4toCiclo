@@ -2,7 +2,9 @@ package com.plantia.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
-import com.plantia.ui.theme.FondoDegradado
+import com.plantia.ui.theme.BackgroundLight
+import com.plantia.ui.misiones.DestinoMision
+import com.plantia.ui.misiones.destinoDeMision
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,7 +53,7 @@ import com.plantia.ui.home.components.UserHeaderCard
 import com.plantia.ui.home.viewmodel.HomeViewModel
 import com.plantia.ui.theme.AmberAlert
 import com.plantia.ui.theme.AmberLight
-import com.plantia.ui.theme.GreenPrimary
+import com.plantia.ui.theme.Primario
 import com.plantia.ui.theme.RojoClaro
 import com.plantia.ui.theme.RojoTexto
 import com.plantia.ui.theme.TextPrimary
@@ -81,16 +83,16 @@ fun HomeScreen(
     AvisoToast(homeViewModel.aviso, homeViewModel::avisoMostrado)
 
     Scaffold(
-        containerColor = Color.Transparent,
-        modifier = Modifier.background(FondoDegradado)
+        containerColor = BackgroundLight
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(0.dp))
 
             if (state.cargando) {
                 Box(
@@ -99,15 +101,15 @@ fun HomeScreen(
                         .height(220.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = GreenPrimary)
+                    CircularProgressIndicator(color = Primario)
                 }
             } else {
                 state.error?.let { mensaje ->
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        shape = RoundedCornerShape(12.dp),
+                            .padding(horizontal = 12.dp),
+                        shape = RoundedCornerShape(18.dp),
                         color = RojoClaro
                     ) {
                         Row(
@@ -132,7 +134,6 @@ fun HomeScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
                 state.usuario?.let { usuario ->
@@ -165,7 +166,16 @@ fun HomeScreen(
                 }
 
                 if (state.misiones.isNotEmpty()) {
-                    MisionesResumenCard(misiones = state.misiones, onClick = onNavigateToMisiones)
+                    MisionesResumenCard(
+                        misiones = state.misiones,
+                        onIr = { mision ->
+                            when (destinoDeMision(mision)) {
+                                DestinoMision.ESCANEAR -> onScan()
+                                DestinoMision.PLANTAS_VIRTUALES -> onNavigateToGarden()
+                                null -> onNavigateToMisiones()
+                            }
+                        }
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
