@@ -1,63 +1,112 @@
-/* Colores y medidas de Plantia (mismos valores que la app Kotlin) */
+/* Colores y medidas de Plantia: nueva interfaz (paleta Esmeralda + Lima). Referencia: Mem_Cla/Proyectos/Plantia/referencia/nuevo-diseno-*.html
+   Los nombres antiguos (--verde, --fondo, --superficie...) se conservan para que el resto del CSS siga funcionando. */
+
+/* ---- Claro (por defecto) ---- */
 :root {
-  --verde: #22c55e;
-  --verde-claro: #e8f8f0;
-  --verde-oscuro: #16a34a;
-  --ambar: #f59e0b;
-  --ambar-claro: #fff3e0;
-  --azul: #3b82f6;
-  --azul-claro: #e8f4fd;
-  --rojo: #ef4444;
-  --rojo-claro: #fdecec;
+  /* nombres nuevos */
+  --fondo: #f6faf7;
+  --superficie: #ffffff;       /* tarjeta */
+  --superficie-2: #eaf3ec;     /* tarjeta elevada / campos */
+  --linea: #d5e4da;
+  --texto: #10261d;
+  --texto-suave: #5a7164;
+  --primario: #15803d;         /* botones y acentos */
+  --sobre-primario: #ffffff;   /* texto sobre el primario */
+  --lima: #a3e635;             /* relleno de acento (botón central, chips) con texto oscuro encima */
+  --sobre-lima: #12200a;
+  --agua: #0284c7;
+  --luz: #d97706;
+  --abono: #9333ea;
+  --evento: #ea580c;
+  --peligro: #e11d48;
+  --ok: #15803d;
+  --tinte: rgba(21, 128, 61, 0.12);
+  --cielo: linear-gradient(#a9ddf2, #e3f5e8);
+  --nube: rgba(255, 255, 255, 0.85);
+  --cesped: #5aa81a;
+  --cesped-2: #4d9b0f;
+  --barra: #ffffff;
+  --velo: rgba(16, 38, 29, 0.45);
 
-  --fondo: #f9fafb;
-  --superficie: #ffffff;
-  --texto: #1f2937;
-  --texto-suave: #6b7280;
-  --linea: #e5e7eb;
+  /* nombres antiguos mapeados a la paleta nueva */
+  --verde: var(--primario);
+  --verde-oscuro: var(--primario);
+  --verde-claro: var(--tinte);
+  --ambar: var(--luz);
+  --ambar-claro: rgba(217, 119, 6, 0.12);
+  --azul: var(--agua);
+  --azul-claro: rgba(2, 132, 199, 0.12);
+  --rojo: var(--peligro);
+  --rojo-claro: rgba(225, 29, 72, 0.12);
 
-  --degradado: linear-gradient(180deg, #e8f8f0 0%, #f7fbf8 55%, #fff6ec 100%);
-  --brillo: 0 8px 24px rgba(34, 197, 94, 0.4);
+  --degradado: linear-gradient(180deg, #f6faf7 0%, #f6faf7 100%);
+  --brillo: 0 8px 24px rgba(163, 230, 53, 0.4);
 
-  --radio: 16px;
-  --radio-chico: 10px;
-  --sombra: 0 2px 12px rgba(31, 41, 55, 0.07);
+  --radio: 24px;
+  --radio-chico: 14px;
+  --sombra: 0 6px 18px rgba(16, 38, 29, 0.08);
   --transicion: 0.25s ease;
 }
 
-/* Oscuro: con la apariencia del navegador (salvo que se elija Claro) o cuando se elige Oscuro en el perfil */
+/* ---- Oscuro: con la apariencia del navegador (salvo que se elija Claro) o cuando se elige Oscuro en el perfil ---- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema='claro']) {
-    --verde: #2fe27a;
-    --verde-oscuro: #34d975;
-    --verde-claro: #123d27;
-    --degradado: radial-gradient(circle at 50% 0%, #11613a 0%, #0f2a22 40%, #111827 75%);
-    --brillo: 0 8px 28px rgba(47, 226, 122, 0.45);
-    --ambar-claro: #3a2a0e;
-    --azul-claro: #14263d;
-    --rojo-claro: #3d1a1a;
-    --fondo: #111827;
-    --superficie: #1f2937;
-    --texto: #f3f4f6;
-    --texto-suave: #9ca3af;
-    --linea: #374151;
-    --sombra: 0 2px 12px rgba(0, 0, 0, 0.35);
+    --fondo: #0b1512;
+    --superficie: #121f1a;
+    --superficie-2: #1a2b24;
+    --linea: #243830;
+    --texto: #e8f3ec;
+    --texto-suave: #8fa89b;
+    --primario: #a3e635;
+    --sobre-primario: #12200a;
+    --agua: #38bdf8;
+    --luz: #fbbf24;
+    --abono: #c084fc;
+    --evento: #fb923c;
+    --peligro: #fb7185;
+    --ok: #4ade80;
+    --tinte: rgba(163, 230, 53, 0.14);
+    --cielo: linear-gradient(#143846, #2b6a66);
+    --nube: rgba(232, 243, 236, 0.22);
+    --cesped: #4d9b0f;
+    --cesped-2: #3f7d1c;
+    --barra: #16261f;
+    --velo: rgba(4, 10, 7, 0.66);
+    --ambar-claro: rgba(251, 191, 36, 0.14);
+    --azul-claro: rgba(56, 189, 248, 0.14);
+    --rojo-claro: rgba(251, 113, 133, 0.14);
+    --degradado: linear-gradient(180deg, #0b1512 0%, #0b1512 100%);
+    --brillo: 0 8px 28px rgba(163, 230, 53, 0.38);
+    --sombra: none;
   }
 }
 
 :root[data-tema='oscuro'] {
-  --verde: #2fe27a;
-  --verde-oscuro: #34d975;
-  --verde-claro: #123d27;
-  --degradado: radial-gradient(circle at 50% 0%, #11613a 0%, #0f2a22 40%, #111827 75%);
-  --brillo: 0 8px 28px rgba(47, 226, 122, 0.45);
-  --ambar-claro: #3a2a0e;
-  --azul-claro: #14263d;
-  --rojo-claro: #3d1a1a;
-  --fondo: #111827;
-  --superficie: #1f2937;
-  --texto: #f3f4f6;
-  --texto-suave: #9ca3af;
-  --linea: #374151;
-  --sombra: 0 2px 12px rgba(0, 0, 0, 0.35);
+  --fondo: #0b1512;
+  --superficie: #121f1a;
+  --superficie-2: #1a2b24;
+  --linea: #243830;
+  --texto: #e8f3ec;
+  --texto-suave: #8fa89b;
+  --primario: #a3e635;
+  --sobre-primario: #12200a;
+  --agua: #38bdf8;
+  --luz: #fbbf24;
+  --abono: #c084fc;
+  --evento: #fb923c;
+  --peligro: #fb7185;
+  --ok: #4ade80;
+  --tinte: rgba(163, 230, 53, 0.14);
+  --cielo: linear-gradient(#143846, #2b6a66);
+  --nube: rgba(232, 243, 236, 0.22);
+  --cesped: #4d9b0f;
+  --cesped-2: #3f7d1c;
+  --barra: #16261f;
+  --velo: rgba(4, 10, 7, 0.66);
+  --ambar-claro: rgba(251, 191, 36, 0.14);
+  --azul-claro: rgba(56, 189, 248, 0.14);
+  --rojo-claro: rgba(251, 113, 133, 0.14);
+  --degradado: linear-gradient(180deg, #0b1512 0%, #0b1512 100%);
+  --brillo: 0 8px 28px rgba(163, 230, 53, 0.38);
+  --sombra: none;
 }
