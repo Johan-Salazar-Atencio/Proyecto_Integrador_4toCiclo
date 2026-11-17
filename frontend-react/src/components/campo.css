@@ -24,5 +24,6 @@
   color: var(--texto);
 }
 
-.campo-ojo { border: 0; background: transparent; padding: 0 12px; cursor: pointer; font-size: 1.1rem; }
+.campo-ojo { display: grid; place-items: center; border: 0; background: transparent; padding: 0 12px; color: var(--texto-suave); cursor: pointer; }
+.campo-ojo:hover { color: var(--texto); }
 .campo-error { display: block; margin-top: 4px; font-size: 0.8rem; color: var(--rojo); }

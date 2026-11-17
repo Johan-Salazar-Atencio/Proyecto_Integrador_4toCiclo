@@ -2,7 +2,7 @@
 .login-admin { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; background: var(--fondo); color: var(--texto); }
 
 .login-arte { --hoja: #84cc16; --hoja-2: #4d9b0f; --tallo: #3f7d1c; --maceta: #c0653d; --maceta-2: #8e4426; position: relative; overflow: hidden; background: var(--cielo); min-height: 280px; }
-.login-arte h2 { position: absolute; left: 44px; top: 40px; max-width: 14ch; color: #fff; font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; line-height: 1.1; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25); }
+.login-arte h2 { position: absolute; left: 44px; top: 40px; max-width: 14ch; color: #fff; font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; line-height: 1.1; text-shadow: 0 1px 2px rgba(10, 40, 20, 0.45), 0 2px 14px rgba(10, 40, 20, 0.4); }
 .login-nube { position: absolute; width: 56px; height: 13px; background: var(--nube); box-shadow: 16px -13px 0 var(--nube), 40px 0 0 var(--nube); }
 .login-cesped { position: absolute; left: 0; right: 0; bottom: 0; height: 130px; border-top: 12px solid #84cc16; background: repeating-linear-gradient(90deg, var(--cesped-2) 0 40px, var(--cesped) 40px 80px); }
 .login-planta { position: absolute; left: 50%; bottom: 90px; width: min(360px, 70%); aspect-ratio: 1; transform: translateX(-50%); image-rendering: pixelated; }
