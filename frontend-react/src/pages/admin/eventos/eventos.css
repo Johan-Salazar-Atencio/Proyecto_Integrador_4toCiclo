@@ -12,9 +12,9 @@
 .ev-tipo-cuerpo b { font-size: 0.92rem; font-weight: 800; }
 .ev-salud { display: flex; gap: 4px; }
 .ev-salud span { flex: 1; padding: 3px 0; text-align: center; border-radius: 9px; background: var(--superficie); font-size: 0.7rem; font-weight: 800; }
-.ev-salud span:nth-child(1) { color: var(--ok); }
-.ev-salud span:nth-child(2) { color: var(--luz); }
-.ev-salud span:nth-child(3) { color: var(--peligro); }
+.ev-salud span:nth-child(1) { color: color-mix(in srgb, var(--ok) 70%, var(--texto)); }
+.ev-salud span:nth-child(2) { color: color-mix(in srgb, var(--luz) 70%, var(--texto)); }
+.ev-salud span:nth-child(3) { color: color-mix(in srgb, var(--peligro) 70%, var(--texto)); }
 .ev-tipo-botones { gap: 6px; }
 .ev-tipo-botones .ad-btn { flex: 1; padding: 8px 6px; font-size: 0.75rem; border-radius: 12px; }
 
@@ -62,13 +62,14 @@
 .ev-previa img, .ev-sinimg-previa { display: block; width: 100%; height: 112px; object-fit: cover; }
 .ev-previa-cuerpo { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }
 .ev-previa-cuerpo b { font-size: 1.05rem; font-weight: 800; }
-.ev-etiqueta { align-self: flex-start; padding: 3px 10px; border-radius: 99px; background: var(--evento); color: var(--sobre-evento, #fff); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; }
+.ev-previa-cuerpo .ev-etiqueta { align-self: flex-start; padding: 3px 10px; border-radius: 99px; background: var(--evento); color: var(--sobre-evento, #fff); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; }
 .ev-termina { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; border: 1px solid color-mix(in srgb, var(--evento) 40%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--evento) 14%, transparent); color: color-mix(in srgb, var(--evento) 70%, var(--texto)); font-weight: 800; }
 .ev-termina small { color: inherit; }
 .ev-form-pie { display: flex; }
 .ev-form-pie .ad-btn { flex: 1; }
 
-@media (max-width: 1250px) { .ev-cols, .ev-form { grid-template-columns: 1fr; } }
+@media (max-width: 1450px) { .ev-cols { grid-template-columns: 1fr; } }
+@media (max-width: 1250px) { .ev-form { grid-template-columns: 1fr; } }
 @media (max-width: 560px) {
   .ev-deslizador { grid-template-columns: 1fr 76px; }
   .ev-deslizador label { grid-column: 1 / -1; }

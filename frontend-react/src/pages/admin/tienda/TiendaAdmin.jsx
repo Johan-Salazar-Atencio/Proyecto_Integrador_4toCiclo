@@ -9,7 +9,7 @@ import './tienda-admin.css'
 
 const COLOR_TIPO = { MACETA: 'var(--luz)', INVERNADERO: 'var(--primario)', FONDO: 'var(--agua)', ABONO: 'var(--abono)' }
 const FILTROS = [['TODOS', 'Todos'], ['MACETA', 'Macetas'], ['INVERNADERO', 'Invernaderos'], ['FONDO', 'Fondos'], ['ABONO', 'Abono']]
-const COLUMNAS = '1.4fr 104px 62px 62px 44px auto'
+const COLUMNAS = 'minmax(0, 1.4fr) 104px 62px 62px 44px 36px'
 const textoTipo = (v) => TIPOS_PRODUCTO.find((t) => t.valor === v)?.texto.toUpperCase() || v
 
 function Vista({ p }) {
@@ -84,7 +84,7 @@ export default function TiendaAdmin() {
   return (
     <div className="ak-pagina">
       <div className="ak-cab">
-        <p>Crea y edita macetas, invernaderos, fondos y abonos que los usuarios compran con hojas.</p>
+        <div><h2 className="ak-h2">Tienda</h2><p>Crea y edita macetas, invernaderos, fondos y abonos que los usuarios compran con hojas.</p></div>
         <button className="ak-btn" onClick={() => setPanel({})}><Icono nombre="plus" tam={18} />Nuevo producto</button>
       </div>
       <Aviso error={errorCarga} onReintentar={cargar} />
@@ -101,7 +101,7 @@ export default function TiendaAdmin() {
           <h3>A la venta <span>· {venta.length}</span></h3>
           <div className="ak-lista">
             <div className="ak-th" style={{ '--cols': COLUMNAS, '--ancho': '620px' }}>
-              <span>Producto</span><span>Tipo</span><span>Precio</span><span>Nivel</span><span>Venta</span><span style={{ width: 76 }} />
+              <span>Producto</span><span>Tipo</span><span>Precio</span><span>Nivel</span><span>Venta</span><span />
             </div>
             {venta.length === 0 ? <p className="ak-vacio">No hay productos a la venta.</p> : venta.map(fila)}
           </div>

@@ -4,8 +4,8 @@ import { Aviso, BotonIcono, Icono, Interruptor, PENDIENTE } from '../misiones/ki
 import './juego.css'
 
 const numero = (texto) => (texto === '' ? '' : Number(texto))
-const COL_REGLAS = '1.25fr 74px 74px 90px 44px'
-const COL_PARAM = '1fr 90px'
+const COL_REGLAS = 'minmax(0, 1.25fr) 74px 74px 90px 44px'
+const COL_PARAM = 'minmax(0, 1fr) 90px'
 
 // Economia del juego: lo que paga cada accion, los parametros que Spring lee al momento y los niveles
 export default function JuegoAdmin() {
@@ -65,7 +65,7 @@ export default function JuegoAdmin() {
   return (
     <div className="ak-pagina">
       <div className="ak-cab">
-        <p>Edita cuánto paga cada acción, los parámetros y los niveles. Vacío = sin tope. Spring los lee al momento: no hace falta reiniciar nada.</p>
+        <div><h2 className="ak-h2">Economía del juego</h2><p>Edita cuánto paga cada acción, los parámetros y los niveles. Vacío = sin tope. Spring los lee al momento: no hace falta reiniciar nada.</p></div>
         <button className="ak-btn" onClick={guardarTodo} disabled={!hayCambios || hayVacios || guardando}>
           <Icono nombre="check" tam={18} />{guardando ? 'Guardando…' : 'Guardar todo'}
         </button>

@@ -10,7 +10,7 @@ const COLOR_TIPO = {
   RIEGO: 'var(--agua)', ESCANEO: 'var(--primario)', DIGITALIZAR: 'var(--primario)', REFUGIO: 'var(--evento)',
   SOL: 'var(--luz)', ABONO: 'var(--abono)', CUIDADO: 'var(--primario)', COLECCION: 'var(--abono)',
 }
-const COLUMNAS = '1.5fr 120px 50px 60px 56px 44px auto'
+const COLUMNAS = 'minmax(0, 1.5fr) 120px 50px 60px 56px 44px 36px'
 
 function FilaMision({ m, seleccionada, onEditar, onAlternar }) {
   return (
@@ -34,7 +34,7 @@ function FilaMision({ m, seleccionada, onEditar, onAlternar }) {
 function Cabecera() {
   return (
     <div className="ak-th" style={{ '--cols': COLUMNAS, '--ancho': '640px' }}>
-      <span>Misión</span><span>Tipo</span><span>Meta</span><span>Hojas</span><span>XP</span><span>Activa</span><span style={{ width: 76 }} />
+      <span>Misión</span><span>Tipo</span><span>Meta</span><span>Hojas</span><span>XP</span><span>Activa</span><span />
     </div>
   )
 }
@@ -81,7 +81,7 @@ export default function Misiones() {
   return (
     <div className="ak-pagina">
       <div className="ak-cab">
-        <p>Crea, edita o desactiva las misiones que ven los usuarios cada día.</p>
+        <div><h2 className="ak-h2">Misiones diarias</h2><p>Crea, edita o desactiva las misiones que ven los usuarios cada día.</p></div>
         <button className="ak-btn" onClick={() => setPanel({})}><Icono nombre="plus" tam={18} />Nueva misión</button>
       </div>
       <Aviso error={errorCarga} onReintentar={cargar} />

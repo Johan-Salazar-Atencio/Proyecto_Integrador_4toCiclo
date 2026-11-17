@@ -10,7 +10,7 @@ const FILTROS = [
   ['ocultas', 'No publicadas'],
   ['toxicas', 'Tóxicas'],
 ]
-const COLUMNAS = '1.35fr 90px 44px auto'
+const COLUMNAS = 'minmax(0, 1.35fr) 90px 44px 36px'
 
 export default function CatalogoAdmin() {
   const [estado, setEstado] = useState({ cargando: true, especies: [], error: '' })
@@ -57,7 +57,7 @@ export default function CatalogoAdmin() {
   return (
     <div className="ak-pagina">
       <div className="ak-cab">
-        <p>Edita, publica u oculta las especies que identifica la IA.</p>
+        <div><h2 className="ak-h2">Catálogo y moderación</h2><p>Edita, publica u oculta las especies que identifica la IA.</p></div>
         <button className="ak-btn" disabled title={PENDIENTE}><Icono nombre="plus" tam={18} />Nueva especie</button>
       </div>
       <Aviso error={errorCarga} onReintentar={cargar} />
@@ -84,7 +84,7 @@ export default function CatalogoAdmin() {
 
           <div className="ak-lista">
             <div className="ak-th" style={{ '--cols': COLUMNAS, '--ancho': '440px' }}>
-              <span>Especie</span><span>Cuidado</span><span>Pub.</span><span style={{ width: 76 }} />
+              <span>Especie</span><span>Cuidado</span><span>Pub.</span><span />
             </div>
             {visibles.length === 0 ? <p className="ak-vacio">No hay especies con ese filtro.</p> : visibles.map((e) => (
               <div key={e.id} className={`ak-tr ${e.id === seleccionada ? 'ak-tr-sel' : ''} ${e.publicada ? '' : 'ak-apagada'}`} style={{ '--cols': COLUMNAS, '--ancho': '440px' }}>

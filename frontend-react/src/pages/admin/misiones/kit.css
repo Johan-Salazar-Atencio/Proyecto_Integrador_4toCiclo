@@ -1,6 +1,7 @@
 /* Piezas compartidas del CRUD admin (prefijo ak-). Solo usa tokens de tema.css. */
 .ak-pagina { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .ak-cab { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ak-h2 { margin: 0 0 3px; font-size: 1.65rem; font-weight: 800; line-height: 1.1; }
 .ak-cab p { margin: 0; max-width: 62ch; color: var(--texto-suave); }
 .ak-cols { display: grid; gap: 14px; align-items: start; grid-template-columns: minmax(0, 1fr); }
 .ak-cols.ak-con-panel { grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); }
