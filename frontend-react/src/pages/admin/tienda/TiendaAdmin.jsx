@@ -77,7 +77,6 @@ export default function TiendaAdmin() {
       />
       <span className="ak-ra">
         <BotonIcono icono="edit" etiqueta={`Editar ${p.nombre}`} onClick={() => setPanel(p)} />
-        <BotonIcono icono="trash" peligro etiqueta={`Eliminar ${p.nombre}`} disabled titulo={PENDIENTE} />
       </span>
     </div>
   )

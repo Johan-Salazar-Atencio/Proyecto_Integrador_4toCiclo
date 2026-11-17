@@ -5,7 +5,7 @@ import { Alternador, Campo, Icono, PENDIENTE } from './kit'
 const VACIA = { titulo: '', descripcion: '', tipo: 'RIEGO', meta: 1, recompensa_xp: 10, recompensa_monedas: 10, orden: 0, activa: true }
 
 // Panel "Editar misión" (o "Nueva misión" si `mision` es null)
-export default function FormularioMision({ mision, onGuardar, onCancelar, onEliminar }) {
+export default function FormularioMision({ mision, onGuardar, onCancelar }) {
   const [datos, setDatos] = useState(mision ? { ...VACIA, ...mision, descripcion: mision.descripcion || '' } : VACIA)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
@@ -63,11 +63,6 @@ export default function FormularioMision({ mision, onGuardar, onCancelar, onElim
       <Alternador titulo="Solo durante un evento" detalle="Se muestra con la etiqueta EVENTO" activo={false} onChange={() => {}} disabled tituloBoton={PENDIENTE} />
       {error && <p className="ak-error" role="alert">{error}</p>}
       <div className="ak-pie">
-        {mision && (
-          <button type="button" className="ak-btn ak-btn-d ak-btn-sm" onClick={onEliminar} disabled={!onEliminar} title={onEliminar ? undefined : PENDIENTE}>
-            <Icono nombre="trash" tam={15} />Eliminar
-          </button>
-        )}
         <button type="button" className="ak-btn ak-btn-g" onClick={onCancelar} disabled={guardando}>Cancelar</button>
         <button type="submit" className="ak-btn" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</button>
       </div>

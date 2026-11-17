@@ -69,28 +69,3 @@ export function Aviso({ error, onReintentar }) {
     <div className="ak-error" role="alert"><span>{error}</span>{onReintentar && <button onClick={onReintentar}>Reintentar</button>}</div>
   )
 }
-
-// Ventana propia de confirmación para eliminar (no usa window.confirm)
-export function ConfirmarEliminar({ titulo, detalle, trabajando = false, onConfirmar, onCancelar }) {
-  const boton = useRef(null)
-  useEffect(() => {
-    boton.current?.focus()
-    const tecla = (e) => e.key === 'Escape' && !trabajando && onCancelar()
-    document.addEventListener('keydown', tecla)
-    return () => document.removeEventListener('keydown', tecla)
-  }, [onCancelar, trabajando])
-  return (
-    <div className="ak-modal" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && !trabajando && onCancelar()}>
-      <div className="ak-sheet" role="alertdialog" aria-modal="true" aria-labelledby="ak-conf-t">
-        <h3 id="ak-conf-t">{titulo}</h3>
-        <p>{detalle}</p>
-        <div className="ak-pie">
-          <button type="button" className="ak-btn ak-btn-g" onClick={onCancelar} disabled={trabajando}>Cancelar</button>
-          <button type="button" ref={boton} className="ak-btn ak-btn-d" onClick={onConfirmar} disabled={trabajando}>
-            <Icono nombre="trash" tam={15} />{trabajando ? 'Eliminando…' : 'Eliminar'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}

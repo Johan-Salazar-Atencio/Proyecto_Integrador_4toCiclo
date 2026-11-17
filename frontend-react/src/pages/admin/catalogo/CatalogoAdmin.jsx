@@ -96,7 +96,6 @@ export default function CatalogoAdmin() {
                 <Interruptor activo={e.publicada} onChange={() => publicar(e)} etiqueta={`${e.nombreComun}: publicada`} />
                 <span className="ak-ra">
                   <BotonIcono icono="edit" etiqueta={`Editar ${e.nombreComun}`} onClick={() => setSeleccionada(e.id)} />
-                  <BotonIcono icono="trash" peligro etiqueta={`Eliminar ${e.nombreComun}`} disabled titulo={PENDIENTE} />
                 </span>
               </div>
             ))}

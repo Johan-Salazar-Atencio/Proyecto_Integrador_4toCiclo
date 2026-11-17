@@ -17,7 +17,7 @@ const necesitaCuadros = (archivo) => archivo && /\.(png|jpe?g)$/i.test(archivo.n
 
 // Panel "Editar producto" (o "Nuevo producto" si `producto` es null).
 // El backend solo crea fondos; un fondo trae tres escenas (día, tarde y noche) y al editar solo se reemplazan las que se suben de nuevo.
-export default function FormularioProducto({ producto, onGuardar, onCancelar, onEliminar }) {
+export default function FormularioProducto({ producto, onGuardar, onCancelar }) {
   const [tipo, setTipo] = useState(producto?.tipo || 'FONDO')
   const [datos, setDatos] = useState(producto
     ? { nombre: producto.nombre, descripcion: producto.descripcion || '', precio_monedas: producto.precio_monedas, nivel_requerido: producto.nivel_requerido, activo: producto.activo }
@@ -157,11 +157,6 @@ export default function FormularioProducto({ producto, onGuardar, onCancelar, on
       {sinSoporte && <p className="ak-error" role="status">Crear {TIPOS_PRODUCTO.find((t) => t.valor === tipo)?.texto.toLowerCase()}s está pendiente de backend: por ahora solo se pueden agregar fondos.</p>}
       {error && <p className="ak-error" role="alert">{error}</p>}
       <div className="ak-pie">
-        {producto && (
-          <button type="button" className="ak-btn ak-btn-d ak-btn-sm" onClick={onEliminar} disabled={!onEliminar} title={onEliminar ? undefined : PENDIENTE}>
-            <Icono nombre="trash" tam={15} />Eliminar
-          </button>
-        )}
         <button type="button" className="ak-btn ak-btn-g" onClick={onCancelar} disabled={guardando}>Cancelar</button>
         <button type="submit" className="ak-btn" disabled={guardando || sinSoporte} title={sinSoporte ? PENDIENTE : undefined}>{guardando ? 'Guardando…' : 'Guardar'}</button>
       </div>

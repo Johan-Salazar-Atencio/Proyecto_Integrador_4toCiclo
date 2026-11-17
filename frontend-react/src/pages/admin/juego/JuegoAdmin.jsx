@@ -4,8 +4,8 @@ import { Aviso, BotonIcono, Icono, Interruptor, PENDIENTE } from '../misiones/ki
 import './juego.css'
 
 const numero = (texto) => (texto === '' ? '' : Number(texto))
-const COL_REGLAS = '1.25fr 74px 74px 90px 44px auto'
-const COL_PARAM = '1fr 90px auto'
+const COL_REGLAS = '1.25fr 74px 74px 90px 44px'
+const COL_PARAM = '1fr 90px'
 
 // Economia del juego: lo que paga cada accion, los parametros que Spring lee al momento y los niveles
 export default function JuegoAdmin() {
@@ -93,7 +93,6 @@ export default function JuegoAdmin() {
                   <input className="ak-in ak-in-c" type="number" min="0" value={a.xp} onChange={(e) => tocarRegla(r, { xp: numero(e.target.value) })} aria-label={`XP de ${r.nombre}`} />
                   <input className="ak-in ak-in-c" type="number" min="1" value={a.tope_diario} placeholder="Sin tope" onChange={(e) => tocarRegla(r, { tope_diario: numero(e.target.value) })} aria-label={`Tope diario de ${r.nombre}`} />
                   <Interruptor activo={a.activa} onChange={(v) => tocarRegla(r, { activa: v })} etiqueta={`${r.nombre}: activa`} />
-                  <BotonIcono icono="trash" peligro etiqueta={`Eliminar ${r.nombre}`} disabled titulo={PENDIENTE} />
                 </div>
               )
             })}
@@ -114,7 +113,6 @@ export default function JuegoAdmin() {
                   <div key={p.clave} className="ak-tr" style={{ '--cols': COL_PARAM }}>
                     <div><b>{rango.texto}</b><small>{p.descripcion || p.clave} · de {rango.min} a {rango.max}</small></div>
                     <input className="ak-in ak-in-c" type="number" min={rango.min} max={rango.max} value={valorActual(p)} onChange={(e) => tocarParametro(p, numero(e.target.value))} aria-label={rango.texto} />
-                    <BotonIcono icono="trash" peligro etiqueta={`Eliminar ${rango.texto}`} disabled titulo={PENDIENTE} />
                   </div>
                 )
               })}

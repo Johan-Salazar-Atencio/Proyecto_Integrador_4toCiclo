@@ -23,7 +23,6 @@ export default function TarjetaTipo({ tipo, hayActivo, onLanzar, onEditar }) {
             <IconoAdmin n="bolt" />Lanzar
           </button>
           <button type="button" className="ad-ib" aria-label={`Editar ${tipo.nombre}`} title="Editar" onClick={() => onEditar(tipo)}><IconoAdmin n="edit" /></button>
-          <button type="button" className="ad-ib ad-ib-d" aria-label={`Eliminar ${tipo.nombre}`} title={PENDIENTE} disabled><IconoAdmin n="trash" /></button>
         </div>
       </div>
     </article>

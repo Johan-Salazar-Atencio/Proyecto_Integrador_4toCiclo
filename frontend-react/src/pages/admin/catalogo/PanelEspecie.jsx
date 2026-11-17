@@ -85,7 +85,6 @@ export default function PanelEspecie({ especie, onCerrar, onCambio }) {
       {aviso.texto && <p className={aviso.error ? 'ak-error' : 'ak-ok'} role="status">{aviso.texto}</p>}
 
       <div className="ak-pie">
-        <button type="button" className="ak-btn ak-btn-d ak-btn-sm" disabled title={PENDIENTE}><Icono nombre="trash" tam={15} />Eliminar</button>
         <button type="button" className="ak-btn ak-btn-g ak-btn-sm" disabled={!cambiado || guardando} onClick={() => { setForm(original(especie)); setAviso({ texto: '', error: false }) }}>Restaurar original</button>
         <button type="button" className="ak-btn" onClick={guardar} disabled={!cambiado || !valido || guardando}>{guardando ? 'Guardando…' : 'Guardar cambios'}</button>
       </div>

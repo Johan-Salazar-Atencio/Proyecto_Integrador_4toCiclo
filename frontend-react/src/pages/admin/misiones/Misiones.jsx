@@ -26,7 +26,6 @@ function FilaMision({ m, seleccionada, onEditar, onAlternar }) {
       <Interruptor activo={m.activa} onChange={() => onAlternar(m)} etiqueta={`${m.titulo}: activa`} />
       <span className="ak-ra">
         <BotonIcono icono="edit" etiqueta={`Editar ${m.titulo}`} onClick={() => onEditar(m)} />
-        <BotonIcono icono="trash" peligro etiqueta={`Eliminar ${m.titulo}`} disabled titulo={PENDIENTE} />
       </span>
     </div>
   )
