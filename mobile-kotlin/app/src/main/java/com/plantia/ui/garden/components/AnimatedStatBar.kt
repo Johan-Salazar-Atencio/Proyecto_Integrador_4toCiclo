@@ -49,6 +49,7 @@ internal val ColorAgua = Color(0xFF2196F3)
 internal val ColorLuz = Color(0xFFFBC02D)
 
 /** Verde si va bien, ambar si baja, rojo si es critico. */
+@Composable
 internal fun colorPorNivel(porcentaje: Int): Color = when {
     porcentaje >= 60 -> GreenPrimary
     porcentaje >= 30 -> AmberAlert

@@ -8,39 +8,45 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 
 private val DarkColorScheme = darkColorScheme(
-    primary = GreenSecondary,
-    onPrimary = ColorDarkSurface,
-    primaryContainer = GreenDark,
-    onPrimaryContainer = GreenLightClaro,
-    secondary = GreenPrimary,
-    onSecondary = ColorDarkSurface,
-    tertiary = AmberAlert,
-    onTertiary = ColorDarkSurface,
+    primary = PrimarioOscuro,
+    onPrimary = SobrePrimarioOscuro,
+    primaryContainer = PrimarioOscuro.copy(alpha = 0.18f),
+    onPrimaryContainer = PrimarioOscuro,
+    secondary = AguaOscuro,
+    onSecondary = ColorDarkBackground,
+    tertiary = EventoOscuro,
+    onTertiary = ColorDarkBackground,
     background = ColorDarkBackground,
     onBackground = ColorDarkText,
     surface = ColorDarkSurface,
     onSurface = ColorDarkText,
     surfaceVariant = ColorDarkSurfaceVariant,
     onSurfaceVariant = ColorDarkTextMuted,
-    outline = ColorDarkOutline
+    outline = ColorDarkOutline,
+    outlineVariant = ColorDarkOutline,
+    error = PeligroOscuro,
+    onError = ColorDarkBackground
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = GreenPrimary,
-    onPrimary = SurfaceWhiteClaro,
-    primaryContainer = GreenLightClaro,
-    onPrimaryContainer = GreenDark,
-    secondary = GreenSecondary,
+    primary = PrimarioClaro,
+    onPrimary = SobrePrimarioClaro,
+    primaryContainer = PrimarioClaro.copy(alpha = 0.12f),
+    onPrimaryContainer = PrimarioClaro,
+    secondary = AguaClaro,
     onSecondary = SurfaceWhiteClaro,
-    tertiary = AmberAlert,
+    tertiary = EventoClaro,
     onTertiary = SurfaceWhiteClaro,
     background = BackgroundLightClaro,
     onBackground = TextPrimaryClaro,
     surface = SurfaceWhiteClaro,
     onSurface = TextPrimaryClaro,
-    surfaceVariant = BackgroundLightClaro,
+    surfaceVariant = SuperficieElevadaClaro,
     onSurfaceVariant = TextSecondaryClaro,
-    outline = DividerColorClaro
+    outline = DividerColorClaro,
+    outlineVariant = DividerColorClaro,
+    error = PeligroClaro,
+    onError = SurfaceWhiteClaro
 )
 
 /**

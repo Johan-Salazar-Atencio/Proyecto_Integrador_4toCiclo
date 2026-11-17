@@ -66,12 +66,13 @@ fun EfectoProteccion(disparador: Int, modifier: Modifier = Modifier) {
     }
     val p = progreso.value
     if (p >= 1f) return
+    val colorEscudo = GreenPrimary
     Box(modifier, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val radio = size.maxDimension * 0.75f * p
             val alfa = 1f - p
-            drawCircle(GreenPrimary.copy(alpha = 0.14f * alfa), radius = radio)
-            drawCircle(GreenPrimary.copy(alpha = 0.6f * alfa), radius = radio, style = Stroke(width = 6.dp.toPx()))
+            drawCircle(colorEscudo.copy(alpha = 0.14f * alfa), radius = radio)
+            drawCircle(colorEscudo.copy(alpha = 0.6f * alfa), radius = radio, style = Stroke(width = 6.dp.toPx()))
         }
         Box(
             modifier = Modifier
