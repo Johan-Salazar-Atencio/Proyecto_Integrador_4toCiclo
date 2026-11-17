@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import Boton from '../../../components/Boton'
 import './espera.css'
 
 // Las etapas son temporizadas: no representan el progreso real del servidor
@@ -49,7 +48,7 @@ export default function EsperaEscaneo({ foto, listo, onCancelar }) {
         <>
           <h2 key={etapa} className="aparece">{ETAPAS[etapa][0]}</h2>
           <p key={`p${etapa}`} className="aparece">{ETAPAS[etapa][1]}</p>
-          <Boton variante="suave" onClick={onCancelar}>Cancelar</Boton>
+          <button className="espera-cancelar" onClick={onCancelar}>Cancelar</button>
         </>
       )}
     </div>,
