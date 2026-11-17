@@ -43,7 +43,7 @@
 .ak-hojas { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; }
 .ak-hojas svg { color: var(--primario); }
 
-.ak-chip { display: inline-flex; align-items: center; justify-self: start; padding: 3px 10px; border-radius: 99px; background: color-mix(in srgb, var(--c, var(--texto-suave)) 16%, transparent); color: var(--c, var(--texto-suave)); font-size: 0.7rem; font-weight: 800; white-space: nowrap; }
+.ak-chip { display: inline-flex; align-items: center; justify-self: start; padding: 3px 10px; border-radius: 99px; background: color-mix(in srgb, var(--c, var(--texto-suave)) 16%, transparent); color: color-mix(in srgb, var(--c, var(--texto-suave)) 72%, var(--texto)); font-size: 0.7rem; font-weight: 800; white-space: nowrap; }
 .ak-chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .ak-chips button { padding: 8px 15px; border: 1px solid var(--linea); border-radius: 99px; background: var(--superficie); color: var(--texto-suave); font: inherit; font-size: 0.8rem; font-weight: 800; cursor: pointer; }
 .ak-chips button.on { background: var(--primario); border-color: var(--primario); color: var(--sobre-primario); }

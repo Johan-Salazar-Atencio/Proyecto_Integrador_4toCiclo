@@ -31,7 +31,7 @@
 .planta-card-datos small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texto-suave); font-style: italic; }
 .planta-card-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .planta-card-chips span { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; background: var(--tinte); color: var(--primario); border-radius: 999px; font-size: 0.72rem; font-weight: 800; }
-.planta-card-chips .chip-alerta { background: var(--ambar-claro); color: var(--luz); }
+.planta-card-chips .chip-alerta { background: var(--ambar-claro); color: color-mix(in srgb, var(--luz) 65%, var(--texto)); }
 .planta-card-chips .chip-activo { background: var(--primario); color: var(--sobre-primario); }
 
 /* Estados vacios (tambien los usan Jardin, Misiones y Tienda) */

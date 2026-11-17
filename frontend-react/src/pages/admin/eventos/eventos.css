@@ -62,9 +62,9 @@
 .ev-previa img, .ev-sinimg-previa { display: block; width: 100%; height: 112px; object-fit: cover; }
 .ev-previa-cuerpo { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }
 .ev-previa-cuerpo b { font-size: 1.05rem; font-weight: 800; }
-.ev-etiqueta { align-self: flex-start; padding: 3px 10px; border-radius: 99px; background: var(--evento); color: #fff; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; }
-.ev-termina { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; border: 1px solid color-mix(in srgb, var(--evento) 40%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--evento) 14%, transparent); color: var(--evento); font-weight: 800; }
-.ev-termina small { color: var(--evento); }
+.ev-etiqueta { align-self: flex-start; padding: 3px 10px; border-radius: 99px; background: var(--evento); color: var(--sobre-evento, #fff); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; }
+.ev-termina { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; border: 1px solid color-mix(in srgb, var(--evento) 40%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--evento) 14%, transparent); color: color-mix(in srgb, var(--evento) 70%, var(--texto)); font-weight: 800; }
+.ev-termina small { color: inherit; }
 .ev-form-pie { display: flex; }
 .ev-form-pie .ad-btn { flex: 1; }
 

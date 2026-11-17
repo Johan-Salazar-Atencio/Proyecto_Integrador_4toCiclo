@@ -7,5 +7,5 @@
 .mision-evento .barra-relleno { background: var(--e); }
 .mision-evento p { font-size: 0.9rem; }
 .mision-evento small { color: var(--texto-suave); }
-.mision-evento-boton { display: block; padding: 11px; background: var(--e); border-radius: var(--radio-chico); color: #fff; font-weight: 800; text-align: center; }
+.mision-evento-boton { display: block; padding: 11px; background: var(--e); border-radius: var(--radio-chico); color: var(--sobre-evento, #fff); font-weight: 800; text-align: center; }
 .mision-evento-lista { padding: 11px; background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio-chico); color: var(--primario); font-weight: 800; text-align: center; }

@@ -53,13 +53,13 @@
 .ev-grave { --e: var(--peligro); }
 .ev-imagen { display: block; width: 100%; height: 100%; min-height: 150px; max-height: 220px; object-fit: cover; }
 .ev-cuerpo { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; }
-.ev-etiqueta { align-self: flex-start; padding: 3px 10px; background: var(--e); color: #fff; border-radius: 999px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; }
+.ev-etiqueta { align-self: flex-start; padding: 3px 10px; background: var(--e); color: var(--sobre-evento, #fff); border-radius: 999px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; }
 .ev h2 { font-size: 1.2rem; font-weight: 800; }
 .ev p { color: var(--texto-suave); font-size: 0.8rem; }
 .ev-info { line-height: 1.55; }
 .ev-cuenta { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding: 8px 14px; background: color-mix(in srgb, var(--e) 14%, transparent); border: 1px solid color-mix(in srgb, var(--e) 40%, transparent); border-radius: 16px; }
-.ev-cuenta small { color: var(--e); font-weight: 700; }
-.ev-cuenta b { color: var(--e); font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ev-cuenta small { color: color-mix(in srgb, var(--e) 75%, var(--texto)); font-weight: 700; }
+.ev-cuenta b { color: color-mix(in srgb, var(--e) 75%, var(--texto)); font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 @media (min-width: 560px) {
   .ev:not(.ev-sin-imagen) { grid-template-columns: 210px minmax(0, 1fr); }
   .ev-imagen { max-height: none; min-height: 100%; }
@@ -134,7 +134,7 @@
 .mi-evento { --c: var(--evento); }
 .mi-evento .mi-icono { background: color-mix(in srgb, var(--evento) 18%, transparent); }
 .mi-evento .barra-relleno { background: var(--evento); }
-.mi-etiqueta { color: var(--evento); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.4px; }
+.mi-etiqueta { color: color-mix(in srgb, var(--evento) 70%, var(--texto)); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.4px; }
 .mi-ir { font-size: 0.75rem; font-weight: 800; color: var(--primario); }
 
 /* Ventana flotante (accesible: ver ModalMisiones) */
