@@ -7,6 +7,7 @@ import Invernadero from '../../../components/Invernadero'
 import MacetaPixel from '../../../components/MacetaPixel'
 import { paletaDeMaceta } from '../../../components/macetas'
 import VistasDelTema from '../../../components/VistasDelTema'
+import Icono from './Icono'
 import './tienda.css'
 
 const MS_AVISO = 3000
@@ -78,15 +79,26 @@ export default function Tienda() {
   const macetas = items.filter((i) => i.tipo === 'MACETA')
   const invernaderos = items.filter((i) => i.tipo === 'INVERNADERO')
 
+  // Botones de compra comunes: Comprar · N hojas, bloqueado por nivel o "Tuya"
+  const botonCompra = (item, exito) => (
+    item.bloqueado ? (
+      <button className="tienda-btn tienda-btn-bloq" disabled><Icono n="lock" tam={16} />Nivel {item.nivelRequerido}</button>
+    ) : (
+      <button className="tienda-btn" disabled={ocupado || monedas < item.precio} onClick={() => accion(() => comprarItem(item.id), exito)}>
+        Comprar · {item.precio} <Icono n="leaf" tam={16} />
+      </button>
+    )
+  )
+
   return (
     <div className="tienda">
       <header className="tienda-titulo aparece">
         <h2>Tienda</h2>
-        <span className="tienda-hojas">🍃 <b>{monedas}</b></span>
+        <span className="tienda-hojas"><Icono n="leaf" tam={18} /> <b>{monedas}</b></span>
       </header>
 
       <div className="tienda-segmentos" role="tablist">
-        {[['ABONO', 'Abono'], ['FONDO', 'Fondos'], ['MACETA', 'Macetas']].map(([clave, texto]) => (
+        {[['MACETA', 'Macetas'], ['INVERNADERO', 'Invernaderos'], ['FONDO', 'Fondos'], ['ABONO', 'Abono']].map(([clave, texto]) => (
           <button key={clave} role="tab" aria-selected={pestana === clave} className={pestana === clave ? 'activa' : ''} onClick={() => setPestana(clave)}>{texto}</button>
         ))}
       </div>
@@ -96,107 +108,92 @@ export default function Tienda() {
           <p className="historial-vacio">Aún no hay macetas a la venta.</p>
         ) : (
           <>
-            <div className="tienda-macetas">
-              {macetas.map((m) => {
-                const color = paletaDeMaceta(m.codigo).cuerpo
-                return (
-                  <article key={m.id} className="tienda-maceta aparece" style={{ '--color': color }}>
-                    <div className="tienda-maceta-vista"><MacetaPixel codigo={m.codigo} titulo={m.nombre} /></div>
-                    <div className="tienda-maceta-datos">
-                      <b>{m.nombre}</b>
-                      {m.comprado ? <span className="chip-tuya">Tuya</span> : !m.bloqueado && <span className="chip-precio">🍃 {m.precio}</span>}
-                    </div>
-                    {m.comprado ? (
-                      <button className="boton boton-suave" disabled={ocupado} onClick={() => setAplicando(m)}>Aplicar a plantas</button>
-                    ) : m.bloqueado ? (
-                      <button className="boton boton-suave" disabled>🔒 Nivel {m.nivelRequerido}</button>
-                    ) : (
-                      <button className="boton boton-principal" disabled={ocupado || monedas < m.precio} onClick={() => accion(() => comprarItem(m.id), `Maceta ${m.nombre} comprada`)}>Comprar</button>
-                    )}
-                  </article>
-                )
-              })}
-            </div>
             <p className="tienda-nota">Las macetas se ven en tu colección de plantas virtuales y bajo tu planta.</p>
+            <div className="tienda-grilla">
+              {macetas.map((m) => (
+                <article key={m.id} className="tienda-prod aparece">
+                  <div className="tienda-pv" style={{ '--color': paletaDeMaceta(m.codigo).cuerpo }}><MacetaPixel codigo={m.codigo} titulo={m.nombre} /></div>
+                  <b>{m.nombre}</b>
+                  <p>{m.descripcion}</p>
+                  {m.comprado ? (
+                    <>
+                      <span className="chip-tuya">Tuya</span>
+                      <button className="tienda-btn tienda-btn-borde" disabled={ocupado} onClick={() => setAplicando(m)}>Aplicar a plantas</button>
+                    </>
+                  ) : botonCompra(m, `Maceta ${m.nombre} comprada`)}
+                </article>
+              ))}
+            </div>
           </>
         )
       )}
 
+      {pestana === 'INVERNADERO' && (
+        invernaderos.length === 0 ? (
+          <p className="historial-vacio">Aún no hay invernaderos a la venta.</p>
+        ) : (
+          <div className="tienda-grilla">
+            {invernaderos.map((i) => (
+              <article key={i.id} className="tienda-prod aparece">
+                <div className="tienda-pv tienda-pv-alta"><Invernadero tema={i.codigo} momento="DIA" className="tienda-invernadero-vista" /></div>
+                <b>{i.nombre}</b>
+                <p>{i.descripcion}</p>
+                {i.comprado ? (
+                  <>
+                    <span className="chip-tuya">Tuya</span>
+                    <small className="tienda-pista">Elígelo desde el chip de tu colección</small>
+                  </>
+                ) : botonCompra(i, `Compraste «${i.nombre}». Elígelo desde el chip de tu colección`)}
+              </article>
+            ))}
+          </div>
+        )
+      )}
+
       {pestana === 'FONDO' && (
-        <>
-          {invernaderos.length > 0 && (
-            <>
-              <h3 className="tienda-subtitulo">Invernaderos de tu colección</h3>
-              <div className="tienda-invernaderos">
-                {invernaderos.map((i) => (
-                  <article key={i.id} className={`tienda-invernadero aparece ${i.comprado ? 'tienda-invernadero-mio' : ''}`}>
-                    <Invernadero tema={i.codigo} momento="DIA" className="tienda-invernadero-vista" />
-                    <div className="tienda-invernadero-datos">
-                      <b>{i.nombre}</b>
-                      <small>{i.descripcion}</small>
-                      {i.comprado ? (
-                        <span className="chip-tuya">✓ Lo tienes · elígelo desde el chip de tu colección</span>
-                      ) : i.bloqueado ? (
-                        <span className="chip-bloqueado">🔒 Nivel {i.nivelRequerido}</span>
-                      ) : (
-                        <div className="tienda-invernadero-compra">
-                          <span className="chip-precio">🍃 {i.precio}</span>
-                          <button className="boton boton-principal" disabled={ocupado || monedas < i.precio} onClick={() => accion(() => comprarItem(i.id), `Compraste «${i.nombre}». Elígelo desde el chip de tu colección`)}>Comprar</button>
-                        </div>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </>
-          )}
-          <h3 className="tienda-subtitulo">Fondos de la escena de cada planta</h3>
-          {fondos.length === 0 ? (
-            <p className="historial-vacio">Aún no hay fondos a la venta.</p>
-          ) : (
+        fondos.length === 0 ? (
+          <p className="historial-vacio">Aún no hay fondos a la venta.</p>
+        ) : (
+          <>
+            <p className="tienda-nota">Fondos de la escena de cada planta.</p>
             <div className="tienda-grilla">
               {fondos.map((f) => (
-                <article key={f.id} className="tarjeta tienda-item aparece">
-                  <VistasDelTema variantes={f.variantes} />
-                  <div className="tienda-datos">
-                    <b>{f.nombre}</b>
-                    <small>{f.descripcion}</small>
-                  </div>
+                <article key={f.id} className="tienda-prod aparece">
+                  <div className="tienda-pv tienda-pv-fondo"><VistasDelTema variantes={f.variantes} /></div>
+                  <b>{f.nombre}</b>
+                  <p>{f.descripcion}</p>
                   {f.comprado ? (
-                    <Link className="boton boton-suave tienda-tengo" to={RUTAS.JARDIN}>✓ Lo tienes · elígelo en tu jardín 🖼️</Link>
-                  ) : f.bloqueado ? (
-                    <button className="boton boton-suave" disabled>🔒 Nivel {f.nivelRequerido}</button>
-                  ) : (
-                    <button className="boton boton-principal" disabled={ocupado || monedas < f.precio} onClick={() => accion(() => comprarItem(f.id), `Compraste «${f.nombre}». Ponlo desde el ícono 🖼️ de tu jardín`)}>
-                      Comprar · {f.precio} 🍃
-                    </button>
-                  )}
+                    <>
+                      <span className="chip-tuya">Tuya</span>
+                      <Link className="tienda-btn tienda-btn-borde" to={RUTAS.JARDIN}>Elígelo en tu jardín</Link>
+                    </>
+                  ) : botonCompra(f, `Compraste «${f.nombre}». Ponlo desde el ícono 🖼️ de tu jardín`)}
                 </article>
               ))}
             </div>
-          )}
-        </>
+          </>
+        )
       )}
 
       {pestana === 'ABONO' && (
         abonos.length === 0 ? (
           <p className="historial-vacio">El abono no está disponible por ahora.</p>
         ) : (
-          <div className="tienda-grilla">
-            {abonos.map((a) => (
-              <article key={a.id} className="tarjeta tienda-item aparece">
-                <div className="tienda-icono-grande">🌿</div>
-                <div className="tienda-datos">
-                  <b>{a.nombre}</b>
-                  <small>{a.descripcion}</small>
-                </div>
-                <button className="boton boton-principal" disabled={ocupado || monedas < a.precio || a.bloqueado} onClick={usarAbono}>
-                  {a.bloqueado ? `🔒 Nivel ${a.nivelRequerido}` : `Usar en mi planta · ${a.precio} 🍃`}
-                </button>
-              </article>
-            ))}
+          <>
             <p className="tienda-nota">Se aplica a la planta de tu <Link to={RUTAS.JARDIN}>jardín</Link>. Máximo un abono al día por planta.</p>
-          </div>
+            <div className="tienda-grilla">
+              {abonos.map((a) => (
+                <article key={a.id} className="tienda-prod aparece">
+                  <div className="tienda-pv tienda-pv-abono"><Icono n="leaf" tam={44} /></div>
+                  <b>{a.nombre}</b>
+                  <p>{a.descripcion}</p>
+                  <button className={`tienda-btn ${a.bloqueado ? 'tienda-btn-bloq' : ''}`} disabled={ocupado || monedas < a.precio || a.bloqueado} onClick={usarAbono}>
+                    {a.bloqueado ? <><Icono n="lock" tam={16} />Nivel {a.nivelRequerido}</> : <>Usar en mi planta · {a.precio} <Icono n="leaf" tam={16} /></>}
+                  </button>
+                </article>
+              ))}
+            </div>
+          </>
         )
       )}
 
