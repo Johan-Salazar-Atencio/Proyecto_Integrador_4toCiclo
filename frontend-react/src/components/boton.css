@@ -6,7 +6,7 @@
   min-height: 52px;
   padding: 0 28px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radio);
   font-weight: 700;
   font-size: 1.05rem;
   cursor: pointer;
@@ -17,23 +17,22 @@
 .boton:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .boton-principal {
-  background: var(--verde);
-  color: #fff;
-  background-image: linear-gradient(135deg, var(--verde), var(--verde-oscuro));
-  box-shadow: var(--brillo);
+  background: var(--primario);
+  color: var(--sobre-primario);
 }
 .boton-principal:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
 
 .boton-suave {
-  background: var(--verde-claro);
-  color: var(--verde-oscuro);
+  background: var(--superficie-2);
+  color: var(--texto);
+  border: 1px solid var(--linea);
 }
 
 .boton-giro {
   width: 22px;
   height: 22px;
-  border: 3px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #fff;
+  border: 3px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: gira 0.7s linear infinite;
 }

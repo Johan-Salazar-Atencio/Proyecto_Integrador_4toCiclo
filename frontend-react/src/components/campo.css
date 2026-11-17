@@ -4,18 +4,19 @@
 .campo-caja {
   display: flex;
   align-items: center;
-  background: var(--superficie);
-  border: 1.5px solid var(--linea);
+  background: var(--superficie-2);
+  border: 1px solid var(--linea);
   border-radius: var(--radio-chico);
   transition: border-color var(--transicion), box-shadow var(--transicion);
 }
-.campo-caja:focus-within { border-color: var(--verde); box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
+.campo-caja:focus-within { border-color: var(--primario); box-shadow: 0 0 0 3px var(--tinte); }
 .campo-con-error { border-color: var(--rojo); }
 
 .campo-caja input {
   flex: 1;
   min-width: 0;
   height: 48px;
+  border-radius: var(--radio-chico);
   padding: 0 14px;
   border: 0;
   outline: 0;
