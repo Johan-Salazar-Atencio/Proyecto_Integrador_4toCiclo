@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
+import EncabezadoAdmin from '../../../components/admin/EncabezadoAdmin'
+import IconoAdmin from '../../../components/admin/IconoAdmin'
 import { obtenerEstadisticas } from '../../../services/admin/estadisticas'
 import Grafico from './Grafico'
 import TablaEscaneos from './TablaEscaneos'
@@ -28,60 +30,63 @@ export default function Dashboard() {
 
   const { cargando, resumen, actividad, escaneos, error } = estado
 
-  if (cargando) return <div className="home-cargando"><span className="home-giro" aria-label="Cargando" /></div>
+  const encabezado = (
+    <EncabezadoAdmin titulo="Dashboard" subtitulo="Resumen del motor IA, los eventos climáticos y la comunidad. Datos reales de la base de datos.">
+      <span className="dash-vivo"><i />Se actualiza cada 10 s</span>
+    </EncabezadoAdmin>
+  )
+
+  if (cargando) return <>{encabezado}<div className="ad-cargando"><span className="home-giro" aria-label="Cargando" /></div></>
 
   if (error) {
     return (
-      <div className="home-error" role="alert">
-        <span>{error}</span>
-        <button onClick={() => cargar()}>Reintentar</button>
-      </div>
+      <>
+        {encabezado}
+        <div className="home-error" role="alert">
+          <span>{error}</span>
+          <button onClick={() => cargar()}>Reintentar</button>
+        </div>
+      </>
     )
   }
 
   const tarjetas = [
-    { icono: '👥', titulo: 'Total usuarios', valor: formato(resumen.usuarios), nota: `${resumen.usuariosNuevosMes} nuevos este mes${resumen.crecimientoUsuarios == null ? '' : ` (${resumen.crecimientoUsuarios >= 0 ? '+' : ''}${resumen.crecimientoUsuarios}% vs. mes pasado)`}` },
-    { icono: '📷', titulo: 'Escaneos IA hoy', valor: formato(resumen.escaneosHoy), nota: `Pico: ${resumen.picoPorMinuto} escaneos/min` },
-    { icono: '📖', titulo: 'Especies en catálogo', valor: formato(resumen.especies), nota: `${resumen.toxicas} tóxicas para mascotas` },
-    { icono: '⚠️', titulo: 'Eventos activos', valor: formato(resumen.eventosActivos), nota: `${resumen.eventosTotales} ${resumen.eventosTotales === 1 ? 'evento' : 'eventos'} en total` },
+    { icono: 'users', color: 'var(--abono)', titulo: 'Total usuarios', valor: formato(resumen.usuarios), nota: `${resumen.usuariosNuevosMes} nuevos este mes${resumen.crecimientoUsuarios == null ? '' : ` (${resumen.crecimientoUsuarios >= 0 ? '+' : ''}${resumen.crecimientoUsuarios}% vs. mes pasado)`}` },
+    { icono: 'cam', color: 'var(--agua)', titulo: 'Escaneos IA hoy', valor: formato(resumen.escaneosHoy), nota: `Pico: ${resumen.picoPorMinuto} escaneos/min` },
+    { icono: 'book', color: 'var(--primario)', titulo: 'Especies en catálogo', valor: formato(resumen.especies), nota: `${resumen.toxicas} tóxicas para mascotas` },
+    { icono: 'alert', color: 'var(--evento)', titulo: 'Eventos activos', valor: formato(resumen.eventosActivos), nota: `${resumen.eventosTotales} ${resumen.eventosTotales === 1 ? 'evento' : 'eventos'} en total` },
   ]
 
   return (
-    <div className="dashboard">
-      <p className="dashboard-intro aparece">Resumen del motor IA, los eventos climáticos y la comunidad. Datos reales de la base de datos, se actualizan solos cada 10 segundos.</p>
+    <>
+      {encabezado}
 
-      <section className="dashboard-tarjetas">
+      <section className="dash-kpis">
         {tarjetas.map((t, i) => (
-          <article key={t.titulo} className="tarjeta kpi aparece" style={{ animationDelay: `${i * 0.06}s` }}>
-            <div className="kpi-cabecera">
+          <article key={t.titulo} className="ad-card dash-kpi aparece" style={{ '--k': t.color, animationDelay: `${i * 0.06}s` }}>
+            <div className="dash-ico"><IconoAdmin n={t.icono} /></div>
+            <div>
               <span>{t.titulo}</span>
-              <i>{t.icono}</i>
+              <b>{t.valor}</b>
+              <small>{t.nota}</small>
             </div>
-            <b>{t.valor}</b>
-            <small>{t.nota}</small>
           </article>
         ))}
       </section>
 
-      <section className="tarjeta aparece" style={{ animationDelay: '0.25s' }}>
-        <div className="dashboard-titulo">
-          <div>
-            <h2>Usuarios nuevos y escaneos</h2>
-            <p>Últimos 14 días: registros nuevos y escaneos por día</p>
-          </div>
-        </div>
-        <Grafico datos={actividad} />
-      </section>
+      <div className="dash-cols">
+        <section className="ad-card ad-c aparece" style={{ animationDelay: '0.25s' }}>
+          <h3>Usuarios nuevos y escaneos</h3>
+          <p className="ad-sub">Últimos 14 días: registros nuevos y escaneos por día</p>
+          <Grafico datos={actividad} />
+        </section>
 
-      <section className="tarjeta aparece" style={{ animationDelay: '0.32s' }}>
-        <div className="dashboard-titulo">
-          <div>
-            <h2>Últimos escaneos registrados</h2>
-            <p>Fotos subidas por los usuarios y procesadas por la IA</p>
-          </div>
-        </div>
-        <TablaEscaneos escaneos={escaneos} />
-      </section>
-    </div>
+        <section className="ad-card ad-c aparece" style={{ animationDelay: '0.32s' }}>
+          <h3>Últimos escaneos registrados</h3>
+          <p className="ad-sub">Fotos subidas por los usuarios y procesadas por la IA</p>
+          <TablaEscaneos escaneos={escaneos} />
+        </section>
+      </div>
+    </>
   )
 }

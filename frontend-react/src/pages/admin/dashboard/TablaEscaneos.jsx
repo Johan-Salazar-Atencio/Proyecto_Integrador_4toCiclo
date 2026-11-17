@@ -1,4 +1,3 @@
-const inicial = (nombre) => nombre.trim()[0]?.toUpperCase() || '?'
 const hace = (iso) => {
   const min = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000))
   if (min < 1) return 'ahora'
@@ -6,35 +5,38 @@ const hace = (iso) => {
   if (min < 1440) return `hace ${Math.round(min / 60)} h`
   return `hace ${Math.round(min / 1440)} d`
 }
-const nivel = (c) => (c == null ? ['Sin dato', 'barra-roja'] : c >= 95 ? ['Alta confianza', ''] : c >= 85 ? ['Media', 'barra-ambar'] : ['Revisar', 'barra-roja'])
+const nivel = (c) => (c == null ? ['Sin dato', 'var(--texto-suave)'] : c >= 95 ? ['Alta confianza', 'var(--ok)'] : c >= 85 ? ['Media', 'var(--luz)'] : ['Revisar', 'var(--peligro)'])
 
-// Ultimos escaneos procesados por la IA (datos reales)
+const COLUMNAS = '78px minmax(0, 1fr) 118px 112px'
+
+// Ultimos escaneos procesados por la IA (datos reales), como filas con barra de precision y chip de estado
 export default function TablaEscaneos({ escaneos }) {
+  if (escaneos.length === 0) {
+    return <p className="historial-vacio">Todavía no hay escaneos: aparecerán aquí cuando los usuarios escaneen plantas.</p>
+  }
+
   return (
-    <div className="tabla-escaneos">
-      <table>
-        <thead>
-          <tr><th>Usuario</th><th>Especie identificada</th><th>Precisión IA</th><th>Cuándo</th><th>Estado</th></tr>
-        </thead>
-        <tbody>
-          {escaneos.length === 0 && <tr><td colSpan={5}>Todavía no hay escaneos: aparecerán aquí cuando los usuarios escaneen plantas.</td></tr>}
-          {escaneos.map((e) => {
-            const [texto, clase] = nivel(e.confianza)
-            return (
-              <tr key={e.id}>
-                <td><span className="tabla-avatar">{inicial(e.usuario)}</span> {e.usuario}</td>
-                <td><b>{e.especie}</b><small>{e.cientifico}</small></td>
-                <td className="tabla-precision">
-                  <span><b>{e.confianza == null ? '—' : `${e.confianza.toFixed(1)}%`}</b> <small>{texto}</small></span>
-                  <div className="barra"><div className={`barra-relleno ${clase}`} style={{ width: `${e.confianza ?? 0}%` }} /></div>
-                </td>
-                <td>{hace(e.fecha)}</td>
-                <td><span className={`tabla-estado ${(e.confianza ?? 0) >= 85 ? 'tabla-validado' : 'tabla-revision'}`}>{(e.confianza ?? 0) >= 85 ? '✅ Validado' : '⏳ En revisión'}</span></td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+    <div className="dash-tabla" role="table" aria-label="Últimos escaneos">
+      <div className="ad-th" role="row" style={{ '--cols': COLUMNAS }}>
+        <span>Cuándo</span><span>Especie</span><span>Precisión IA</span><span>Estado</span>
+      </div>
+      {escaneos.map((e) => {
+        const [texto, color] = nivel(e.confianza)
+        return (
+          <div key={e.id} className="ad-tr" role="row" style={{ '--cols': COLUMNAS }}>
+            <small>{hace(e.fecha)}</small>
+            <div className="dash-especie">
+              <b>{e.especie}</b>
+              <small>{e.usuario}{e.cientifico ? ` · ${e.cientifico}` : ''}</small>
+            </div>
+            <div className="dash-precision">
+              <div className="ad-bar" style={{ '--c': color }}><i style={{ width: `${e.confianza ?? 0}%` }} /></div>
+              <small>{e.confianza == null ? '—' : `${Math.round(e.confianza)}%`}</small>
+            </div>
+            <span className="ad-chip" style={{ '--c': color }}>{texto}</span>
+          </div>
+        )
+      })}
     </div>
   )
 }
