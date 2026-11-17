@@ -1,7 +1,11 @@
 package com.plantia
 
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -26,6 +30,20 @@ class MainActivity : ComponentActivity() {
 
     private val descubridor by lazy { DescubridorMdns(applicationContext) }
 
+    // Android 17 pide permiso para hablar con equipos de la red local (el PC con el backend).
+    // Al concederlo se vuelve a buscar el mejor host para no quedarse con un intento fallido.
+    private val pedirRedLocal = registerForActivityResult(ActivityResultContracts.RequestPermission()) { concedido ->
+        if (concedido) RetrofitClient.reconectar()
+    }
+
+    private fun pedirPermisoRedLocal() {
+        if (Build.VERSION.SDK_INT < 37) return
+        val permiso = "android.permission.ACCESS_LOCAL_NETWORK"
+        if (ContextCompat.checkSelfPermission(this, permiso) != PackageManager.PERMISSION_GRANTED) {
+            pedirRedLocal.launch(permiso)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -34,6 +52,7 @@ class MainActivity : ComponentActivity() {
         Sesion.init(applicationContext)
         ConexionConfig.init(applicationContext)
         TemaConfig.init(applicationContext)
+        pedirPermisoRedLocal()
 
         // Busca el PC en la red local por mDNS: asi no hay que hardcodear la IP
         // y funciona aunque se cambie de WiFi.
