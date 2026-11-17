@@ -38,12 +38,13 @@ import coil.compose.SubcomposeAsyncImage
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.remote.dto.ColeccionItemDto
 import com.plantia.ui.garden.estadoAnimo
-import com.plantia.ui.theme.AmberAlert
-import com.plantia.ui.theme.AmberLight
-import com.plantia.ui.theme.GreenDark
-import com.plantia.ui.theme.GreenLight
-import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.SurfaceWhite
+import com.plantia.ui.components.tarjeta
+import com.plantia.ui.theme.Evento
+import com.plantia.ui.theme.Primario
+import com.plantia.ui.theme.SobrePrimario
+import com.plantia.ui.theme.SuperficieElevada
+import com.plantia.ui.theme.Tinte
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
 
@@ -53,8 +54,8 @@ private fun FotoPlanta(url: String?, descripcion: String, modifier: Modifier = M
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(16.dp))
-            .background(GreenLight),
+            .clip(RoundedCornerShape(18.dp))
+            .background(SuperficieElevada),
         contentAlignment = Alignment.Center
     ) {
         if (url.isNullOrBlank()) {
@@ -67,7 +68,7 @@ private fun FotoPlanta(url: String?, descripcion: String, modifier: Modifier = M
                 modifier = Modifier.fillMaxSize(),
                 loading = {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = GreenPrimary, modifier = Modifier.size(24.dp))
+                        CircularProgressIndicator(color = Primario, modifier = Modifier.size(24.dp))
                     }
                 },
                 error = {
@@ -96,17 +97,15 @@ private fun Etiqueta(texto: String, fondo: Color, color: Color) {
 
 @Composable
 private fun TarjetaBase(onClick: () -> Unit, modifier: Modifier = Modifier, contenido: @Composable () -> Unit) {
-    Card(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .tarjeta()
+            .clickable(onClick = onClick)
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            contenido()
-        }
+        contenido()
     }
 }
 
@@ -135,8 +134,8 @@ fun TarjetaEscaneada(item: ColeccionItemDto, onClick: () -> Unit, modifier: Modi
         }
         if (item.vecesVista > 1 || item.esToxicaMascotas) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(horizontal = 4.dp)) {
-                if (item.vecesVista > 1) Etiqueta("×${item.vecesVista}", GreenLight, GreenDark)
-                if (item.esToxicaMascotas) Etiqueta("Tóxica", AmberLight, AmberAlert)
+                if (item.vecesVista > 1) Etiqueta("×${item.vecesVista}", Tinte, Primario)
+                if (item.esToxicaMascotas) Etiqueta("Tóxica", Evento.copy(alpha = 0.16f), Evento)
             }
         }
     }
@@ -153,12 +152,12 @@ fun TarjetaDigital(planta: PlantSummary, activa: Boolean, onClick: () -> Unit, m
                     text = "Activo",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = SobrePrimario,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp)
                         .clip(CircleShape)
-                        .background(GreenPrimary)
+                        .background(Primario)
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 )
             }
@@ -190,9 +189,9 @@ fun TarjetaDescubrirMas(onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = GreenLight),
-        border = BorderStroke(1.dp, GreenPrimary.copy(alpha = 0.35f))
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Tinte),
+        border = BorderStroke(1.dp, Primario.copy(alpha = 0.35f))
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -203,7 +202,7 @@ fun TarjetaDescubrirMas(onClick: () -> Unit, modifier: Modifier = Modifier) {
                 modifier = Modifier.size(40.dp).clip(CircleShape).background(SurfaceWhite),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = GreenDark)
+                Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = Primario)
             }
             Column {
                 Text("¡Descubre más plantas!", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)

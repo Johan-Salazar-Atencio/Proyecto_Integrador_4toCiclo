@@ -4,7 +4,11 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.clipToBounds
@@ -74,9 +78,11 @@ import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.TiendaItem
 import com.plantia.ui.escena.PlantaPixel
 import com.plantia.ui.escena.rememberSprites
-import com.plantia.ui.theme.GreenDark
-import com.plantia.ui.theme.GreenLight
-import com.plantia.ui.theme.GreenPrimary
+import com.plantia.ui.components.tarjeta
+import com.plantia.ui.theme.DividerColor
+import com.plantia.ui.theme.Primario
+import com.plantia.ui.theme.SobrePrimario
+import com.plantia.ui.theme.SuperficieElevada
 import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
@@ -111,15 +117,24 @@ fun ColeccionVirtual(
     val pager = rememberPagerState(pageCount = { paginas.size + 1 })
 
     val alcance = rememberCoroutineScope()
-    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        BarraSuperior(consulta, { consulta = it }, invernadero, invernaderosPropios, onElegirInvernadero)
+    val total = paginas.size + 1
+    val enPaginaBaul = pager.currentPage >= paginas.size
+    Column(modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        BarraSuperior(
+            consulta, { consulta = it }, invernadero, invernaderosPropios, onElegirInvernadero,
+            paginaActual = pager.currentPage, totalInvernaderos = paginas.size
+        )
 
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .tarjeta()
+        ) {
             HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { pagina ->
                 if (pagina < paginas.size) {
                     PaginaInvernadero(
                         codigo = invernadero,
-                        indicador = { Indicador(pagina, paginas.size + 1, enBaul.size, esBaul = false, modifier = Modifier.align(Alignment.BottomCenter)) },
                         plantas = paginas[pagina],
                         vacioPorBusqueda = consulta.isNotBlank() && activas.isEmpty(),
                         onAbrir = onAbrir,
@@ -127,10 +142,9 @@ fun ColeccionVirtual(
                         onScan = onScan
                     )
                 } else {
-                    PaginaBaul(enBaul, onSacarDelBaul, indicador = { Indicador(pagina, paginas.size + 1, enBaul.size, esBaul = true, modifier = Modifier.align(Alignment.BottomCenter)) })
+                    PaginaBaul(enBaul, onSacarDelBaul)
                 }
             }
-            val total = paginas.size + 1
             if (total > 1) {
                 FlechaPagina(Icons.Filled.ChevronLeft, "Página anterior", Modifier.align(Alignment.CenterStart).padding(start = 8.dp)) {
                     alcance.launch { pager.animateScrollToPage((pager.currentPage - 1 + total) % total) }
@@ -140,6 +154,11 @@ fun ColeccionVirtual(
                 }
             }
         }
+
+        TarjetaBaul(enBaul.size, volver = enPaginaBaul) {
+            alcance.launch { pager.animateScrollToPage(if (enPaginaBaul) 0 else paginas.size) }
+        }
+        Spacer(Modifier.height(4.dp))
     }
 
     conAcciones?.let { planta ->
@@ -177,20 +196,53 @@ private fun BarraSuperior(
     onConsulta: (String) -> Unit,
     invernadero: String,
     propios: List<TiendaItem>,
-    onElegir: (TiendaItem) -> Unit
+    onElegir: (TiendaItem) -> Unit,
+    paginaActual: Int,
+    totalInvernaderos: Int
 ) {
     var buscando by rememberSaveable { mutableStateOf(consulta.isNotEmpty()) }
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        MenuInvernadero(invernadero, propios, onElegir)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            MenuInvernadero(invernadero, propios, onElegir)
+            Spacer(Modifier.weight(1f))
+            val enBaul = paginaActual >= totalInvernaderos
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    if (enBaul) "Baúl" else "Invernadero ${paginaActual + 1} de $totalInvernaderos",
+                    fontSize = 11.sp, color = TextSecondary
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    repeat(totalInvernaderos + 1) { i ->
+                        val activa = i == paginaActual
+                        Box(
+                            Modifier
+                                .height(7.dp)
+                                .width(if (activa) 18.dp else 7.dp)
+                                .clip(CircleShape)
+                                .background(if (activa) Primario else DividerColor)
+                        )
+                    }
+                }
+            }
+            Box(
+                Modifier
+                    .size(40.dp)
+                    .tarjeta(CircleShape)
+                    .clickable(onClickLabel = "Buscar planta") { buscando = !buscando; if (!buscando) onConsulta("") },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Search, contentDescription = "Buscar", tint = TextPrimary, modifier = Modifier.size(20.dp))
+            }
+        }
         if (buscando) {
             OutlinedTextField(
                 value = consulta,
                 onValueChange = onConsulta,
-                modifier = Modifier.weight(1f).height(52.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 placeholder = { Text("Buscar planta", fontSize = 14.sp) },
@@ -199,35 +251,30 @@ private fun BarraSuperior(
                     IconButton(onClick = { onConsulta(""); buscando = false }) { Icon(Icons.Filled.Close, contentDescription = "Cerrar búsqueda") }
                 }
             )
-        } else {
-            Spacer(Modifier.weight(1f))
-            Row(
-                Modifier.clip(RoundedCornerShape(50)).background(SurfaceWhite).clickable { buscando = true }.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Icon(Icons.Filled.Search, contentDescription = null, tint = GreenDark, modifier = Modifier.size(16.dp))
-                Text("Buscar", fontSize = 12.sp, color = GreenDark)
-            }
         }
     }
 }
 
-/** Chip con el invernadero puesto; al tocarlo lista solo los que el usuario tiene. */
+/** Pildora con el tema de invernadero puesto; al tocarla lista solo los que el usuario tiene. */
 @Composable
 private fun MenuInvernadero(actual: String, propios: List<TiendaItem>, onElegir: (TiendaItem) -> Unit) {
     var abierto by remember { mutableStateOf(false) }
     val nombre = propios.firstOrNull { it.codigo == actual }?.nombre ?: nombreDelInvernadero(actual)
     Box {
-        FilterChip(
-            selected = true,
-            onClick = { abierto = true },
-            colors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = GreenLight,
-                selectedLabelColor = GreenDark
-            ),
-            label = { Text("🌿 ${nombre.take(14)} ▾", fontSize = 12.sp, maxLines = 1) }
-        )
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(50))
+                .background(SuperficieElevada)
+                .border(1.dp, DividerColor, RoundedCornerShape(50))
+                .clickable { abierto = true }
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(Icons.Filled.Eco, contentDescription = null, tint = Primario, modifier = Modifier.size(16.dp))
+            Text(nombre.take(16), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary, maxLines = 1)
+            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+        }
         DropdownMenu(expanded = abierto, onDismissRequest = { abierto = false }) {
             if (propios.isEmpty()) {
                 DropdownMenuItem(text = { Text("Aún no hay otros temas") }, onClick = { abierto = false })
@@ -245,10 +292,34 @@ private fun MenuInvernadero(actual: String, propios: List<TiendaItem>, onElegir:
     }
 }
 
+/** Tarjeta de abajo: lleva al baul (o de vuelta al invernadero si ya se esta en el baul). */
+@Composable
+private fun TarjetaBaul(guardadas: Int, volver: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().tarjeta().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(Modifier.size(34.dp).clip(CircleShape).background(SuperficieElevada), contentAlignment = Alignment.Center) {
+            Icon(Icons.Filled.Inventory2, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                "Baúl · $guardadas guardada${if (guardadas == 1) "" else "s"}",
+                fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary
+            )
+            Text(
+                if (volver) "Toca para volver al invernadero" else "Las plantas guardadas quedan congeladas",
+                fontSize = 11.sp, color = TextSecondary
+            )
+        }
+        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
+    }
+}
+
 @Composable
 private fun PaginaInvernadero(
     codigo: String,
-    indicador: @Composable BoxScope.() -> Unit,
     plantas: List<PlantSummary>,
     vacioPorBusqueda: Boolean,
     onAbrir: (PlantSummary) -> Unit,
@@ -282,11 +353,10 @@ private fun PaginaInvernadero(
                         }
                     }
                 }
-                Box(Modifier.fillMaxSize()) { indicador() }
                 if (vacioPorBusqueda) {
                     Text(
                         "Ninguna planta coincide con tu búsqueda",
-                        modifier = Modifier.align(Alignment.Center).background(SurfaceWhite.copy(alpha = 0.9f), RoundedCornerShape(12.dp)).padding(12.dp),
+                        modifier = Modifier.align(Alignment.Center).background(SurfaceWhite.copy(alpha = 0.92f), RoundedCornerShape(16.dp)).padding(12.dp),
                         color = TextPrimary, fontSize = 14.sp, textAlign = TextAlign.Center
                     )
                 }
@@ -345,18 +415,15 @@ private fun PlantaEnEstante(planta: PlantSummary, onAbrir: () -> Unit, onMenu: (
 }
 
 @Composable
-private fun PaginaBaul(plantas: List<PlantSummary>, onSacar: (PlantSummary) -> Unit, indicador: @Composable BoxScope.() -> Unit) {
-    Box(Modifier.fillMaxSize()) {
+private fun PaginaBaul(plantas: List<PlantSummary>, onSacar: (PlantSummary) -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(24.dp))
             .background(SurfaceWhite)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("🧳 Baúl", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+        Text("Baúl", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
         Text(
             "Las plantas guardadas aquí quedan congeladas: no crecen, no se desgastan y no les pasa nada. Solo liberan espacio.",
             fontSize = 12.sp, color = TextSecondary
@@ -373,14 +440,12 @@ private fun PaginaBaul(plantas: List<PlantSummary>, onSacar: (PlantSummary) -> U
             }
         }
     }
-    indicador()
-    }
 }
 
 @Composable
 private fun FilaDelBaul(planta: PlantSummary, onSacar: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(GreenLight).padding(8.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(SuperficieElevada).padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -399,33 +464,9 @@ private fun FilaDelBaul(planta: PlantSummary, onSacar: () -> Unit) {
         }
         Button(
             onClick = onSacar,
-            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
-            shape = RoundedCornerShape(12.dp)
-        ) { Text("Sacar", fontSize = 13.sp) }
-    }
-}
-
-@Composable
-private fun Indicador(paginaActual: Int, total: Int, enBaul: Int, esBaul: Boolean, modifier: Modifier = Modifier) {
-    Column(modifier.padding(bottom = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        if (esBaul) {
-            Text(
-                "Baúl · $enBaul guardada${if (enBaul == 1) "" else "s"}",
-                fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(bottom = 4.dp)
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-            repeat(total) { i ->
-                val activa = i == paginaActual
-                Box(
-                    Modifier
-                        .height(6.dp)
-                        .width(if (activa) 16.dp else 6.dp)
-                        .clip(CircleShape)
-                        .background(if (esBaul) (if (activa) GreenPrimary else TextSecondary.copy(alpha = 0.35f)) else androidx.compose.ui.graphics.Color.White.copy(alpha = if (activa) 1f else 0.55f))
-                )
-            }
-        }
+            colors = ButtonDefaults.buttonColors(containerColor = Primario, contentColor = SobrePrimario),
+            shape = RoundedCornerShape(14.dp)
+        ) { Text("Sacar", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold) }
     }
 }
 
@@ -435,7 +476,7 @@ private fun FlechaPagina(icono: androidx.compose.ui.graphics.vector.ImageVector,
         onClick = onClick,
         modifier = modifier.size(32.dp),
         shape = CircleShape,
-        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.88f),
+        color = SurfaceWhite.copy(alpha = 0.9f),
         shadowElevation = 2.dp
     ) {
         Box(contentAlignment = Alignment.Center) {
