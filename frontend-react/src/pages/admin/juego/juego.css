@@ -1,10 +1,4 @@
-.juego { display: flex; flex-direction: column; gap: 22px; }
-.juego h2 { font-size: 1.15rem; }
-.juego-nota { margin: 4px 0 14px; color: var(--texto-suave); font-size: 0.85rem; }
-.juego-fila { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--linea); }
-.juego-fila-texto { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.juego-fila-texto small { color: var(--texto-suave); }
-.juego input[type='number'] { width: 96px; padding: 8px 10px; border: 1.5px solid var(--linea); border-radius: 10px; background: var(--fondo); color: var(--texto); font: inherit; }
-.juego-tabla td { vertical-align: middle; }
-.juego-tabla tbody tr { cursor: default; }
-.juego .mision-primario:disabled, .juego .mision-botones button:disabled { opacity: 0.45; cursor: default; }
+/* Economía del juego (prefijo ak-juego). Lo común está en ../misiones/kit.css */
+.ak-juego-cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.ak-juego-lado { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+@media (max-width: 1000px) { .ak-juego-cols { grid-template-columns: minmax(0, 1fr); } }
