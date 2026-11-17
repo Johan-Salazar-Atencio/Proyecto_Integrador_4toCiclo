@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
-import Boton from '../../../components/Boton'
 import { cuidadosDe, guardarEspecie } from '../../../services/admin/catalogo'
 import { estiloDe } from '../../user/planta/mapeo'
+import { Alternador, Campo, Icono, PENDIENTE } from '../misiones/kit'
 
-const CAMPOS = ['nombreComun', 'nombreCientifico', 'riegoDias', 'solHoras', 'tempMin', 'tempMax', 'toxica', 'publicada']
+const CAMPOS = ['nombreComun', 'nombreCientifico', 'imagen', 'riegoDias', 'solHoras', 'tempMin', 'tempMax', 'toxica', 'publicada']
+const original = (especie) => Object.fromEntries(CAMPOS.map((c) => [c, especie[c]]))
 
-// Panel lateral para revisar y editar una especie
+// Panel "Editar especie": datos, guía de cuidados y moderación
 export default function PanelEspecie({ especie, onCerrar, onCambio }) {
-  const [form, setForm] = useState(() => Object.fromEntries(CAMPOS.map((c) => [c, especie[c]])))
+  const [form, setForm] = useState(() => original(especie))
   const [cuidados, setCuidados] = useState({ cargando: true, lista: [] })
   const [guardando, setGuardando] = useState(false)
-  const [aviso, setAviso] = useState('')
+  const [aviso, setAviso] = useState({ texto: '', error: false })
 
   useEffect(() => {
     let vivo = true
@@ -20,7 +21,7 @@ export default function PanelEspecie({ especie, onCerrar, onCambio }) {
     return () => { vivo = false }
   }, [especie.id])
 
-  const poner = (campo, valor) => { setForm((f) => ({ ...f, [campo]: valor })); setAviso('') }
+  const poner = (campo, valor) => { setForm((f) => ({ ...f, [campo]: valor })); setAviso({ texto: '', error: false }) }
   const numero = (campo) => (e) => poner(campo, e.target.value === '' ? '' : Number(e.target.value))
 
   const cambiado = CAMPOS.some((c) => form[c] !== especie[c])
@@ -28,54 +29,51 @@ export default function PanelEspecie({ especie, onCerrar, onCambio }) {
 
   const guardar = async () => {
     setGuardando(true)
-    setAviso('')
+    setAviso({ texto: '', error: false })
     try {
       await guardarEspecie(especie.id, { ...form, nombreComun: form.nombreComun.trim(), nombreCientifico: form.nombreCientifico.trim() })
-      setAviso('Guardado en la base de datos')
+      setAviso({ texto: 'Guardado en la base de datos', error: false })
       onCambio()
     } catch (err) {
-      setAviso(`Error al guardar: ${err.message || err}`)
+      setAviso({ texto: `Error al guardar: ${err.message || err}`, error: true })
     } finally {
       setGuardando(false)
     }
   }
 
-  const restaurar = () => {
-    onCambio()
-  }
-
   return (
-    <aside className="cat-panel tarjeta aparece">
-      <header>
+    <aside className="ak-card ak-panel">
+      <div className="ak-panel-cab">
         <div>
-          <h2>{especie.nombreComun}</h2>
-          <small>#ESP-{String(especie.id).padStart(4, '0')}</small>
+          <h3>Editar especie</h3>
+          <small className="ak-cat-id">#ESP-{String(especie.id).padStart(4, '0')}</small>
         </div>
-        <button className="cat-cerrar" onClick={onCerrar} aria-label="Cerrar panel">✕</button>
-      </header>
-
-      <label><span>Nombre común</span><input value={form.nombreComun} onChange={(e) => poner('nombreComun', e.target.value)} /></label>
-      <label><span>Nombre científico</span><input value={form.nombreCientifico} onChange={(e) => poner('nombreCientifico', e.target.value)} /></label>
-
-      <div className="cat-doble">
-        <label><span>Riego (cada N días)</span><input type="number" min="1" value={form.riegoDias} onChange={numero('riegoDias')} /></label>
-        <label><span>Sol (horas)</span><input type="number" min="0" value={form.solHoras} onChange={numero('solHoras')} /></label>
-        <label><span>Temp. mín. (°C)</span><input type="number" value={form.tempMin} onChange={numero('tempMin')} /></label>
-        <label><span>Temp. máx. (°C)</span><input type="number" value={form.tempMax} onChange={numero('tempMax')} /></label>
+        <button type="button" className="ak-ib" onClick={onCerrar} aria-label="Cerrar panel"><Icono nombre="x" /></button>
       </div>
 
-      <label className="cat-interruptor">
-        <input type="checkbox" checked={form.toxica} onChange={(e) => poner('toxica', e.target.checked)} />
-        <span><b>⚠️ Tóxica para mascotas</b><small>Se avisa en la ficha de la planta</small></span>
-      </label>
-      <label className="cat-interruptor">
-        <input type="checkbox" checked={form.publicada} onChange={(e) => poner('publicada', e.target.checked)} />
-        <span><b>📖 Publicada en la enciclopedia</b><small>Disponible para los escaneos de los usuarios</small></span>
-      </label>
+      <div className="ak-dos">
+        <Campo etiqueta="Nombre común"><input value={form.nombreComun} onChange={(e) => poner('nombreComun', e.target.value)} /></Campo>
+        <Campo etiqueta="Nombre científico"><input value={form.nombreCientifico} onChange={(e) => poner('nombreCientifico', e.target.value)} /></Campo>
+      </div>
+      <div className="ak-dos">
+        <Campo etiqueta="Familia (taxonomía)"><input value="" placeholder={PENDIENTE} disabled title={PENDIENTE} readOnly /></Campo>
+        <Campo etiqueta="Imagen (ruta)"><input value={form.imagen} onChange={(e) => poner('imagen', e.target.value)} /></Campo>
+      </div>
 
-      <div className="cat-cuidados">
-        <h3>Guía de cuidados <small>(solo lectura)</small></h3>
-        {cuidados.cargando ? <p className="cat-nota">Cargando…</p> : cuidados.lista.length === 0 ? <p className="cat-nota">Sin cuidados registrados.</p> : (
+      <b>Guía de cuidados</b>
+      <div className="ak-dos">
+        <Campo etiqueta="Riego (cada N días)"><input type="number" min="1" value={form.riegoDias} onChange={numero('riegoDias')} /></Campo>
+        <Campo etiqueta="Sol (horas)"><input type="number" min="0" value={form.solHoras} onChange={numero('solHoras')} /></Campo>
+        <Campo etiqueta="Temp. mín. (°C)"><input type="number" value={form.tempMin} onChange={numero('tempMin')} /></Campo>
+        <Campo etiqueta="Temp. máx. (°C)"><input type="number" value={form.tempMax} onChange={numero('tempMax')} /></Campo>
+      </div>
+
+      <Alternador titulo="Publicada" detalle="Disponible para los escaneos" activo={form.publicada} onChange={(v) => poner('publicada', v)} />
+      <Alternador titulo="⚠ Tóxica para mascotas" detalle="Se avisa en la ficha" activo={form.toxica} onChange={(v) => poner('toxica', v)} />
+
+      <div className="ak-cat-cuidados">
+        <b>Secciones de cuidado <small>(solo lectura)</small></b>
+        {cuidados.cargando ? <p>Cargando…</p> : cuidados.lista.length === 0 ? <p>Sin cuidados registrados.</p> : (
           <ul>
             {cuidados.lista.map((c) => (
               <li key={c.id}><span>{estiloDe(c.tipo).icono}</span><div><b>{c.titulo || estiloDe(c.tipo).texto}</b><p>{c.contenido}</p></div></li>
@@ -84,11 +82,12 @@ export default function PanelEspecie({ especie, onCerrar, onCambio }) {
         )}
       </div>
 
-      {aviso && <p className="cat-ok" role="status">✅ {aviso}</p>}
+      {aviso.texto && <p className={aviso.error ? 'ak-error' : 'ak-ok'} role="status">{aviso.texto}</p>}
 
-      <div className="cat-acciones">
-        <Boton onClick={guardar} cargando={guardando} disabled={!cambiado || !valido}>Guardar cambios</Boton>
-        {especie.editada && <button className="cat-restaurar" onClick={restaurar}>Restaurar original</button>}
+      <div className="ak-pie">
+        <button type="button" className="ak-btn ak-btn-d ak-btn-sm" disabled title={PENDIENTE}><Icono nombre="trash" tam={15} />Eliminar</button>
+        <button type="button" className="ak-btn ak-btn-g ak-btn-sm" disabled={!cambiado || guardando} onClick={() => { setForm(original(especie)); setAviso({ texto: '', error: false }) }}>Restaurar original</button>
+        <button type="button" className="ak-btn" onClick={guardar} disabled={!cambiado || !valido || guardando}>{guardando ? 'Guardando…' : 'Guardar cambios'}</button>
       </div>
     </aside>
   )
