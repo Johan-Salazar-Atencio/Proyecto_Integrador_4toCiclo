@@ -1,5 +1,7 @@
 package com.plantia.ui.catalog
 
+import com.plantia.ui.theme.Peligro
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -215,7 +217,7 @@ private fun CatalogoCard(item: CatalogoItem, onClick: () -> Unit) {
                 Icon(
                     imageVector = Icons.Default.Pets,
                     contentDescription = "Toxica para mascotas",
-                    tint = Color(0xFFDC2626),
+                    tint = Peligro,
                     modifier = Modifier.size(20.dp)
                 )
             }

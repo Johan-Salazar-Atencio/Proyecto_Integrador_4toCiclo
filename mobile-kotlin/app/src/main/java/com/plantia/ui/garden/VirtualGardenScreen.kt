@@ -1,5 +1,11 @@
 package com.plantia.ui.garden
 
+import com.plantia.ui.theme.Peligro
+
+import com.plantia.ui.theme.Abono
+
+import com.plantia.ui.theme.SobrePrimario
+
 import androidx.compose.foundation.background
 import com.plantia.ui.theme.FondoDegradado
 import com.plantia.ui.components.brilloTarjeta
@@ -481,7 +487,7 @@ private fun TarjetaMuerta(planta: PlantSummary, reviviendo: Boolean, onRevivir: 
                 enabled = !reviviendo,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
             ) {
                 Text(
                     text = when {
@@ -595,13 +601,13 @@ private fun TarjetaAcciones(
                 val (icono, color) = when (accion) {
                     AccionCuidado.REGAR -> Icons.Filled.WaterDrop to ColorAgua
                     AccionCuidado.SOL -> Icons.Filled.WbSunny to ColorLuz
-                    AccionCuidado.ABONAR -> Icons.Filled.Science to GreenPrimary
+                    AccionCuidado.ABONAR -> Icons.Filled.Science to Abono
                 }
                 CareActionButton(
                     etiqueta = accion.etiqueta,
                     pista = if (accion == AccionCuidado.ABONAR && planta.enRecuperacion) "Recupera" else accion.pista,
                     icono = icono,
-                    colorIcono = Color.White,
+                    colorIcono = SobrePrimario,
                     colorFondo = color,
                     onClick = { onCuidar(accion) },
                     modifier = Modifier.weight(1f)
@@ -625,8 +631,8 @@ private fun BotonPrevenir(protegida: Boolean, previniendo: Boolean, onPrevenir: 
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = RojoTexto,
-            contentColor = Color.White,
+            containerColor = Peligro,
+            contentColor = SobrePrimario,
             disabledContainerColor = if (protegida) GreenLight else RojoClaro,
             disabledContentColor = if (protegida) GreenDark else RojoTexto
         )
@@ -707,7 +713,7 @@ private fun EstadoMensaje(
         Button(
             onClick = onBoton,
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
         ) {
             Text(boton)
         }

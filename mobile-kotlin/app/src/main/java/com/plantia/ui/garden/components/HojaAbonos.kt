@@ -1,5 +1,7 @@
 package com.plantia.ui.garden.components
 
+import com.plantia.ui.theme.SobrePrimario
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -95,7 +97,7 @@ fun HojaAbonos(
                             onClick = { onUsar(abono) },
                             enabled = alcanza && !abono.bloqueado,
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SurfaceWhite)
+                            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
                         ) { Text(if (abono.bloqueado) "🔒" else "${abono.precio} 🍃", fontWeight = FontWeight.Bold) }
                     }
                 }

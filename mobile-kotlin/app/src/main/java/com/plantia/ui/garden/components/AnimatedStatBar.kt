@@ -1,5 +1,13 @@
 package com.plantia.ui.garden.components
 
+import androidx.compose.runtime.ReadOnlyComposable
+
+import com.plantia.ui.theme.Luz
+
+import com.plantia.ui.theme.Agua
+
+import com.plantia.ui.theme.Peligro
+
 import com.plantia.ui.components.BarraProgreso
 
 import androidx.compose.animation.animateColorAsState
@@ -41,19 +49,18 @@ import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.TextPrimary
 import kotlin.math.roundToInt
 
-private val RojoCritico = Color(0xFFEF4444)
 
 /** Cada necesidad tiene su color fijo: la vida es roja como el corazon, el agua azul y la luz amarilla. */
-internal val ColorVida = Color(0xFFE53935)
-internal val ColorAgua = Color(0xFF2196F3)
-internal val ColorLuz = Color(0xFFFBC02D)
+internal val ColorVida: Color @Composable @ReadOnlyComposable get() = Peligro
+internal val ColorAgua: Color @Composable @ReadOnlyComposable get() = Agua
+internal val ColorLuz: Color @Composable @ReadOnlyComposable get() = Luz
 
 /** Verde si va bien, ambar si baja, rojo si es critico. */
 @Composable
 internal fun colorPorNivel(porcentaje: Int): Color = when {
     porcentaje >= 60 -> GreenPrimary
     porcentaje >= 30 -> AmberAlert
-    else -> RojoCritico
+    else -> Peligro
 }
 
 /**

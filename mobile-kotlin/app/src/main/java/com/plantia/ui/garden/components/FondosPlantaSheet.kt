@@ -1,5 +1,7 @@
 package com.plantia.ui.garden.components
 
+import com.plantia.ui.theme.SobrePrimario
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -99,7 +101,7 @@ private fun TarjetaTema(tema: TemaFondo, onElegir: (TemaFondo) -> Unit) {
             if (tema.descripcion.isNotBlank()) Text(tema.descripcion, fontSize = 12.sp, lineHeight = 16.sp, color = TextSecondary)
             if (tema.enUso) {
                 Text(
-                    "✓ En uso", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = SurfaceWhite,
+                    "✓ En uso", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = SobrePrimario,
                     modifier = Modifier.clip(CircleShape).background(GreenPrimary).padding(horizontal = 12.dp, vertical = 4.dp)
                 )
             } else {

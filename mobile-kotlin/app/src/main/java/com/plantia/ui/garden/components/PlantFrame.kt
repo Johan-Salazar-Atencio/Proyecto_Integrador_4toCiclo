@@ -1,5 +1,7 @@
 package com.plantia.ui.garden.components
 
+import com.plantia.ui.theme.SuperficieElevada
+
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -51,7 +53,7 @@ import com.plantia.ui.theme.TextSecondary
 object GardenBackgrounds {
     val Neutro: Brush
         @Composable get() = Brush.verticalGradient(
-            if (LocalTemaOscuro.current) listOf(Color(0xFF173A28), Color(0xFF0F2E1C)) else listOf(Color(0xFFF1FAF5), Color(0xFFDDF3E6))
+            listOf(SuperficieElevada, SurfaceWhite)
         )
 }
 

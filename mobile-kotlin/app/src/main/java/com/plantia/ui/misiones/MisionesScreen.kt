@@ -1,5 +1,11 @@
 package com.plantia.ui.misiones
 
+import com.plantia.ui.theme.SuperficieElevada
+
+import com.plantia.ui.theme.SobrePrimario
+
+import com.plantia.ui.theme.Peligro
+
 import androidx.compose.foundation.background
 import com.plantia.ui.theme.FondoDegradado
 import com.plantia.ui.components.BarraProgreso
@@ -179,7 +185,7 @@ private fun TarjetaEvento(mision: DailyMission, onIr: () -> Unit) {
                 }
             }
             Text(mision.title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            BarraProgreso(progreso = mision.progress, color = RojoTexto, pista = Color.White)
+            BarraProgreso(progreso = mision.progress, color = Peligro, pista = SuperficieElevada)
             Text(
                 "${mision.currentCount} de ${mision.targetCount} plantas protegidas · ${mision.reward}",
                 fontSize = 13.sp,
@@ -198,9 +204,9 @@ private fun TarjetaEvento(mision: DailyMission, onIr: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = RojoTexto,
-                    contentColor = Color.White,
-                    disabledContainerColor = Color.White,
+                    containerColor = Peligro,
+                    contentColor = SobrePrimario,
+                    disabledContainerColor = SuperficieElevada,
                     disabledContentColor = GreenDark
                 )
             ) {

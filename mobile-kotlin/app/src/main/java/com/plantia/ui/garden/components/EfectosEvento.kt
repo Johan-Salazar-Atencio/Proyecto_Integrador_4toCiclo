@@ -1,5 +1,7 @@
 package com.plantia.ui.garden.components
 
+import com.plantia.ui.theme.SobrePrimario
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -87,7 +89,7 @@ fun EfectoProteccion(disparador: Int, modifier: Modifier = Modifier) {
                 .background(GreenPrimary),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Filled.Shield, contentDescription = "Evento prevenido", tint = Color.White, modifier = Modifier.size(44.dp))
+            Icon(Icons.Filled.Shield, contentDescription = "Evento prevenido", tint = SobrePrimario, modifier = Modifier.size(44.dp))
         }
     }
 }

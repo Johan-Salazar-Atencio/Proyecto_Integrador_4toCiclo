@@ -1,5 +1,11 @@
 package com.plantia.ui.detail
 
+import androidx.compose.runtime.ReadOnlyComposable
+
+import com.plantia.ui.theme.SobrePrimario
+
+import com.plantia.ui.theme.Peligro
+
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -80,7 +86,7 @@ import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
 
-private val RojoCalor = Color(0xFFEF4444)
+private val RojoCalor: Color @Composable @ReadOnlyComposable get() = Peligro
 private val RojoCalorLight: Color
     @Composable get() = RojoClaro
 
@@ -206,8 +212,8 @@ private fun EtiquetaPrecision(texto: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Icon(Icons.Filled.Verified, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-        Text(texto, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Icon(Icons.Filled.Verified, contentDescription = null, tint = SobrePrimario, modifier = Modifier.size(16.dp))
+        Text(texto, color = SobrePrimario, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -411,7 +417,7 @@ internal fun BarraReintento(onReintentar: () -> Unit) {
                 onClick = onReintentar,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
             ) {
                 Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))
@@ -445,7 +451,7 @@ internal fun BarraAcciones(
                     onClick = onDigitalize,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
                 ) {
                     Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.size(8.dp))
@@ -468,7 +474,7 @@ internal fun BarraAcciones(
                 enabled = puedeGuardar,
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
             ) {
                 Icon(Icons.Filled.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))
