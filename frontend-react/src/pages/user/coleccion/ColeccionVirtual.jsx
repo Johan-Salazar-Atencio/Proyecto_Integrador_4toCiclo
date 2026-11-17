@@ -10,6 +10,7 @@ import { obtenerTienda } from '../../../services/tienda'
 import { elegirInvernadero } from '../../../services/usuario'
 import { obtenerUsuario } from '../../../services/home'
 import { etapaDe } from '../jardin/etapas'
+import Icono from './Iconos'
 
 export const PLANTAS_POR_PAGINA = 6
 const MS_PULSACION = 500
@@ -27,6 +28,19 @@ export function paginasDelInvernadero(activas) {
   const paginas = []
   for (let i = 0; i < activas.length; i += PLANTAS_POR_PAGINA) paginas.push(activas.slice(i, i + PLANTAS_POR_PAGINA))
   return paginas.length ? paginas : [[]]
+}
+
+// Pantalla ancha (>= 1000px): el invernadero ocupa la columna grande y los temas y el baul van al lado
+function useAncha() {
+  const consulta = '(min-width: 1000px)'
+  const [ancha, setAncha] = useState(() => typeof window !== 'undefined' && window.matchMedia(consulta).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(consulta)
+    const alCambiar = () => setAncha(mq.matches)
+    mq.addEventListener('change', alCambiar)
+    return () => mq.removeEventListener('change', alCambiar)
+  }, [])
+  return ancha
 }
 
 // Pulsacion larga: abre las acciones de la planta; un toque corto la abre en el jardin
@@ -113,22 +127,31 @@ function PaginaInvernadero({ tema, momento, plantas, vacioPorBusqueda, onAbrir, 
   )
 }
 
+function ListaBaul({ plantas, onSacar, ocupado }) {
+  return (
+    <>
+      {plantas.length === 0 && <p className="virtual-baul-vacio">El baúl está vacío</p>}
+      {plantas.map((p) => (
+        <div key={p.id} className="virtual-baul-fila">
+          <span className="virtual-baul-icono"><Icono nombre="chest" tam={20} /></span>
+          <div>
+            <b>{p.name}</b>
+            <small>{p.species}</small>
+          </div>
+          <button className="virtual-sacar" onClick={() => onSacar(p)} disabled={ocupado}>Sacar</button>
+        </div>
+      ))}
+    </>
+  )
+}
+
 function PaginaBaul({ plantas, onSacar, ocupado }) {
   return (
     <div className="virtual-pagina">
       <div className="virtual-baul">
-        <h2>🧳 Baúl</h2>
+        <h2>Baúl · {plantas.length} guardada{plantas.length === 1 ? '' : 's'}</h2>
         <p>Las plantas guardadas aquí quedan congeladas: no crecen, no se desgastan y no les pasa nada. Solo liberan espacio.</p>
-        {plantas.length === 0 && <p className="virtual-baul-vacio">El baúl está vacío</p>}
-        {plantas.map((p) => (
-          <div key={p.id} className="virtual-baul-fila">
-            <div>
-              <b>{p.name}</b>
-              <small>{p.species}</small>
-            </div>
-            <button className="boton boton-principal" onClick={() => onSacar(p)} disabled={ocupado}>Sacar</button>
-          </div>
-        ))}
+        <ListaBaul plantas={plantas} onSacar={onSacar} ocupado={ocupado} />
       </div>
     </div>
   )
@@ -139,9 +162,8 @@ function PaginaBaul({ plantas, onSacar, ocupado }) {
  * usa las flechas) y, al final, el baul. Tocar una planta la abre en el jardin; mantenerla pulsada (o el "⋮") abre
  * sus acciones: apodo y baul.
  */
-export default function ColeccionVirtual({ digitales, onCambio, onAbrir, onAviso }) {
-  const [consulta, setConsulta] = useState('')
-  const [buscando, setBuscando] = useState(false)
+export default function ColeccionVirtual({ digitales, consulta = '', onCambio, onAbrir, onAviso }) {
+  const ancha = useAncha()
   const [tema, setTema] = useState('SELVA')
   const [propios, setPropios] = useState([])
   const [menuTema, setMenuTema] = useState(false)
@@ -163,7 +185,7 @@ export default function ColeccionVirtual({ digitales, onCambio, onAbrir, onAviso
   const activas = vistas.filter((p) => !p.enBaul)
   const enBaul = vistas.filter((p) => p.enBaul)
   const paginas = paginasDelInvernadero(activas)
-  const total = paginas.length + 1
+  const total = ancha ? paginas.length : paginas.length + 1
 
   const alDesplazar = useCallback(() => {
     const el = pager.current
@@ -199,78 +221,102 @@ export default function ColeccionVirtual({ digitales, onCambio, onAbrir, onAviso
     }
   }
 
-  const nombreDelTema = NOMBRES[tema] || 'Invernadero'
-  return (
-    <div className="virtual">
-      <div className="virtual-barra">
-        <div className="virtual-tema">
-          <button className="virtual-chip" onClick={() => setMenuTema((v) => !v)} aria-expanded={menuTema}>🌿 {nombreDelTema} ▾</button>
-          {menuTema && (
-            <div className="virtual-menu" role="menu">
-              <small>Tus temas de invernadero</small>
-              {propios.map((i) => (
-                <button key={i.id} role="menuitem" className={i.codigo === tema ? 'virtual-menu-activo' : ''} onClick={() => elegirTema(i)}>
-                  {i.codigo === tema ? '✓ ' : ''}{i.nombre}
-                </button>
-              ))}
-              <Link to={RUTAS.TIENDA} className="virtual-menu-mas">🛒 Conseguir más temas en la tienda</Link>
-            </div>
-          )}
-        </div>
-        {buscando ? (
-          <div className="virtual-busqueda">
-            <input autoFocus value={consulta} onChange={(e) => setConsulta(e.target.value)} placeholder="Buscar planta" aria-label="Buscar planta" />
-            <button onClick={() => { setConsulta(''); setBuscando(false) }} aria-label="Cerrar búsqueda">✕</button>
-          </div>
-        ) : (
-          <button className="virtual-chip" onClick={() => setBuscando(true)}>🔍 Buscar</button>
-        )}
-      </div>
+  const sacar = (p) => cambiarPlanta(() => sacarDelBaul(p.id), p, (n) => `${n.name} salió del baúl`)
+  const temas = (
+    <>
+      <small className="virtual-sub">Tus temas de invernadero</small>
+      {propios.map((i) => (
+        <button key={i.id} role="menuitem" className={`virtual-tema-fila ${i.codigo === tema ? 'activo' : ''}`} onClick={() => elegirTema(i)}>
+          <span className="virtual-tema-marca">{i.codigo === tema && <Icono nombre="check" tam={16} />}</span>
+          <span className="virtual-tema-nombre">{i.nombre}<small>{i.codigo === tema ? 'Tema actual' : 'Disponible'}</small></span>
+        </button>
+      ))}
+      <Link to={RUTAS.TIENDA} className="virtual-menu-mas">Conseguir más temas en la tienda</Link>
+    </>
+  )
 
-      <div className="virtual-marco">
-        <div className="virtual-pager" ref={pager} onScroll={alDesplazar}>
-          {paginas.map((plantas, i) => (
-            <PaginaInvernadero
-              key={i}
-              tema={tema}
-              momento={momento}
-              plantas={plantas}
-              vacioPorBusqueda={consulta.trim() !== '' && activas.length === 0}
-              onAbrir={onAbrir}
-              onMenu={setConAcciones}
-            />
-          ))}
-          <PaginaBaul
-            plantas={enBaul}
-            ocupado={ocupado}
-            onSacar={(p) => cambiarPlanta(() => sacarDelBaul(p.id), p, (n) => `${n.name} salió del baúl`)}
+  const nombreDelTema = NOMBRES[tema] || 'Invernadero'
+  const enPaginas = pagina < paginas.length
+  const marco = (
+    <div className="virtual-marco">
+      <div className="virtual-pager" ref={pager} onScroll={alDesplazar}>
+        {paginas.map((plantas, i) => (
+          <PaginaInvernadero
+            key={i}
+            tema={tema}
+            momento={momento}
+            plantas={plantas}
+            vacioPorBusqueda={consulta.trim() !== '' && activas.length === 0}
+            onAbrir={onAbrir}
+            onMenu={setConAcciones}
           />
-        </div>
-        {total > 1 && (
-          <>
-            <button className="virtual-flecha virtual-flecha-izq" onClick={() => irA(pagina - 1)} aria-label="Página anterior">‹</button>
-            <button className="virtual-flecha virtual-flecha-der" onClick={() => irA(pagina + 1)} aria-label="Página siguiente">›</button>
-            <div className="virtual-puntos">
-              {Array.from({ length: total }, (_, i) => (
-                <button key={i} className={i === pagina ? 'activo' : ''} onClick={() => irA(i)} aria-label={`Ir a la página ${i + 1}`} />
-              ))}
-            </div>
-          </>
-        )}
+        ))}
+        {!ancha && <PaginaBaul plantas={enBaul} ocupado={ocupado} onSacar={sacar} />}
       </div>
-      <p className="virtual-pie">{pagina < paginas.length ? `Invernadero ${pagina + 1} de ${paginas.length}` : `Baúl · ${enBaul.length} guardada${enBaul.length === 1 ? '' : 's'}`}</p>
+      {total > 1 && (
+        <>
+          <button className="virtual-flecha virtual-flecha-izq" onClick={() => irA(pagina - 1)} aria-label="Página anterior">‹</button>
+          <button className="virtual-flecha virtual-flecha-der" onClick={() => irA(pagina + 1)} aria-label="Página siguiente">›</button>
+          <div className="virtual-puntos">
+            {Array.from({ length: total }, (_, i) => (
+              <button key={i} className={i === pagina ? 'activo' : ''} onClick={() => irA(i)} aria-label={`Ir a la página ${i + 1}`} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+
+  return (
+    <div className={`virtual ${ancha ? 'virtual-ancho' : ''}`}>
+      {!ancha && (
+        <div className="virtual-barra">
+          <div className="virtual-tema">
+            <button className="virtual-chip" onClick={() => setMenuTema((v) => !v)} aria-expanded={menuTema}>
+              <Icono nombre="leaf" tam={16} /> {nombreDelTema} ▾
+            </button>
+            {menuTema && <div className="virtual-menu" role="menu">{temas}</div>}
+          </div>
+        </div>
+      )}
+
+      {marco}
+      {!ancha && (
+        <p className="virtual-pie">{enPaginas ? `Invernadero ${pagina + 1} de ${paginas.length}` : `Baúl · ${enBaul.length} guardada${enBaul.length === 1 ? '' : 's'}`}</p>
+      )}
+
+      {ancha && (
+        <aside className="virtual-lateral">
+          <section className="virtual-tarjeta">
+            <div className="virtual-tarjeta-cab">
+              <h3>Invernadero {Math.min(pagina, paginas.length - 1) + 1} de {paginas.length}</h3>
+              <div className="virtual-dots">
+                {paginas.map((_, i) => (
+                  <button key={i} className={i === pagina ? 'on' : ''} onClick={() => irA(i)} aria-label={`Ir al invernadero ${i + 1}`} />
+                ))}
+              </div>
+            </div>
+            {temas}
+          </section>
+          <section className="virtual-tarjeta">
+            <h3>Baúl · {enBaul.length} guardada{enBaul.length === 1 ? '' : 's'}</h3>
+            <small className="virtual-sub">Las plantas guardadas quedan congeladas: no crecen, no se desgastan y no les pasa nada.</small>
+            <ListaBaul plantas={enBaul} ocupado={ocupado} onSacar={sacar} />
+          </section>
+        </aside>
+      )}
 
       {conAcciones && (
         <div className="layout-fondo" onClick={() => setConAcciones(null)}>
           <div className="layout-dialogo aparece virtual-acciones" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <h2>{conAcciones.name}</h2>
             <p>{conAcciones.species}</p>
-            <button onClick={() => { const p = conAcciones; setConAcciones(null); onAbrir(p) }}>🌱 Abrir en el jardín</button>
-            <button onClick={() => { setApodo(conAcciones.name); setRenombrando(conAcciones); setConAcciones(null) }}>✏️ Cambiar apodo</button>
+            <button onClick={() => { const p = conAcciones; setConAcciones(null); onAbrir(p) }}>Abrir en el jardín</button>
+            <button onClick={() => { setApodo(conAcciones.name); setRenombrando(conAcciones); setConAcciones(null) }}>Cambiar apodo</button>
             {conAcciones.enRecuperacion ? (
               <small>Está en recuperación: abónala antes de guardarla en el baúl</small>
             ) : (
-              <button onClick={() => { const p = conAcciones; setConAcciones(null); cambiarPlanta(() => guardarEnBaul(p.id), p, (n) => `${n.name} está en el baúl`) }}>🧳 Guardar en el baúl</button>
+              <button onClick={() => { const p = conAcciones; setConAcciones(null); cambiarPlanta(() => guardarEnBaul(p.id), p, (n) => `${n.name} está en el baúl`) }}>Guardar en el baúl</button>
             )}
           </div>
         </div>

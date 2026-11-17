@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { RUTAS } from '../../../routes/rutas'
 import { detalleColeccion } from '../../../services/coleccion'
+import Icono from './Iconos'
 import FichaPlanta from '../planta/FichaPlanta'
 
 // Ficha de una planta ya guardada (GET /coleccion/{id}): sin % de IA y solo con Digitalizar
@@ -25,7 +26,7 @@ export default function DetalleColeccion() {
   if (estado.error) {
     return (
       <div className="coleccion-vacio aparece">
-        <span>😕</span>
+        <span className="coleccion-vacio-icono"><Icono nombre="warn" tam={34} /></span>
         <h2>{estado.error}</h2>
         <button className="boton boton-suave" onClick={cargar}>Reintentar</button>
         <Link to={RUTAS.COLECCION}>← Volver a la colección</Link>
