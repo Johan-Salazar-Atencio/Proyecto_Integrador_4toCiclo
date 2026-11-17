@@ -81,7 +81,7 @@ export default function JuegoAdmin() {
           </div>
           <div className="ak-lista">
             <div className="ak-th" style={{ '--cols': COL_REGLAS, '--ancho': '520px' }}>
-              <span>Acción</span><span>Hojas</span><span>XP</span><span>Tope diario</span><span>Activa</span><span style={{ width: 34 }} />
+              <span>Acción</span><span>Hojas</span><span>XP</span><span>Tope diario</span><span>Activa</span>
             </div>
             {reglas.length === 0 && <p className="ak-vacio">No hay reglas.</p>}
             {reglas.map((r) => {
