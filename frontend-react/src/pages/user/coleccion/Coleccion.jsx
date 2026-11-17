@@ -117,7 +117,7 @@ export default function Coleccion() {
                     <Link
                       key={p.id}
                       to={`${RUTAS.COLECCION}/${p.id}`}
-                      className="planta-card aparece"
+                      className="planta-card"
                       style={{
                         position: 'absolute',
                         top: 0,
