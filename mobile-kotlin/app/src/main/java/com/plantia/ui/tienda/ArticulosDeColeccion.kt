@@ -54,13 +54,20 @@ import com.plantia.ui.collection.virtual.FondoInvernadero
 import com.plantia.ui.collection.virtual.MacetaPixel
 import com.plantia.ui.collection.virtual.PROPORCION_MACETA
 import com.plantia.ui.collection.virtual.filtrarPlantas
-import com.plantia.ui.theme.GreenLight
-import com.plantia.ui.theme.GreenPrimary
+import com.plantia.ui.components.tarjeta
+import com.plantia.ui.theme.Agua
+import com.plantia.ui.theme.Primario
+import com.plantia.ui.theme.SobrePrimario
+import com.plantia.ui.theme.Tinte
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Brush
 import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
 
-/** Maceta de la tienda (dos por fila): su dibujo, el nombre, el precio o "Tuya" y el boton para ponerla a sus plantas. */
+/** Maceta de la tienda (dos por fila): vista previa, nombre, "Tuya" y el boton para ponerla a sus plantas, o precio / nivel. */
 @Composable
 fun TarjetaMaceta(
     maceta: TiendaItem,
@@ -70,60 +77,43 @@ fun TarjetaMaceta(
     onAplicar: (TiendaItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val color = paletaDeMaceta(maceta.codigo.orEmpty()).cuerpo
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, color.copy(alpha = 0.7f))
+    Column(
+        modifier = modifier.tarjeta().padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
-        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Box(
-                Modifier.fillMaxWidth().height(84.dp).clip(RoundedCornerShape(11.dp)).background(color.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                MacetaPixel(maceta.codigo.orEmpty(), Modifier.size(width = 66.dp, height = (66 / PROPORCION_MACETA).dp))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(92.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(Brush.verticalGradient(listOf(Agua.copy(alpha = 0.22f), Primario.copy(alpha = 0.16f)))),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            MacetaPixel(maceta.codigo.orEmpty(), Modifier.padding(bottom = 10.dp).size(width = 66.dp, height = (66 / PROPORCION_MACETA).dp))
+        }
+        Text(
+            maceta.nombre, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary, maxLines = 1,
+            modifier = Modifier.padding(horizontal = 2.dp)
+        )
+        when {
+            maceta.comprado -> {
+                Text(
+                    "Tuya", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = Primario,
+                    modifier = Modifier.padding(start = 2.dp).clip(CircleShape).background(Tinte).padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+                OutlinedButton(
+                    onClick = { onAplicar(maceta) },
+                    enabled = !ocupado,
+                    modifier = Modifier.fillMaxWidth().height(36.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.5.dp, Primario),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) { Text("Aplicar a plantas", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Primario, maxLines = 1) }
             }
-            Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(maceta.nombre, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
-                if (maceta.comprado) Etiqueta("Tuya", GreenLight, com.plantia.ui.theme.GreenDark)
-                else if (!maceta.bloqueado) Etiqueta("🍃 ${maceta.precio}", com.plantia.ui.theme.AmberLight, com.plantia.ui.theme.AmberDark)
-            }
-            when {
-                maceta.comprado ->
-                    OutlinedButton(
-                        onClick = { onAplicar(maceta) },
-                        enabled = !ocupado,
-                        modifier = Modifier.fillMaxWidth().height(34.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
-                    ) { Text("Aplicar a plantas", fontSize = 12.sp, color = com.plantia.ui.theme.GreenDark) }
-                maceta.bloqueado ->
-                    OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth().height(34.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-                        Text("🔒 Nivel ${maceta.nivelRequerido}", fontSize = 12.sp)
-                    }
-                else ->
-                    Button(
-                        onClick = { onComprar(maceta) },
-                        enabled = !ocupado && monedas >= maceta.precio,
-                        modifier = Modifier.fillMaxWidth().height(34.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
-                    ) { Text("Comprar", fontSize = 12.sp) }
-            }
+            maceta.bloqueado -> BotonBloqueado(maceta.nivelRequerido)
+            else -> BotonComprar(maceta.precio, enabled = !ocupado && monedas >= maceta.precio, modifier = Modifier.fillMaxWidth()) { onComprar(maceta) }
         }
     }
-}
-
-@Composable
-private fun Etiqueta(texto: String, fondo: androidx.compose.ui.graphics.Color, color: androidx.compose.ui.graphics.Color) {
-    Text(
-        texto,
-        fontSize = 11.sp,
-        color = color,
-        modifier = Modifier.clip(CircleShape).background(fondo).padding(horizontal = 8.dp, vertical = 2.dp)
-    )
 }
 
 /** Invernadero de la tienda: vista previa vertical en pixel art a la izquierda y, a la derecha, nombre, descripcion y boton. */
@@ -134,36 +124,24 @@ fun TarjetaInvernadero(
     ocupado: Boolean,
     onComprar: (TiendaItem) -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        border = if (invernadero.comprado) androidx.compose.foundation.BorderStroke(1.5.dp, GreenPrimary.copy(alpha = 0.6f)) else null
+    Row(
+        Modifier.fillMaxWidth().tarjeta().padding(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            FondoInvernadero(
-                codigo = invernadero.codigo.orEmpty(),
-                modifier = Modifier.width(62.dp).aspectRatio(ANCHO_PAGINA / ALTO_PAGINA).clip(RoundedCornerShape(9.dp))
-            )
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(invernadero.nombre, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-                if (invernadero.descripcion.isNotBlank()) Text(invernadero.descripcion, fontSize = 11.sp, lineHeight = 15.sp, color = TextSecondary)
-                Spacer(Modifier.height(2.dp))
-                when {
-                    invernadero.comprado -> Etiqueta("✓ Lo tienes · elígelo desde el chip de tu colección", GreenLight, com.plantia.ui.theme.GreenDark)
-                    invernadero.bloqueado -> Etiqueta("🔒 Nivel ${invernadero.nivelRequerido}", GreenLight, TextSecondary)
-                    else -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Etiqueta("🍃 ${invernadero.precio}", com.plantia.ui.theme.AmberLight, com.plantia.ui.theme.AmberDark)
-                        Button(
-                            onClick = { onComprar(invernadero) },
-                            enabled = !ocupado && monedas >= invernadero.precio,
-                            modifier = Modifier.height(32.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp)
-                        ) { Text("Comprar", fontSize = 12.sp) }
-                    }
-                }
+        FondoInvernadero(
+            codigo = invernadero.codigo.orEmpty(),
+            modifier = Modifier.width(66.dp).aspectRatio(ANCHO_PAGINA / ALTO_PAGINA).clip(RoundedCornerShape(14.dp))
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(invernadero.nombre, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+            if (invernadero.descripcion.isNotBlank()) Text(invernadero.descripcion, fontSize = 11.sp, lineHeight = 15.sp, color = TextSecondary)
+            Spacer(Modifier.height(2.dp))
+            when {
+                invernadero.comprado -> Text(
+                    "Tuyo · elígelo desde la píldora de tu colección", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Primario
+                )
+                invernadero.bloqueado -> BotonBloqueado(invernadero.nivelRequerido)
+                else -> BotonComprar(invernadero.precio, enabled = !ocupado && monedas >= invernadero.precio, modifier = Modifier.fillMaxWidth()) { onComprar(invernadero) }
             }
         }
     }
@@ -230,7 +208,7 @@ fun HojaAplicarMaceta(
                 onClick = { onAplicar(elegidas.toList()) },
                 enabled = elegidas.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                colors = ButtonDefaults.buttonColors(containerColor = Primario, contentColor = SobrePrimario),
                 shape = RoundedCornerShape(14.dp)
             ) { Text("Poner maceta (${elegidas.size})") }
         }

@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.plantia.data.model.VarianteFondo
-import com.plantia.ui.theme.GreenLight
+import com.plantia.ui.theme.SuperficieElevada
 import com.plantia.ui.theme.TextSecondary
 
 internal fun nombreMomento(momento: String): String = when (momento) {
@@ -40,7 +40,7 @@ fun EscenasDelTema(variantes: List<VarianteFondo>, modifier: Modifier = Modifier
                     contentDescription = "Escena de ${nombreMomento(v.momento)}",
                     contentScale = ContentScale.Crop,
                     filterQuality = FilterQuality.None,
-                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp)).background(GreenLight)
+                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(16.dp)).background(SuperficieElevada)
                 )
                 Text(nombreMomento(v.momento), fontSize = 11.sp, color = TextSecondary)
             }
