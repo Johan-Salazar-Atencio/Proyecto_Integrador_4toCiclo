@@ -110,7 +110,6 @@ fun PerfilScreen(
     onVerHistorial: () -> Unit,
     onVerTerminos: () -> Unit,
     onEditarDatos: () -> Unit,
-    onVerEnciclopedia: () -> Unit,
     onCerrarSesion: () -> Unit,
     modifier: Modifier = Modifier,
     subiendoFoto: Boolean = false,
@@ -196,7 +195,6 @@ fun PerfilScreen(
                 FilaAcceso(Icons.Filled.Edit, "Editar datos", onEditarDatos)
                 FilaRecordatorios(recordar, alCambiarRecordatorio)
                 FilaAcceso(Icons.Filled.History, "Historial de escaneos", onVerHistorial)
-                FilaAcceso(Icons.Filled.MenuBook, "Enciclopedia de plantas", onVerEnciclopedia)
                 FilaAcceso(Icons.Filled.Description, "Términos y privacidad", onVerTerminos)
                 FilaAcceso(Icons.AutoMirrored.Filled.ExitToApp, "Cerrar sesión", { confirmarSalida = true }, peligro = true)
             }

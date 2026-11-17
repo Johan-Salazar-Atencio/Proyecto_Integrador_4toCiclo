@@ -92,7 +92,8 @@ fun CollectionScreen(
 ) {
     IconosOscurosEnBarraDeEstado()
 
-    var pestana by rememberSaveable { mutableIntStateOf(PESTANA_DIGITALES) }
+    // Lo primero que se revisa son los escaneos; solo las misiones abren directo las plantas virtuales
+    var pestana by rememberSaveable { mutableIntStateOf(if (abrirDigitales) PESTANA_DIGITALES else PESTANA_ESCANEADAS) }
     AvisoToast(viewModel.aviso, viewModel::avisoMostrado)
 
     Scaffold(
@@ -260,8 +261,8 @@ private fun Cabecera(
                 .padding(3.dp),
             horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            Pestana("Virtuales · $nDigitales", pestana == PESTANA_DIGITALES, { onPestana(PESTANA_DIGITALES) }, Modifier.weight(1f))
             Pestana("Escaneos · $nEscaneadas", pestana == PESTANA_ESCANEADAS, { onPestana(PESTANA_ESCANEADAS) }, Modifier.weight(1f))
+            Pestana("Virtuales · $nDigitales", pestana == PESTANA_DIGITALES, { onPestana(PESTANA_DIGITALES) }, Modifier.weight(1f))
         }
     }
 }

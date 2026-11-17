@@ -10,6 +10,7 @@ import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.QuickAccessItem
 import com.plantia.data.model.Region
 import com.plantia.data.model.RecentScan
+import com.plantia.util.normalizarUrlLocal
 import com.plantia.data.model.UserSummary
 import com.plantia.data.model.WeatherAlert
 import com.plantia.data.remote.dto.CatalogoItemDto
@@ -132,7 +133,8 @@ fun RecentScanDto.toDomain(): RecentScan = RecentScan(
     id = id,
     plantName = plantName,
     confidence = confidence,
-    statusColor = colorDesdeHex(statusColor)
+    statusColor = colorDesdeHex(statusColor),
+    fotoUrl = normalizarUrlLocal(fotoUrl)
 )
 
 fun ColeccionItemDto.toDomain(): ColeccionItem = ColeccionItem(

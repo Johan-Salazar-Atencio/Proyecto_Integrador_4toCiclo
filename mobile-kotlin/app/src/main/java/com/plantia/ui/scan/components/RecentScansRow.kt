@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.plantia.data.model.RecentScan
+import com.plantia.ui.components.MiniaturaEscaneo
 
 @Composable
 fun RecentScansRow(
@@ -109,20 +110,7 @@ private fun RecentScanCard(
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(scan.statusColor.copy(alpha = 0.2f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.LocalFlorist,
-                contentDescription = null,
-                tint = scan.statusColor,
-                modifier = Modifier.size(20.dp)
-            )
-        }
+        MiniaturaEscaneo(fotoUrl = scan.fotoUrl, color = scan.statusColor, tamano = 44.dp)
 
         Spacer(modifier = Modifier.width(8.dp))
 

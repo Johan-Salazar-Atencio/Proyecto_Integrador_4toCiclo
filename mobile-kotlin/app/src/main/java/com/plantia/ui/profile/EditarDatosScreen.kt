@@ -46,7 +46,7 @@ import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
 
-/** Editar datos: el nombre del usuario y el nombre de cada una de sus plantas. */
+/** Editar datos: el usuario cambia su nombre; el correo se muestra y no se edita. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarDatosScreen(
@@ -90,18 +90,31 @@ fun EditarDatosScreen(
                 etiqueta = "Nombre",
                 onGuardar = viewModel::guardarNombre
             )
-            Text("Mis plantas", fontWeight = FontWeight.Bold, color = TextPrimary)
-            if (viewModel.plantas.isEmpty()) {
-                Text("Todavía no tienes plantas virtuales.", color = TextSecondary)
-            }
-            viewModel.plantas.forEach { planta ->
-                FilaEditable(
-                    titulo = planta.species,
-                    inicial = planta.name,
-                    etiqueta = "Nombre de la planta",
-                    onGuardar = { viewModel.guardarPlanta(planta, it) }
-                )
-            }
+            FilaSoloLectura(
+                titulo = "Tu correo",
+                valor = viewModel.correo.ifBlank { "—" },
+                nota = "El correo no se puede cambiar."
+            )
+            Text(
+                "El apodo de cada planta se cambia desde la planta, en tu jardín.",
+                fontSize = 13.sp,
+                color = TextSecondary
+            )
+        }
+    }
+}
+
+/** Un dato que el usuario puede ver pero no editar (el correo). */
+@Composable
+private fun FilaSoloLectura(titulo: String, valor: String, nota: String) {
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(titulo, fontSize = 12.sp, color = TextSecondary)
+            Text(valor, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+            Text(nota, fontSize = 12.sp, color = TextSecondary)
         }
     }
 }

@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.plantia.data.model.RecentScan
+import com.plantia.ui.components.MiniaturaEscaneo
 import com.plantia.ui.theme.BackgroundLight
 import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.SurfaceWhite
@@ -124,20 +125,7 @@ private fun HistorialItem(escaneo: RecentScan) {
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(escaneo.statusColor.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocalFlorist,
-                    contentDescription = null,
-                    tint = escaneo.statusColor,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+            MiniaturaEscaneo(fotoUrl = escaneo.fotoUrl, color = escaneo.statusColor, tamano = 56.dp)
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
