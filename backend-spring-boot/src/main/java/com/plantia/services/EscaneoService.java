@@ -178,7 +178,7 @@ public class EscaneoService {
                     String confianza = e.getIdCatalogo() != null
                             ? "Confianza " + confNum + "%"
                             : "Sin identificar";
-                    return new RecentScanDto(String.valueOf(e.getIdEscaneo()), nombre, confianza, confNum, color);
+                    return new RecentScanDto(String.valueOf(e.getIdEscaneo()), nombre, confianza, confNum, color, e.getImagenFotoUrl());
                 })
                 .toList();
     }

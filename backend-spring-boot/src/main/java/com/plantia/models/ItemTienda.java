@@ -49,6 +49,10 @@ public class ItemTienda {
     @Column(name = "activo")
     private Boolean activo = true;
 
+    /** Solo para ABONO: medios dias de crecimiento que suma (1 = medio dia, 2 = un dia, 6 = tres dias). */
+    @Column(name = "medios_dias")
+    private Integer mediosDias = 2;
+
     public Integer getIdItem() { return idItem; }
     public void setIdItem(Integer idItem) { this.idItem = idItem; }
     public String getNombre() { return nombre; }
@@ -69,6 +73,8 @@ public class ItemTienda {
     public void setIdTema(Integer idTema) { this.idTema = idTema; }
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    public Integer getMediosDias() { return mediosDias; }
+    public void setMediosDias(Integer mediosDias) { this.mediosDias = mediosDias; }
     public Boolean getActivo() { return activo; }
     public void setActivo(Boolean activo) { this.activo = activo; }
 }

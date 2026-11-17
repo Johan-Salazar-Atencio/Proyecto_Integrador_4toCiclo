@@ -492,6 +492,18 @@ public class PlantasService {
         subirFase(p, diasTotales);
     }
 
+    /**
+     * Suma medios dias de crecimiento (un abono suave da 1, uno normal 2, uno reforzado 6). Si queda un medio dia
+     * suelto, se guarda y el siguiente abono lo completa; al llegar al total no sobra nada.
+     */
+    static void sumarMediosDias(PlantaUsuario p, int medios, int diasTotales) {
+        int total = medios + (p.isMedioDiaPendiente() ? 1 : 0);
+        int nuevos = Math.min(diasTotales, valor(p.getDiasCuidados()) + total / 2);
+        p.setDiasCuidados(nuevos);
+        p.setMedioDiaPendiente(total % 2 == 1 && nuevos < diasTotales);
+        subirFase(p, diasTotales);
+    }
+
     private static void subirFase(PlantaUsuario p, int diasTotales) {
         String fase = CrecimientoPlanta.faseSegun(valor(p.getDiasCuidados()), diasTotales);
         if (CrecimientoPlanta.rango(fase) > CrecimientoPlanta.rango(p.getEtapaCrecimiento())) {

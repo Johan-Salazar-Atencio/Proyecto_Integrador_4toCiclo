@@ -81,6 +81,10 @@ public class PlantaUsuario {
     @Column(name = "ultimo_dia_abono_tienda")
     private LocalDate ultimoDiaAbonoTienda;
 
+    /** true si un abono de medio dia dejo el crecimiento a la mitad de un dia (otro medio dia completa el dia). */
+    @Column(name = "medio_dia_pendiente", nullable = false)
+    private Boolean medioDiaPendiente = false;
+
     /** Hasta cuando se puede abonar una planta golpeada por un evento antes de que muera; null = no esta en recuperacion. */
     @Column(name = "recuperacion_hasta")
     private LocalDateTime recuperacionHasta;
@@ -151,6 +155,8 @@ public class PlantaUsuario {
     public void setDiasCuidados(Integer diasCuidados) { this.diasCuidados = diasCuidados; }
     public LocalDate getUltimoDiaCuidado() { return ultimoDiaCuidado; }
     public void setUltimoDiaCuidado(LocalDate ultimoDiaCuidado) { this.ultimoDiaCuidado = ultimoDiaCuidado; }
+    public boolean isMedioDiaPendiente() { return Boolean.TRUE.equals(medioDiaPendiente); }
+    public void setMedioDiaPendiente(boolean medioDiaPendiente) { this.medioDiaPendiente = medioDiaPendiente; }
     public LocalDate getUltimoDiaAbonoTienda() { return ultimoDiaAbonoTienda; }
     public void setUltimoDiaAbonoTienda(LocalDate d) { this.ultimoDiaAbonoTienda = d; }
     public LocalDateTime getRecuperacionHasta() { return recuperacionHasta; }

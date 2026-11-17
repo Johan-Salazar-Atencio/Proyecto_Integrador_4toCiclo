@@ -90,12 +90,16 @@ public class PlantasController {
         return ResponseEntity.ok(actualizado);
     }
 
-    /** Compra un abono de la tienda y lo usa: +1 dia de crecimiento (409 si no corresponde, 402 sin monedas). */
+    /**
+     * Compra un abono de la tienda y lo usa (medio dia, 1 o 3 dias de crecimiento segun el abono).
+     * Body opcional: { "idItem": n }; sin body se usa el abono mas barato. 409 si no corresponde, 402 sin monedas.
+     */
     @PostMapping("/{id}/abono-tienda")
     public ResponseEntity<PlantSummaryDto> abonoDeTienda(
             @RequestHeader("X-User-Id") Integer userId,
-            @PathVariable("id") Integer idPlantaUsuario) {
-        abonoService.abonar(userId, idPlantaUsuario);
+            @PathVariable("id") Integer idPlantaUsuario,
+            @RequestBody(required = false) Map<String, Integer> body) {
+        abonoService.abonar(userId, idPlantaUsuario, body != null ? body.get("idItem") : null);
         return ResponseEntity.ok(plantasService.resumen(userId, idPlantaUsuario));
     }
 
