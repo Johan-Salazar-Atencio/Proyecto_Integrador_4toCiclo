@@ -1,5 +1,7 @@
 package com.plantia.ui.home.components
 
+import com.plantia.ui.components.brilloTarjeta
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -60,11 +62,12 @@ fun MisionesResumenCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
+            .brilloTarjeta(if (hayEvento) RojoTexto else GreenPrimary, RoundedCornerShape(18.dp))
             .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(

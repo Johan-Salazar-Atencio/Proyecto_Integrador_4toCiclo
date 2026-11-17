@@ -1,5 +1,8 @@
 package com.plantia.ui.tienda
 
+import androidx.compose.ui.graphics.Color
+import com.plantia.ui.theme.FondoDegradado
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.filled.Eco
@@ -90,7 +93,8 @@ fun TiendaScreen(
     }
 
     Scaffold(
-        containerColor = BackgroundLight,
+        containerColor = Color.Transparent,
+        modifier = Modifier.background(FondoDegradado),
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).statusBarsPadding()) {

@@ -1,5 +1,9 @@
 package com.plantia.ui.profile
 
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
+import com.plantia.ui.theme.FondoDegradado
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,11 +72,12 @@ fun EditarDatosScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = Color.Transparent,
+        modifier = Modifier.background(FondoDegradado)
     ) { padding ->
         if (viewModel.cargando) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {

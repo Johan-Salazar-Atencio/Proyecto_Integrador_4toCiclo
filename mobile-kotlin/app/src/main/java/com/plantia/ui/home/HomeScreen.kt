@@ -1,5 +1,9 @@
 package com.plantia.ui.home
 
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
+import com.plantia.ui.theme.FondoDegradado
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -77,7 +81,8 @@ fun HomeScreen(
     AvisoToast(homeViewModel.aviso, homeViewModel::avisoMostrado)
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = Color.Transparent,
+        modifier = Modifier.background(FondoDegradado)
     ) { paddingValues ->
         Column(
             modifier = Modifier

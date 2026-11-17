@@ -1,5 +1,8 @@
 package com.plantia.ui.profile
 
+import androidx.compose.ui.graphics.Color
+import com.plantia.ui.theme.FondoDegradado
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.filled.Edit
@@ -162,7 +165,7 @@ fun PerfilScreen(
         )
     }
 
-    Scaffold(modifier = modifier, containerColor = MaterialTheme.colorScheme.background) { padding ->
+    Scaffold(modifier = modifier.background(FondoDegradado), containerColor = Color.Transparent) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

@@ -1,5 +1,9 @@
 package com.plantia.ui.detail
 
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
+import com.plantia.ui.theme.FondoDegradado
+
 import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -93,8 +97,8 @@ fun PlantDetailContent(
     val apaisado = config.screenWidthDp > config.screenHeightDp
 
     Scaffold(
-        modifier = modifier,
-        containerColor = BackgroundLight,
+        modifier = modifier.background(FondoDegradado),
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text("Detalle de planta", fontWeight = FontWeight.SemiBold, color = TextPrimary) },
@@ -104,7 +108,7 @@ fun PlantDetailContent(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundLight,
+                    containerColor = Color.Transparent,
                     titleContentColor = TextPrimary,
                     navigationIconContentColor = TextPrimary
                 )

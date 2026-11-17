@@ -1,5 +1,7 @@
 package com.plantia.ui.collection
 
+import com.plantia.ui.theme.FondoDegradado
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -97,7 +99,8 @@ fun CollectionScreen(
     AvisoToast(viewModel.aviso, viewModel::avisoMostrado)
 
     Scaffold(
-        containerColor = BackgroundLight,
+        containerColor = Color.Transparent,
+        modifier = Modifier.background(FondoDegradado),
         // Los margenes del sistema se aplican a mano: la barra superior maneja la barra de estado
         // y la lista deja espacio abajo para la barra de navegacion sin cortar las tarjetas.
         contentWindowInsets = WindowInsets(0, 0, 0, 0)

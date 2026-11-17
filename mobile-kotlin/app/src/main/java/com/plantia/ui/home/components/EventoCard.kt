@@ -1,5 +1,7 @@
 package com.plantia.ui.home.components
 
+import com.plantia.ui.components.brilloTarjeta
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -55,12 +57,12 @@ fun EventoCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
+            .brilloTarjeta(AmberAlert, RoundedCornerShape(22.dp))
             .clip(RoundedCornerShape(22.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        border = BorderStroke(1.5.dp, AmberAlert.copy(alpha = 0.65f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column {
             if (!alerta.imageUrl.isNullOrBlank()) {

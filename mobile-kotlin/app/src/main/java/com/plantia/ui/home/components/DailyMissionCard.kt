@@ -1,5 +1,7 @@
 package com.plantia.ui.home.components
 
+import com.plantia.ui.components.BarraProgreso
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -110,15 +112,7 @@ fun DailyMissionCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { mission.progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = GreenPrimary,
-                    trackColor = GreenPrimary.copy(alpha = 0.15f),
-                )
+                BarraProgreso(progreso = mission.progress, color = GreenPrimary, alto = 6.dp)
             }
         }
     }

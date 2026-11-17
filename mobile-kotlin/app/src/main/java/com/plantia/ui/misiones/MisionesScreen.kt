@@ -1,5 +1,9 @@
 package com.plantia.ui.misiones
 
+import androidx.compose.foundation.background
+import com.plantia.ui.theme.FondoDegradado
+import com.plantia.ui.components.BarraProgreso
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,7 +95,8 @@ fun MisionesScreen(
     }
 
     Scaffold(
-        containerColor = BackgroundLight,
+        containerColor = Color.Transparent,
+        modifier = Modifier.background(FondoDegradado),
         topBar = {
             TopAppBar(
                 title = { Text("Misiones", fontWeight = FontWeight.SemiBold, color = TextPrimary) },
@@ -99,7 +104,7 @@ fun MisionesScreen(
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundLight,
+                    containerColor = Color.Transparent,
                     titleContentColor = TextPrimary,
                     navigationIconContentColor = TextPrimary
                 )
@@ -174,12 +179,7 @@ private fun TarjetaEvento(mision: DailyMission, onIr: () -> Unit) {
                 }
             }
             Text(mision.title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            LinearProgressIndicator(
-                progress = { mision.progress },
-                modifier = Modifier.fillMaxWidth().height(8.dp),
-                color = RojoTexto,
-                trackColor = Color.White
-            )
+            BarraProgreso(progreso = mision.progress, color = RojoTexto, pista = Color.White)
             Text(
                 "${mision.currentCount} de ${mision.targetCount} plantas protegidas · ${mision.reward}",
                 fontSize = 13.sp,

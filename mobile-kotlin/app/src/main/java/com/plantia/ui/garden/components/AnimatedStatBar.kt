@@ -1,5 +1,7 @@
 package com.plantia.ui.garden.components
 
+import com.plantia.ui.components.BarraProgreso
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -105,22 +107,6 @@ fun AnimatedStatBar(
             )
         }
         Spacer(Modifier.height(6.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(alto)
-                .clip(RoundedCornerShape(50))
-                .background(DividerColor)
-        ) {
-            // El minimo de ancho evita que un valor bajo se vea como una punta deformada
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .then(if (progreso > 0f) Modifier.widthIn(min = alto) else Modifier)
-                    .fillMaxWidth(progreso)
-                    .clip(RoundedCornerShape(50))
-                    .background(color)
-            )
-        }
+        BarraProgreso(progreso = progreso, color = color, alto = alto)
     }
 }

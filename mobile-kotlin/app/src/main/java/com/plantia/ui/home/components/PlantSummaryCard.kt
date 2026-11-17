@@ -1,5 +1,9 @@
 package com.plantia.ui.home.components
 
+import com.plantia.ui.components.brilloTarjeta
+import com.plantia.ui.garden.components.ColorAgua
+import com.plantia.ui.garden.components.ColorLuz
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -72,11 +76,12 @@ fun PlantSummaryCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .brilloTarjeta(GreenPrimary, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        color = SurfaceWhite,
-        shadowElevation = 4.dp,
-        border = BorderStroke(1.5.dp, GreenPrimary.copy(alpha = 0.6f))
+        color = SurfaceWhite
     ) {
         Column {
             Box(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
@@ -138,9 +143,12 @@ fun PlantSummaryCard(
                     }
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        BotonCuidado("Regar", Icons.Default.Opacity, BlueLight, BlueInfo) { onCuidar(AccionCuidado.REGAR) }
-                        BotonCuidado("Luz", Icons.Default.WbSunny, AmberLight, AmberDark) { onCuidar(AccionCuidado.SOL) }
-                        BotonCuidado("Abono", Icons.Default.Grass, GreenLight, GreenDark) { onCuidar(AccionCuidado.ABONAR) }
+                        BotonCuidado("Regar", Icons.Default.Opacity, ColorAgua.copy(alpha = 0.16f), ColorAgua) { onCuidar(AccionCuidado.REGAR) }
+                        BotonCuidado("Luz", Icons.Default.WbSunny, ColorLuz.copy(alpha = 0.2f), AmberDark) { onCuidar(AccionCuidado.SOL) }
+                        // El abono se compra y se elige en el jardin; solo una planta golpeada se recupera aqui
+                        BotonCuidado("Abono", Icons.Default.Grass, GreenPrimary, Color.White) {
+                            if (plant.enRecuperacion) onCuidar(AccionCuidado.ABONAR) else onEnterGarden()
+                        }
                     }
                 }
             }

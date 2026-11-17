@@ -1,5 +1,8 @@
 package com.plantia.ui.scan
 
+import androidx.compose.ui.graphics.Color
+import com.plantia.ui.theme.FondoDegradado
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -71,11 +74,11 @@ fun HistorialScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceWhite)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
-        containerColor = BackgroundLight,
-        modifier = modifier
+        containerColor = Color.Transparent,
+        modifier = modifier.background(FondoDegradado)
     ) { padding ->
         Box(
             modifier = Modifier

@@ -1,5 +1,7 @@
 package com.plantia.ui.home.components
 
+import com.plantia.ui.components.BarraProgreso
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -85,12 +87,7 @@ fun UserHeaderCard(
         }
         Spacer(Modifier.height(8.dp))
         val progreso by animateFloatAsState(user.progresoNivel, tween(600), label = "xp-home")
-        LinearProgressIndicator(
-            progress = { progreso },
-            modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(4.dp)),
-            color = GreenPrimary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        BarraProgreso(progreso = progreso, color = GreenDark, alto = 8.dp, pista = GreenPrimary.copy(alpha = 0.22f))
         Text(
             text = if (user.esNivelMaximo) "Nivel máximo · ${user.experience} XP"
             else "${user.experience} / ${user.experienceToNextLevel} XP para el nivel ${user.level + 1}",

@@ -1,5 +1,9 @@
 package com.plantia.ui.garden
 
+import androidx.compose.foundation.background
+import com.plantia.ui.theme.FondoDegradado
+import com.plantia.ui.components.brilloTarjeta
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -155,7 +159,8 @@ fun VirtualGardenScreen(
     }
 
     Scaffold(
-        containerColor = BackgroundLight,
+        containerColor = Color.Transparent,
+        modifier = Modifier.background(FondoDegradado),
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
@@ -166,7 +171,7 @@ fun VirtualGardenScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundLight,
+                    containerColor = Color.Transparent,
                     titleContentColor = TextPrimary,
                     navigationIconContentColor = TextPrimary
                 )
@@ -524,10 +529,10 @@ private fun EncabezadoPlanta(planta: PlantSummary, onRenombrar: ((String) -> Uni
 @Composable
 private fun TarjetaBlanca(modifier: Modifier = Modifier, contenido: @Composable () -> Unit) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().brilloTarjeta(GreenPrimary),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) { contenido() }
     }

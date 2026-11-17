@@ -1,10 +1,20 @@
 package com.plantia.ui.home.components
 
+import com.plantia.ui.components.brilloTarjeta
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,14 +35,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.plantia.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,25 +67,70 @@ internal val ConsejosDelInicio = listOf(
     "Algunas plantas son tóxicas para las mascotas: revisa su ficha antes de dejarlas al alcance."
 )
 
+/** Escenas tranquilas del campo peruano (ilustraciones hechas con IA): dia, lluvia en los andenes, atardecer y noche. */
+private val EscenasSinEvento = listOf(
+    R.drawable.sin_evento_1,
+    R.drawable.sin_evento_2,
+    R.drawable.sin_evento_3,
+    R.drawable.sin_evento_4
+)
+
+/** Paginas "infinitas": se arranca en el medio para poder deslizar hacia ambos lados. */
+private const val PAGINAS_CARRUSEL = 10_000
+
 /**
- * Lo que se ve en el Inicio cuando no hay ningun evento: un aviso tranquilo y un consejo que cambia solo
- * cada pocos segundos, para que la pantalla no quede vacia ni estatica.
+ * Lo que se ve en el Inicio cuando no hay ningun evento: un carrusel de escenas del campo que pasa solo
+ * (tambien se puede deslizar), un aviso tranquilo y un consejo que cambia con cada escena, para que la
+ * pantalla no quede vacia ni estatica.
  */
 @Composable
-fun SinEventoCard(modifier: Modifier = Modifier, consejos: List<String> = ConsejosDelInicio, cadaMs: Long = 8_000L) {
-    var indice by remember { mutableIntStateOf(0) }
-    LaunchedEffect(consejos) {
-        while (consejos.size > 1) {
-            delay(cadaMs)
-            indice = (indice + 1) % consejos.size
-        }
+fun SinEventoCard(modifier: Modifier = Modifier, consejos: List<String> = ConsejosDelInicio, cadaMs: Long = 6_000L) {
+    val inicio = PAGINAS_CARRUSEL / 2 - (PAGINAS_CARRUSEL / 2) % EscenasSinEvento.size
+    val pager = rememberPagerState(initialPage = inicio) { PAGINAS_CARRUSEL }
+    // Avanza solo; si el usuario desliza, el conteo vuelve a empezar desde esa escena
+    LaunchedEffect(pager.settledPage) {
+        delay(cadaMs)
+        pager.animateScrollToPage(pager.currentPage + 1)
     }
+    val paso = pager.currentPage - inicio
+    val consejo = if (consejos.isEmpty()) "" else consejos[Math.floorMod(paso, consejos.size)]
+
     Card(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp).brilloTarjeta(GreenPrimary, RoundedCornerShape(22.dp)),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
+        Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {
+            HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { pagina ->
+                Image(
+                    painter = painterResource(EscenasSinEvento[Math.floorMod(pagina, EscenasSinEvento.size)]),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            // Puntos: en que escena va el carrusel
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 8.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.Black.copy(alpha = 0.25f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                val actual = Math.floorMod(pager.currentPage, EscenasSinEvento.size)
+                EscenasSinEvento.indices.forEach { k ->
+                    Box(
+                        Modifier
+                            .size(if (k == actual) 8.dp else 6.dp)
+                            .clip(CircleShape)
+                            .background(if (k == actual) Color.White else Color.White.copy(alpha = 0.55f))
+                    )
+                }
+            }
+        }
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon(Icons.Filled.WbSunny, contentDescription = null, tint = GreenPrimary, modifier = Modifier.size(28.dp))
@@ -101,7 +155,7 @@ fun SinEventoCard(modifier: Modifier = Modifier, consejos: List<String> = Consej
             ) {
                 Icon(Icons.Filled.Lightbulb, contentDescription = null, tint = GreenDark, modifier = Modifier.size(20.dp))
                 AnimatedContent(
-                    targetState = consejos.getOrElse(indice) { "" },
+                    targetState = consejo,
                     transitionSpec = { fadeIn() togetherWith fadeOut() },
                     label = "consejo",
                     modifier = Modifier.weight(1f)

@@ -1,5 +1,8 @@
 package com.plantia.ui.home.components
 
+import com.plantia.ui.theme.TextPrimary
+import com.plantia.ui.components.BarraProgreso
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,7 +40,7 @@ fun StatProgressBar(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFF424242),
+                color = TextPrimary,
                 modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -49,14 +52,6 @@ fun StatProgressBar(
             )
         }
         Spacer(modifier = Modifier.height(6.dp))
-        LinearProgressIndicator(
-            progress = { valor / 100f },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp)),
-            color = color,
-            trackColor = color.copy(alpha = 0.15f),
-        )
+        BarraProgreso(progreso = valor / 100f, color = color)
     }
 }
