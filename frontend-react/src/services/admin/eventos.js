@@ -18,7 +18,19 @@ export const SEVERIDADES = [
   { valor: 'CRITICO', texto: 'Crítico', detalle: 'Peligro inminente de pérdida total si no se resguarda a tiempo.' },
 ]
 
-export const REGIONES = ['GLOBAL', 'Arequipa', 'Lima Metropolitana', 'Cusco y Altiplano', 'Costa norte', 'Selva central']
+// Las regiones salen de la tabla regiones (las mismas que el usuario elige en su perfil)
+const REGION_GLOBAL = { codigo: 'GLOBAL', nombre: 'Global' }
+
+export async function listarRegiones() {
+  try {
+    const respuesta = await fetch('/django/api/catalog/regiones/')
+    if (!respuesta.ok) return [REGION_GLOBAL]
+    const regiones = await respuesta.json()
+    return regiones.length > 0 ? regiones : [REGION_GLOBAL]
+  } catch {
+    return [REGION_GLOBAL]
+  }
+}
 
 export const etiquetaTipo = (valor) => TIPOS.find((t) => t.valor === valor)?.texto || valor
 export const iconoTipo = (valor) => TIPOS.find((t) => t.valor === valor)?.icono || '⚠️'
@@ -50,8 +62,9 @@ export async function crearEvento({ tipo, region, severidad, mensaje, horas, min
     }),
   })
   if (!respuesta.ok) {
-    const texto = await respuesta.text()
-    throw new Error(texto || `Error ${respuesta.status}`)
+    let mensaje = ''
+    try { mensaje = (await respuesta.json()).error } catch { /* sin cuerpo JSON */ }
+    throw new Error(mensaje || `Error ${respuesta.status}`)
   }
   return await respuesta.json()
 }
@@ -63,6 +76,17 @@ export async function cancelarEvento(id) {
     headers: { 'Content-Type': 'application/json', ...cabecerasAdmin() },
     body: JSON.stringify({ estado: 'FINALIZADO' }),
   })
+  if (!respuesta.ok) {
+    const texto = await respuesta.text()
+    throw new Error(texto || `Error ${respuesta.status}`)
+  }
+  return await respuesta.json()
+}
+
+// REAL: que le paso a cada planta cuando termino el desastre (registros_desastre_usuario).
+// GET /django/api/admin/eventos/{id}/efectos/  ->  { resumen: {...}, registros: [...] }
+export async function efectosEvento(id) {
+  const respuesta = await fetch(`/django/api/admin/eventos/${id}/efectos/`, { headers: cabecerasAdmin() })
   if (!respuesta.ok) {
     const texto = await respuesta.text()
     throw new Error(texto || `Error ${respuesta.status}`)

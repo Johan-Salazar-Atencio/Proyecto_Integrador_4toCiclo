@@ -31,3 +31,59 @@
 .coleccion-vacio > span { font-size: 3.4rem; }
 .coleccion-vacio h2 { color: var(--texto); }
 .coleccion-vacio .boton { margin-top: 8px; text-decoration: none; }
+
+/* Segmentos: Virtuales · N / Escaneos · N */
+.coleccion-segmentos { display: flex; width: 100%; max-width: 460px; margin-inline: auto; border-radius: 14px; background: color-mix(in srgb, var(--linea) 50%, var(--superficie)); box-shadow: none; }
+.coleccion-segmentos button { flex: 1; justify-content: center; border-radius: 11px; }
+
+/* Coleccion virtual: invernadero en pixel art */
+.virtual { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 460px; margin-inline: auto; }
+.virtual-barra { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.virtual-tema { position: relative; }
+.virtual-chip { padding: 8px 14px; border: 0; border-radius: 999px; background: var(--superficie); box-shadow: var(--sombra); color: var(--verde-oscuro); font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+.virtual-menu { position: absolute; left: 0; top: calc(100% + 6px); z-index: 8; display: flex; flex-direction: column; gap: 2px; min-width: 240px; padding: 8px; background: var(--superficie); border: 1.5px solid var(--verde); border-radius: 16px; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2); }
+.virtual-menu small { padding: 2px 8px 6px; color: var(--texto-suave); }
+.virtual-menu button, .virtual-menu-mas { padding: 9px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--texto); font: inherit; text-align: left; cursor: pointer; }
+.virtual-menu button:hover { background: var(--verde-claro); }
+.virtual-menu-activo { background: var(--verde-claro) !important; font-weight: 700; }
+.virtual-menu-mas { margin-top: 4px; border-top: 1px solid var(--linea); border-radius: 0; color: var(--verde-oscuro); font-size: 0.85rem; }
+.virtual-busqueda { display: flex; align-items: center; flex: 1; gap: 6px; max-width: 260px; }
+.virtual-busqueda input { flex: 1; min-width: 0; padding: 8px 14px; border: 1.5px solid var(--linea); border-radius: 999px; background: var(--superficie); color: var(--texto); font: inherit; }
+.virtual-busqueda button { border: 0; background: transparent; color: var(--texto-suave); cursor: pointer; font-size: 1rem; }
+
+.virtual-marco { position: relative; overflow: hidden; border-radius: 20px; box-shadow: var(--sombra); }
+.virtual-pager { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.virtual-pager::-webkit-scrollbar { display: none; }
+.virtual-pagina { flex: 0 0 100%; scroll-snap-align: start; }
+.virtual-escena { position: relative; width: 100%; }
+.virtual-hueco { position: absolute; }
+.estante-planta { position: relative; width: 100%; height: 100%; }
+.estante-boton { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: pointer; touch-action: manipulation; }
+.estante-dibujo { position: absolute; inset: 0; width: 100%; height: 100%; }
+.estante-maceta { position: absolute; left: 18%; bottom: 0; width: 64%; }
+.estante-marca { position: absolute; left: 0; top: 0; font-size: 0.9rem; pointer-events: none; }
+.estante-menu { position: absolute; right: -2px; top: -2px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.85); color: #1f2937; font-size: 0.95rem; line-height: 1; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; }
+.estante-planta:hover .estante-menu, .estante-menu:focus-visible { opacity: 1; }
+@media (hover: none) { .estante-menu { display: none; } }
+.virtual-mas { position: absolute; border-radius: 12px; }
+.virtual-mas:hover { background: rgba(255, 255, 255, 0.18); }
+.virtual-sin-resultados { position: absolute; left: 50%; top: 45%; transform: translateX(-50%); padding: 10px 14px; background: color-mix(in srgb, var(--superficie) 92%, transparent); border-radius: 12px; font-size: 0.9rem; text-align: center; }
+.virtual-flecha { position: absolute; top: 40%; z-index: 3; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.88); box-shadow: var(--sombra); color: #1f2937; font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.virtual-flecha-izq { left: 8px; }
+.virtual-flecha-der { right: 8px; }
+.virtual-puntos { position: absolute; left: 0; right: 0; bottom: 10px; z-index: 3; display: flex; justify-content: center; gap: 5px; }
+.virtual-puntos button { width: 6px; height: 6px; padding: 0; border: 0; border-radius: 999px; background: #fff; opacity: 0.55; cursor: pointer; transition: width 0.2s ease; }
+.virtual-puntos .activo { width: 16px; opacity: 1; }
+.virtual-pie { text-align: center; color: var(--texto-suave); font-size: 0.8rem; }
+
+.virtual-baul { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 360px; padding: 16px; background: var(--superficie); }
+.virtual-baul p { color: var(--texto-suave); font-size: 0.85rem; }
+.virtual-baul-vacio { margin: auto; }
+.virtual-baul-fila { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; background: var(--verde-claro); border-radius: 14px; }
+.virtual-baul-fila div { display: flex; flex-direction: column; min-width: 0; }
+.virtual-baul-fila small { color: var(--texto-suave); font-style: italic; }
+.virtual-baul-fila .boton { min-height: 38px; padding: 0 16px; }
+
+.virtual-acciones button { padding: 12px 8px; border: 0; border-radius: 12px; background: transparent; color: var(--texto); font: inherit; font-size: 1rem; text-align: left; cursor: pointer; }
+.virtual-acciones button:hover { background: var(--verde-claro); }
+.virtual-apodo { padding: 10px 12px; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--fondo); color: var(--texto); font: inherit; }

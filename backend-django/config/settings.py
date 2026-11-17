@@ -108,6 +108,9 @@ else:
             "HOST": os.getenv("DB_HOST", "localhost"),
             "PORT": os.getenv("DB_PORT", "5432"),
             "OPTIONS": {"connect_timeout": 5},
+            # Las columnas de fecha de las tablas que comparte con Spring son "timestamp sin zona" y Spring guarda y
+            # compara la hora de Lima: sin esto Django escribia y leia en UTC y los eventos aparecian 5 horas tarde.
+            "TIME_ZONE": "America/Lima",
         }
     }
 
@@ -152,6 +155,13 @@ IA_CLAVE_INTERNA = os.getenv("IA_CLAVE_INTERNA", "")
 
 # --- Motor de IA (hibrido e intercambiable) ---
 IA_PROVIDER = os.getenv("IA_PROVIDER", "auto")
+
+# Carpeta que Spring sirve en /files/**: aqui se guardan las imagenes de los fondos que sube el admin
+# (en desarrollo, la misma carpeta de Spring; en un servidor, un volumen compartido).
+# Direccion desde donde se ven las imagenes que Spring sirve en /files/** (el admin las muestra desde ahi)
+SPRING_PUBLIC_URL = os.getenv("SPRING_PUBLIC_URL", "http://localhost:8080").rstrip("/")
+STORAGE_IMAGES_DIR = os.getenv(
+    "STORAGE_IMAGES_DIR", str(BASE_DIR.parent / "backend-spring-boot" / "storage" / "images"))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 # IA institucional local: Open WebUI (proxy de vLLM) con API compatible OpenAI.

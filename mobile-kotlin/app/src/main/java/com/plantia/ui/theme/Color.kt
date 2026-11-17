@@ -16,7 +16,7 @@ val AmberDark = Color(0xFFD97706)
 
 val BlueInfo = Color(0xFF3B82F6)
 
-// --- Valores base del tema claro y oscuro (para Theme.kt y para los getters de abajo) ---
+// Valores base del tema claro y oscuro (para Theme.kt y los getters de abajo).
 val GreenLightClaro = Color(0xFFE8F8F0)
 val AmberLightClaro = Color(0xFFFFF3E0)
 val BlueLightClaro = Color(0xFFE8F4FD)

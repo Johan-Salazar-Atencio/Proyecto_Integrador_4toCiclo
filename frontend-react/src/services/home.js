@@ -5,6 +5,8 @@ export const obtenerUsuario = () => llamar('/usuarios/me')
 export const obtenerEventoActivo = () => llamar('/eventos/activo')
 export const obtenerPlantaActiva = () => llamar('/plantas/activa')
 export const obtenerMisionDiaria = () => llamar('/misiones/diaria')
+// GET /misiones -> todas las misiones activas de hoy con su avance (incluye la de evento)
+export const obtenerMisiones = () => llamar('/misiones')
 
 // Las fotos pueden venir como http://localhost:8080/files/... o relativas.
 // Se dejan en el mismo origen para que el proxy de Vite las sirva.

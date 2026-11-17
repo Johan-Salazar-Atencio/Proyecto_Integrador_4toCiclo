@@ -1,13 +1,29 @@
 """Panel de administracion de Plantia (curacion del catalogo y cuidados)."""
+import os
+
+from django import forms
+from django.conf import settings
 from django.contrib import admin
+from django.utils.html import format_html
+
+from . import eventos_imagen
 
 from .models import (
     CuidadoSeccion,
     EscaneoHistorial,
     EventoDesastre,
+    FondoEscena,
     ItemTienda,
     Logro,
+    Mision,
+    ParametroJuego,
     PlantaCatalogo,
+    PlantaUsuario,
+    ReglaProgreso,
+    Region,
+    RegistroDesastreUsuario,
+    TemaFondo,
+    TipoDesastre,
     Usuario,
 )
 
@@ -42,19 +58,33 @@ class CuidadoSeccionAdmin(admin.ModelAdmin):
     search_fields = ("titulo", "contenido", "id_catalogo__nombre_comun")
 
 
+class RegistroDesastreInline(admin.TabularInline):
+    """Resultado del evento en cada planta (solo lectura: lo escribe Spring)."""
+
+    model = RegistroDesastreUsuario
+    extra = 0
+    can_delete = False
+    readonly_fields = ("id_planta_usuario", "estado_final", "dano_salud_aplicado", "estaba_refugiada", "xp_otorgado")
+    fields = readonly_fields
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(EventoDesastre)
 class EventoDesastreAdmin(admin.ModelAdmin):
     list_display = (
         "id_desastre",
-        "tipo_evento",
-        "region",
+        "id_tipo_desastre",
+        "id_region",
         "severidad",
         "estado",
         "fecha_inicio",
         "fecha_fin",
     )
-    list_filter = ("tipo_evento", "estado", "severidad", "region")
-    search_fields = ("mensaje_notificacion", "region")
+    list_filter = ("id_tipo_desastre", "estado", "severidad", "id_region")
+    search_fields = ("mensaje_notificacion", "id_region__nombre")
+    inlines = [RegistroDesastreInline]
     actions = ["activar", "finalizar"]
 
     @admin.action(description="Marcar como ACTIVO")
@@ -79,10 +109,24 @@ class LogroAdmin(admin.ModelAdmin):
     search_fields = ("nombre",)
 
 
+class PlantaUsuarioInline(admin.TabularInline):
+    """Plantas digitales del usuario (solo lectura)."""
+
+    model = PlantaUsuario
+    extra = 0
+    can_delete = False
+    readonly_fields = ("apodo", "etapa_crecimiento", "esta_refugiada")
+    fields = readonly_fields
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Usuario)
 class UsuarioAdmin(admin.ModelAdmin):
-    list_display = ("id_usuario", "nombre", "email", "rol", "nivel", "monedas", "region")
-    list_filter = ("rol", "region")
+    inlines = [PlantaUsuarioInline]
+    list_display = ("id_usuario", "nombre", "email", "rol", "nivel", "monedas", "id_region")
+    list_filter = ("rol", "id_region")
     search_fields = ("nombre", "email")
     readonly_fields = ("password_hash", "fecha_registro", "updated_at")
 
@@ -109,3 +153,112 @@ class EscaneoHistorialAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(Region)
+class RegionAdmin(admin.ModelAdmin):
+    list_display = ("id_region", "codigo", "nombre", "activa")
+    list_filter = ("activa",)
+    search_fields = ("codigo", "nombre")
+
+
+class TipoDesastreForm(forms.ModelForm):
+    """Deja subir la imagen del evento (la de la tarjeta del Inicio) sin escribir su direccion a mano."""
+
+    subir_imagen = forms.FileField(
+        required=False,
+        label="Subir imagen del evento",
+        help_text="PNG, JPG o WebP, de al menos 400 px de ancho. Se reduce y reemplaza la actual.",
+    )
+
+    class Meta:
+        model = TipoDesastre
+        fields = "__all__"
+
+    def clean_subir_imagen(self):
+        archivo = self.cleaned_data.get("subir_imagen")
+        if archivo is None:
+            return None
+        try:
+            self.imagen_procesada = eventos_imagen.procesar(archivo.read())
+        except eventos_imagen.ErrorImagen as exc:
+            raise forms.ValidationError(str(exc))
+        return archivo
+
+
+def url_de_imagen(ruta):
+    """Direccion completa de una imagen que Spring sirve en /files (None si no hay)."""
+    if not ruta:
+        return None
+    return ruta if ruta.startswith("http") else f"{settings.SPRING_PUBLIC_URL}{ruta}"
+
+
+@admin.register(TipoDesastre)
+class TipoDesastreAdmin(admin.ModelAdmin):
+    form = TipoDesastreForm
+    list_display = ("id_tipo_desastre", "vista_imagen", "codigo", "nombre", "color_hex", "activo")
+    list_filter = ("activo",)
+    search_fields = ("codigo", "nombre", "descripcion")
+    readonly_fields = ("fecha_creacion", "vista_imagen")
+
+    @admin.display(description="Imagen")
+    def vista_imagen(self, obj):
+        url = url_de_imagen(obj.imagen_url) if obj else None
+        if not url:
+            return "Sin imagen"
+        return format_html('<img src="{}" alt="Imagen del evento" style="max-height:80px;border-radius:6px">', url)
+
+    def save_model(self, request, obj, form, change):
+        jpg = getattr(form, "imagen_procesada", None) if form.cleaned_data.get("subir_imagen") else None
+        if jpg is not None:
+            nombre = eventos_imagen.guardar(os.path.join(settings.STORAGE_IMAGES_DIR, "eventos"), obj.codigo, jpg)
+            obj.imagen_url = f"/files/eventos/{nombre}"
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(TemaFondo)
+class TemaFondoAdmin(admin.ModelAdmin):
+    list_display = ("id_tema", "nombre", "es_predeterminado", "activo")
+    list_filter = ("es_predeterminado", "activo")
+    search_fields = ("nombre",)
+
+
+@admin.register(FondoEscena)
+class FondoEscenaAdmin(admin.ModelAdmin):
+    list_display = ("id_fondo", "nombre", "momento", "id_tema", "total_frames", "activo")
+    list_filter = ("momento", "activo")
+    search_fields = ("nombre",)
+
+
+@admin.register(Mision)
+class MisionAdmin(admin.ModelAdmin):
+    list_display = ("id_mision", "titulo", "tipo", "meta", "recompensa_monedas", "recompensa_xp", "activa")
+    list_filter = ("tipo", "activa", "predeterminada")
+    search_fields = ("titulo", "descripcion")
+
+
+@admin.register(ParametroJuego)
+class ParametroJuegoAdmin(admin.ModelAdmin):
+    list_display = ("clave", "valor", "descripcion")
+    search_fields = ("clave", "descripcion")
+
+
+@admin.register(ReglaProgreso)
+class ReglaProgresoAdmin(admin.ModelAdmin):
+    list_display = ("id_regla", "motivo", "xp", "monedas", "tope_diario", "activa")
+    list_filter = ("activa",)
+    search_fields = ("motivo",)
+
+
+@admin.register(PlantaUsuario)
+class PlantaUsuarioAdmin(admin.ModelAdmin):
+    list_display = ("id_planta_usuario", "apodo", "id_usuario", "etapa_crecimiento", "esta_refugiada")
+    list_filter = ("etapa_crecimiento", "esta_refugiada")
+    search_fields = ("apodo", "id_usuario__nombre")
+
+
+@admin.register(RegistroDesastreUsuario)
+class RegistroDesastreUsuarioAdmin(admin.ModelAdmin):
+    list_display = ("id_registro", "id_desastre", "id_planta_usuario", "estado_final", "dano_salud_aplicado", "xp_otorgado")
+    list_filter = ("estado_final", "estaba_refugiada")
+    readonly_fields = ("id_desastre", "id_planta_usuario", "estado_final", "dano_salud_aplicado", "fecha_procesado", "estaba_refugiada", "xp_otorgado")

@@ -1,4 +1,4 @@
-.planta-pixel { display: block; image-rendering: pixelated; }
+.planta-pixel { display: block; image-rendering: pixelated; overflow: visible; }
 
 /* Balanceo suave anclado en la base del tallo */
 .planta-pixel-viva .planta-pixel-tallo {

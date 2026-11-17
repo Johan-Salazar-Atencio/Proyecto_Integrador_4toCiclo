@@ -1,8 +1,10 @@
 """Endpoints de solo lectura del catalogo y eventos (para React / enciclopedia)."""
+from django.db.models import Q
+from django.utils import timezone
 from rest_framework import generics
 from rest_framework.response import Response
 
-from .models import EventoDesastre, PlantaCatalogo
+from .models import EventoDesastre, PlantaCatalogo, Region
 from .serializers import EventoDesastreSerializer, PlantaCatalogoSerializer
 
 
@@ -39,8 +41,28 @@ class EventoListView(generics.ListAPIView):
 
 
 class EventoActivoView(generics.GenericAPIView):
+    """Evento vigente: ACTIVO y dentro de su ventana de fechas (mismo criterio que Spring).
+
+    Con ?region=X solo cuentan los eventos GLOBAL o de esa region.
+    """
+
     def get(self, request):
-        evento = EventoDesastre.objects.filter(estado="ACTIVO").order_by("-fecha_inicio").first()
+        ahora = timezone.now()
+        qs = EventoDesastre.objects.filter(
+            estado="ACTIVO", fecha_inicio__lte=ahora, fecha_fin__gt=ahora
+        )
+        region = (request.query_params.get("region") or "").strip()
+        if region:
+            qs = qs.filter(Q(id_region__isnull=True) | Q(id_region__codigo="GLOBAL") | Q(id_region__codigo=region))
+        evento = qs.order_by("-fecha_inicio").first()
         if not evento:
             return Response(status=204)
         return Response(EventoDesastreSerializer(evento).data)
+
+
+class RegionListView(generics.GenericAPIView):
+    """Regiones activas (codigo y nombre): las mismas que el usuario elige en su perfil."""
+
+    def get(self, request):
+        regiones = Region.objects.filter(activa=True).order_by("nombre")
+        return Response([{"codigo": r.codigo, "nombre": r.nombre} for r in regiones])

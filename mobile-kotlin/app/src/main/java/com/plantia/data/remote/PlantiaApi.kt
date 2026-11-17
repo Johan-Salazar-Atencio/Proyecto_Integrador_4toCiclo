@@ -1,9 +1,34 @@
 package com.plantia.data.remote
 
+import com.plantia.data.remote.dto.AnimacionDto
+import com.plantia.data.remote.dto.AuthLoginRequestDto
+import com.plantia.data.remote.dto.AuthRegistroRequestDto
+import com.plantia.data.remote.dto.AuthUsuarioResponseDto
+import com.plantia.data.remote.dto.CatalogoItemDto
+import com.plantia.data.remote.dto.ColeccionDetalleDto
+import com.plantia.data.remote.dto.ColeccionItemDto
+import com.plantia.data.remote.dto.CuidadoSeccionDto
+import com.plantia.data.remote.dto.ApodoRequest
+import com.plantia.data.remote.dto.CambiarNombreRequest
+import com.plantia.data.remote.dto.CambiarRegionRequest
+import com.plantia.data.remote.dto.ElegirInvernaderoRequest
+import com.plantia.data.remote.dto.PonerMacetaRequest
+import com.plantia.data.remote.dto.DailyMissionDto
+import com.plantia.data.remote.dto.FondoDto
+import com.plantia.data.remote.dto.RegionDto
+import com.plantia.data.remote.dto.PlantSummaryDto
+import com.plantia.data.remote.dto.TemaFondoDto
+import com.plantia.data.remote.dto.TiendaDto
+import com.plantia.data.remote.dto.QuickAccessDto
+import com.plantia.data.remote.dto.RecentScanDto
+import com.plantia.data.remote.dto.ScanResultDto
+import com.plantia.data.remote.dto.UserSummaryDto
+import com.plantia.data.remote.dto.WeatherAlertDto
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PUT
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
@@ -55,6 +80,106 @@ interface PlantiaApi {
     @GET("api/v1/misiones/diaria")
     suspend fun misionDiaria(): Response<DailyMissionDto>
 
+    /** Todas las misiones activas de hoy, con el avance del usuario (las define el admin). */
+    @GET("api/v1/misiones")
+    suspend fun misiones(): Response<List<DailyMissionDto>>
+
+    /** Regiones que se pueden elegir en el perfil. */
+    @GET("api/v1/regiones")
+    suspend fun regiones(): Response<List<RegionDto>>
+
+    /** Cambia la region del usuario y devuelve su resumen. */
+    @PUT("api/v1/usuarios/me")
+    suspend fun cambiarRegion(@Body cuerpo: CambiarRegionRequest): Response<UserSummaryDto>
+
+    /** Cambia el nombre del usuario y devuelve su resumen (400 si es muy corto o muy largo). */
+    @PUT("api/v1/usuarios/me/nombre")
+    suspend fun cambiarNombre(@Body cuerpo: CambiarNombreRequest): Response<UserSummaryDto>
+
+    /** Elige el invernadero de la coleccion virtual (409 si todavia no lo compro). */
+    @PUT("api/v1/usuarios/me/invernadero")
+    suspend fun cambiarInvernadero(@Body cuerpo: ElegirInvernaderoRequest): Response<UserSummaryDto>
+
+    /** Sube la foto de perfil (JPG, PNG o WEBP) y devuelve el perfil con la nueva URL. */
+    @Multipart
+    @POST("api/v1/usuarios/me/foto")
+    suspend fun subirFoto(@Part foto: MultipartBody.Part): Response<UserSummaryDto>
+
+    /** Fondos animados de la escena (dia, tarde, noche). */
+    @GET("api/v1/fondos")
+    suspend fun fondos(): Response<List<FondoDto>>
+
+    /** Tienda: monedas, nivel y articulos activos con su estado para el usuario. */
+    @GET("api/v1/tienda")
+    suspend fun tienda(): Response<TiendaDto>
+
+    /** Compra un fondo (402 sin monedas, 409 si ya lo tiene o falta nivel). */
+    @POST("api/v1/tienda/{id}/comprar")
+    suspend fun comprarItem(@Path("id") idItem: Int): Response<TiendaDto>
+
+    /** Temas de fondo que se le pueden poner a la planta (el predeterminado y los comprados). */
+    @GET("api/v1/plantas/{id}/fondos")
+    suspend fun fondosPlanta(@Path("id") idPlanta: Int): Response<List<TemaFondoDto>>
+
+    /** Pone un tema de fondo a la planta. Body: { "idTema": n }; sin idTema vuelve al de siempre. */
+    @PUT("api/v1/plantas/{id}/fondo")
+    suspend fun ponerFondo(@Path("id") idPlanta: Int, @Body body: Map<String, Int>): Response<List<TemaFondoDto>>
+
+    /** Compra y usa un abono: +1 dia de crecimiento de la planta (maximo uno al dia). */
+    @POST("api/v1/plantas/{id}/abono-tienda")
+    suspend fun abonoTienda(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Animaciones de desastre (aviso y pico) con sus frames. */
+    @GET("api/v1/animaciones")
+    suspend fun animaciones(): Response<List<AnimacionDto>>
+
+    /** Todas las plantas digitales del usuario. */
+    @GET("api/v1/plantas")
+    suspend fun plantas(): Response<List<PlantSummaryDto>>
+
+    /** Digitaliza una planta y la deja activa. Body: { "idEscaneo": n } o { "idCatalogo": n } */
+    @POST("api/v1/plantas")
+    suspend fun digitalizar(@Body body: Map<String, Int>): Response<PlantSummaryDto>
+
+    /** Elige la planta que se muestra en el jardin. */
+    @POST("api/v1/plantas/{id}/seleccionar")
+    suspend fun seleccionarPlanta(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Aplica un cuidado. Body: { "accion": "REGAR" | "SOL" | "ABONAR" } */
+    @POST("api/v1/plantas/{id}/cuidados")
+    suspend fun cuidarPlanta(
+        @Path("id") idPlanta: Int,
+        @Body body: Map<String, String>
+    ): Response<PlantSummaryDto>
+
+    /** Previene el evento activo en la planta (409 si no hay evento o la planta murio, 404 si no es del usuario). */
+    @POST("api/v1/plantas/{id}/prevenir")
+    suspend fun prevenirPlanta(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Revive una planta muerta a cambio de hojas (402 si no alcanzan, 409 si no esta muerta). */
+    @POST("api/v1/plantas/{id}/revivir")
+    suspend fun revivirPlanta(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Marca como vista la animacion del evento que golpeo a la planta. */
+    @POST("api/v1/plantas/{id}/golpe-visto")
+    suspend fun golpeVisto(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Guarda la planta en el baul: congelada (409 si esta golpeada por un evento). */
+    @POST("api/v1/plantas/{id}/baul")
+    suspend fun guardarEnBaul(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Saca la planta del baul (409 si ya hay el maximo de plantas activas). */
+    @POST("api/v1/plantas/{id}/sacar-del-baul")
+    suspend fun sacarDelBaul(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+
+    /** Cambia el apodo de la planta; vacio vuelve al nombre comun. */
+    @PUT("api/v1/plantas/{id}/apodo")
+    suspend fun renombrarPlanta(@Path("id") idPlanta: Int, @Body cuerpo: ApodoRequest): Response<PlantSummaryDto>
+
+    /** Pone una maceta a las plantas elegidas (409 si no la tiene o una esta en el baul). */
+    @PUT("api/v1/plantas/macetas")
+    suspend fun ponerMacetas(@Body cuerpo: PonerMacetaRequest): Response<List<PlantSummaryDto>>
+
     // Catalogo
 
     /** Catalogo de plantas, con busqueda y filtro de toxicidad. */
@@ -96,43 +221,3 @@ interface PlantiaApi {
     @POST("api/v1/auth/login")
     suspend fun login(@Body request: AuthLoginRequestDto): AuthUsuarioResponseDto
 }
-
-/** GET /api/v1/escaneos/recientes */
-data class RecentScanDto(
-    val id: String = "",
-    val plantName: String = "",
-    val confidence: String = "",
-    val statusColor: String = "#10B981"
-)
-
-/** GET /api/v1/catalogo */
-data class CatalogoItemDto(
-    val id: Int = 0,
-    val nombreComun: String = "",
-    val nombreCientifico: String = "",
-    val frecuenciaRiegoDias: Int = 0,
-    val frecuenciaSolHoras: Int = 0,
-    val temperaturaMinC: Int? = null,
-    val temperaturaMaxC: Int? = null,
-    val esToxicaMascotas: Boolean = false,
-    val spriteBaseUrl: String = ""
-)
-
-/** GET /api/v1/coleccion */
-data class ColeccionItemDto(
-    val id: Int = 0,
-    val idCatalogo: Int? = null,
-    val nombreComun: String = "",
-    val nombreCientifico: String = "",
-    val fotoUrl: String? = null,
-    val vecesVista: Int = 0,
-    val primeraVez: String? = null,
-    val ultimaVez: String? = null,
-    val esToxicaMascotas: Boolean = false
-)
-
-/** GET /api/v1/coleccion/{id} */
-data class ColeccionDetalleDto(
-    val item: ColeccionItemDto = ColeccionItemDto(),
-    val cuidados: List<CuidadoSeccionDto> = emptyList()
-)

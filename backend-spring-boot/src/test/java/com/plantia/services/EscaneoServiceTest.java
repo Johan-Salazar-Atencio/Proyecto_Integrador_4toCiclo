@@ -52,7 +52,7 @@ class EscaneoServiceTest {
             return new SimpleTransactionStatus();
         });
         escaneoRepo = mock(EscaneoHistorialRepository.class);
-        service = new EscaneoService(escaneoRepo, mock(PlantaCatalogoRepository.class), storage, ia, null, tx);
+        service = new EscaneoService(escaneoRepo, mock(PlantaCatalogoRepository.class), storage, ia, null, null, tx);
     }
 
     @Test
@@ -60,6 +60,12 @@ class EscaneoServiceTest {
         when(escaneoRepo.save(any())).thenAnswer(i -> i.getArgument(0));
         service.escanear(1, foto);
         assertThat(eventos).containsExactly("ia", "transaccion");
+    }
+
+    @Test
+    void unaEspecieNuevaPagaMasQueRepetirUnaYaEscaneada() {
+        assertThat(EscaneoService.motivosDeEscaneo(true)).containsExactly("ESCANEO_NUEVA");
+        assertThat(EscaneoService.motivosDeEscaneo(false)).containsExactly("ESCANEO_REPETIDO");
     }
 
     @Test

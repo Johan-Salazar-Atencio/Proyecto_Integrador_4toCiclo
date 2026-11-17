@@ -7,7 +7,11 @@ import { useSesionAdmin } from './store/SesionAdmin'
 import LoginAdmin from './pages/admin/login/LoginAdmin'
 import CatalogoAdmin from './pages/admin/catalogo/CatalogoAdmin'
 import Eventos from './pages/admin/eventos/Eventos'
+import Misiones from './pages/admin/misiones/Misiones'
+import TiendaAdmin from './pages/admin/tienda/TiendaAdmin'
 import Dashboard from './pages/admin/dashboard/Dashboard'
+import JuegoAdmin from './pages/admin/juego/JuegoAdmin'
+import TiposEventoAdmin from './pages/admin/tipos-evento/TiposEventoAdmin'
 import Auth from './pages/user/auth/Auth'
 import Catalogo from './pages/user/catalogo/Catalogo'
 import DetalleCatalogo from './pages/user/catalogo/DetalleCatalogo'
@@ -18,7 +22,10 @@ import Home from './pages/user/home/Home'
 import DemoPlanta from './pages/user/DemoPlanta'
 import Historial from './pages/user/historial/Historial'
 import Jardin from './pages/user/jardin/Jardin'
+import MisionesUsuario from './pages/user/misiones/MisionesUsuario'
 import Terminos from './pages/user/legal/Terminos'
+import Tienda from './pages/user/tienda/Tienda'
+import EditarDatos from './pages/user/perfil/EditarDatos'
 import Perfil from './pages/user/perfil/Perfil'
 import Ficha from './pages/user/planta/Ficha'
 import Welcome from './pages/user/welcome/Welcome'
@@ -48,18 +55,25 @@ export default function App() {
         <Route path={RUTAS.ESCANEAR} element={<Escaneo />} />
         <Route path={RUTAS.FICHA} element={<Ficha />} />
         <Route path={RUTAS.JARDIN} element={<Jardin />} />
+        <Route path={RUTAS.MISIONES} element={<MisionesUsuario />} />
+        <Route path={RUTAS.TIENDA} element={<Tienda />} />
         <Route path={RUTAS.COLECCION} element={<Coleccion />} />
         <Route path={`${RUTAS.COLECCION}/:id`} element={<DetalleColeccion />} />
         <Route path={RUTAS.CATALOGO} element={<Catalogo />} />
         <Route path={`${RUTAS.CATALOGO}/:id`} element={<DetalleCatalogo />} />
         <Route path={RUTAS.HISTORIAL} element={<Historial />} />
         <Route path={RUTAS.PERFIL} element={<Perfil />} />
+        <Route path={RUTAS.EDITAR_DATOS} element={<EditarDatos />} />
       </Route>
 
       <Route path={RUTAS_ADMIN.LOGIN} element={<LoginAdmin />} />
       <Route element={<ProtegidaAdmin><LayoutAdmin /></ProtegidaAdmin>}>
         <Route path={RUTAS_ADMIN.DASHBOARD} element={<Dashboard />} />
         <Route path={RUTAS_ADMIN.EVENTOS} element={<Eventos />} />
+        <Route path={RUTAS_ADMIN.MISIONES} element={<Misiones />} />
+        <Route path={RUTAS_ADMIN.TIENDA} element={<TiendaAdmin />} />
+        <Route path={RUTAS_ADMIN.JUEGO} element={<JuegoAdmin />} />
+        <Route path={RUTAS_ADMIN.TIPOS_EVENTO} element={<TiposEventoAdmin />} />
         <Route path={RUTAS_ADMIN.CATALOGO} element={<CatalogoAdmin />} />
       </Route>
 

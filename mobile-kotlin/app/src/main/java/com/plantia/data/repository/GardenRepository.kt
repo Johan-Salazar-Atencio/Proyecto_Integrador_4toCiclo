@@ -1,0 +1,57 @@
+package com.plantia.data.repository
+
+import com.plantia.data.model.AccionCuidado
+import com.plantia.data.model.PlantSummary
+
+sealed interface PlantaActivaResultado {
+    data class ConPlanta(val planta: PlantSummary) : PlantaActivaResultado
+    /** El usuario aun no tiene ninguna planta en crianza (HTTP 204). */
+    data object SinPlanta : PlantaActivaResultado
+    data class Fallo(val mensaje: String) : PlantaActivaResultado
+}
+
+sealed interface PlantaResultado {
+    data class Con(val planta: PlantSummary) : PlantaResultado
+    data class Fallo(val mensaje: String) : PlantaResultado
+}
+
+sealed interface PlantasResultado {
+    data class Con(val plantas: List<PlantSummary>) : PlantasResultado
+    data class Fallo(val mensaje: String) : PlantasResultado
+}
+
+/** Plantas digitales del usuario (Mi jardin): lectura, digitalizar, elegir y cuidar. */
+interface GardenRepository {
+    suspend fun plantaActiva(): PlantaActivaResultado
+
+    suspend fun listar(): PlantasResultado
+
+    /** Digitaliza desde un escaneo propio (`idEscaneo` > 0) o desde una especie del catalogo. */
+    suspend fun digitalizar(idEscaneo: Int, idCatalogo: Int?): PlantaResultado
+
+    /** Elige cual de las plantas digitales se ve en el jardin. */
+    suspend fun seleccionar(idPlanta: Int): PlantaResultado
+
+    suspend fun cuidar(idPlanta: Int, accion: AccionCuidado): PlantaResultado
+
+    /** Previene el evento en curso en la planta; falla si ya no hay evento activo. */
+    suspend fun prevenir(idPlanta: Int): PlantaResultado
+
+    /** Revive una planta muerta a cambio de hojas; falla con un mensaje si no alcanzan. */
+    suspend fun revivir(idPlanta: Int): PlantaResultado
+
+    /** Marca como vista la animacion del evento que golpeo a la planta. */
+    suspend fun golpeVisto(idPlanta: Int): PlantaResultado
+
+    /** Guarda la planta en el baul: queda congelada y libera un lugar en el invernadero. */
+    suspend fun guardarEnBaul(idPlanta: Int): PlantaResultado
+
+    /** Saca la planta del baul; falla si el invernadero ya tiene el maximo de plantas activas. */
+    suspend fun sacarDelBaul(idPlanta: Int): PlantaResultado
+
+    /** Cambia el apodo de la planta; vacio vuelve al nombre comun de la especie. */
+    suspend fun renombrar(idPlanta: Int, apodo: String): PlantaResultado
+
+    /** Pone una maceta que el usuario tiene a las plantas elegidas; devuelve esas plantas ya actualizadas. */
+    suspend fun ponerMaceta(idItem: Int, idPlantas: List<Int>): PlantasResultado
+}

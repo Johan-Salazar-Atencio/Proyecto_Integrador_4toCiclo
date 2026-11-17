@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cancelarEvento, crearEvento, listarEventos } from '../../../services/admin/eventos'
+import EfectoEvento from './EfectoEvento'
 import EventoEnCurso from './EventoEnCurso'
 import FormularioEvento from './FormularioEvento'
 import HistorialEventos from './HistorialEventos'
@@ -11,6 +12,7 @@ export default function Eventos() {
   const [estado, setEstado] = useState({ cargando: true, eventos: [], error: '' })
   const [cancelando, setCancelando] = useState(false)
   const [aviso, setAviso] = useState('')
+  const [verEfecto, setVerEfecto] = useState(null)
   const temporizador = useRef(null)
 
   const cargar = useCallback(async () => {
@@ -33,7 +35,7 @@ export default function Eventos() {
   const lanzar = async (datos) => {
     await crearEvento(datos)
     await cargar()
-    avisar('Evento lanzado (simulado: aún no se guarda en la base de datos)')
+    avisar('Evento lanzado: los usuarios ya lo reciben')
   }
 
   const cancelar = async (evento) => {
@@ -41,11 +43,11 @@ export default function Eventos() {
     await cancelarEvento(evento.id_desastre)
     await cargar()
     setCancelando(false)
-    avisar('Emergencia cancelada (simulado)')
+    avisar('Emergencia cancelada')
   }
 
   const { cargando, eventos, error } = estado
-  const activo = eventos.find((e) => e.estado === 'ACTIVO')
+  const activo = eventos.find((e) => e.estado === 'ACTIVO' && new Date(e.fecha_fin) > new Date())
 
   if (cargando) return <div className="home-cargando"><span className="home-giro" aria-label="Cargando" /></div>
 
@@ -62,6 +64,8 @@ export default function Eventos() {
 
       <FormularioEvento hayActivo={Boolean(activo)} onLanzar={lanzar} />
 
+      {verEfecto && <EfectoEvento key={verEfecto.id_desastre} evento={verEfecto} onCerrar={() => setVerEfecto(null)} />}
+
       <section className="tarjeta aparece" style={{ animationDelay: '0.16s' }}>
         <div className="dashboard-titulo">
           <div>
@@ -69,7 +73,7 @@ export default function Eventos() {
             <p>Registro de los eventos lanzados desde el panel</p>
           </div>
         </div>
-        <HistorialEventos eventos={eventos} />
+        <HistorialEventos eventos={eventos} onVerEfecto={setVerEfecto} />
       </section>
 
       {aviso && <div className="jardin-aviso" role="status">{aviso}</div>}

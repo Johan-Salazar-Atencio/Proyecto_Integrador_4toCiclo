@@ -1,6 +1,7 @@
 // Lo que se muestra se deriva de los porcentajes (presentacion, igual que el movil)
 
 export function estadoAnimo(planta) {
+  if (planta.fase === 'MUERTA' || planta.enRecuperacion) return { texto: 'Triste', cara: '😢', clase: 'animo-triste' }
   if (planta.healthPercent >= 70) return { texto: 'Feliz', cara: '😊', clase: 'animo-feliz' }
   if (planta.healthPercent >= 40) return { texto: 'Regular', cara: '😐', clase: 'animo-regular' }
   return { texto: 'Triste', cara: '😢', clase: 'animo-triste' }

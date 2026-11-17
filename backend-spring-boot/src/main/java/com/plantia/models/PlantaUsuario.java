@@ -1,5 +1,6 @@
 package com.plantia.models;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -45,6 +46,10 @@ public class PlantaUsuario {
     @Column(name = "esta_refugiada")
     private Boolean estaRefugiada;
 
+    /** Momento en que se refugio; null si no esta refugiada. */
+    @Column(name = "refugiada_desde")
+    private LocalDateTime refugiadaDesde;
+
     @Column(name = "ultimo_riego")
     private LocalDateTime ultimoRiego;
 
@@ -63,6 +68,38 @@ public class PlantaUsuario {
     /** Cuidados utiles acumulados: define la etapa del jardin (ver PlantasService). */
     @Column(name = "crecimiento")
     private Integer crecimiento = 0;
+
+    /** Dias con al menos un cuidado util: define la fase (ver CrecimientoPlanta). */
+    @Column(name = "dias_cuidados")
+    private Integer diasCuidados = 0;
+
+    /** Ultimo dia que conto para el crecimiento; evita contar dos veces el mismo dia. */
+    @Column(name = "ultimo_dia_cuidado")
+    private LocalDate ultimoDiaCuidado;
+
+    /** Ultimo dia que se uso un abono de la tienda en esta planta (maximo uno al dia). */
+    @Column(name = "ultimo_dia_abono_tienda")
+    private LocalDate ultimoDiaAbonoTienda;
+
+    /** Hasta cuando se puede abonar una planta golpeada por un evento antes de que muera; null = no esta en recuperacion. */
+    @Column(name = "recuperacion_hasta")
+    private LocalDateTime recuperacionHasta;
+
+    /** Tipo de desastre que la golpeo y cuya animacion aun no se mostro; null = nada pendiente. */
+    @Column(name = "golpe_tipo")
+    private String golpeTipo;
+
+    /** Guardada en el baul: congelada, no crece, no se desgasta ni le afectan los eventos (V24). */
+    @Column(name = "en_baul", nullable = false)
+    private Boolean enBaul = false;
+
+    /** Articulo de la tienda (tipo MACETA) que tiene puesto; null = la terracota de siempre. */
+    @Column(name = "id_maceta")
+    private Integer idMaceta;
+
+    /** Tema de fondo elegido para esta planta; null = el predeterminado. */
+    @Column(name = "id_tema_fondo")
+    private Integer idTemaFondo;
 
     /** JSON con la apariencia que dio la IA (forma, colores); null = dibujo por defecto. */
     @Column(name = "apariencia")
@@ -95,6 +132,8 @@ public class PlantaUsuario {
     public void setModoTiempo(String modoTiempo) { this.modoTiempo = modoTiempo; }
     public Boolean getEstaRefugiada() { return estaRefugiada; }
     public void setEstaRefugiada(Boolean estaRefugiada) { this.estaRefugiada = estaRefugiada; }
+    public LocalDateTime getRefugiadaDesde() { return refugiadaDesde; }
+    public void setRefugiadaDesde(LocalDateTime refugiadaDesde) { this.refugiadaDesde = refugiadaDesde; }
     public LocalDateTime getUltimoRiego() { return ultimoRiego; }
     public void setUltimoRiego(LocalDateTime ultimoRiego) { this.ultimoRiego = ultimoRiego; }
     public LocalDateTime getUltimoSol() { return ultimoSol; }
@@ -108,6 +147,22 @@ public class PlantaUsuario {
 
     public Integer getCrecimiento() { return crecimiento; }
     public void setCrecimiento(Integer crecimiento) { this.crecimiento = crecimiento; }
+    public Integer getDiasCuidados() { return diasCuidados; }
+    public void setDiasCuidados(Integer diasCuidados) { this.diasCuidados = diasCuidados; }
+    public LocalDate getUltimoDiaCuidado() { return ultimoDiaCuidado; }
+    public void setUltimoDiaCuidado(LocalDate ultimoDiaCuidado) { this.ultimoDiaCuidado = ultimoDiaCuidado; }
+    public LocalDate getUltimoDiaAbonoTienda() { return ultimoDiaAbonoTienda; }
+    public void setUltimoDiaAbonoTienda(LocalDate d) { this.ultimoDiaAbonoTienda = d; }
+    public LocalDateTime getRecuperacionHasta() { return recuperacionHasta; }
+    public void setRecuperacionHasta(LocalDateTime recuperacionHasta) { this.recuperacionHasta = recuperacionHasta; }
+    public String getGolpeTipo() { return golpeTipo; }
+    public void setGolpeTipo(String golpeTipo) { this.golpeTipo = golpeTipo; }
+    public Boolean getEnBaul() { return enBaul; }
+    public void setEnBaul(Boolean enBaul) { this.enBaul = enBaul; }
+    public Integer getIdMaceta() { return idMaceta; }
+    public void setIdMaceta(Integer idMaceta) { this.idMaceta = idMaceta; }
+    public Integer getIdTemaFondo() { return idTemaFondo; }
+    public void setIdTemaFondo(Integer idTemaFondo) { this.idTemaFondo = idTemaFondo; }
     public String getApariencia() { return apariencia; }
     public void setApariencia(String apariencia) { this.apariencia = apariencia; }
     public String getFotoUrl() { return fotoUrl; }

@@ -31,8 +31,14 @@ public class Mision {
     @Column(name = "recompensa_monedas")
     private Integer recompensaMonedas;
 
+    @Column(name = "recompensa_xp", nullable = false)
+    private Integer recompensaXp = 0;
+
     @Column(name = "activa")
     private Boolean activa;
+
+    @Column(name = "orden", nullable = false)
+    private Integer orden = 0;
 
     public Integer getIdMision() { return idMision; }
     public void setIdMision(Integer idMision) { this.idMision = idMision; }
@@ -46,6 +52,10 @@ public class Mision {
     public void setMeta(Integer meta) { this.meta = meta; }
     public Integer getRecompensaMonedas() { return recompensaMonedas; }
     public void setRecompensaMonedas(Integer recompensaMonedas) { this.recompensaMonedas = recompensaMonedas; }
+    public Integer getRecompensaXp() { return recompensaXp; }
+    public void setRecompensaXp(Integer recompensaXp) { this.recompensaXp = recompensaXp; }
     public Boolean getActiva() { return activa; }
     public void setActiva(Boolean activa) { this.activa = activa; }
+    public Integer getOrden() { return orden; }
+    public void setOrden(Integer orden) { this.orden = orden; }
 }
