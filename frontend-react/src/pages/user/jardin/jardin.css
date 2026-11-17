@@ -8,7 +8,8 @@
   aspect-ratio: 1 / 1;
   margin-inline: auto;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--azul-claro) 0%, var(--verde-claro) 100%);
+  background: var(--cielo);
+  border: 1px solid var(--linea);
   border-radius: 28px;
   box-shadow: var(--sombra);
 }
@@ -19,11 +20,11 @@
 .jardin-marco-marchita { background: linear-gradient(180deg, var(--ambar-claro) 0%, var(--rojo-claro) 100%); }
 
 /* Chip compacto: animo, dia de crecimiento y fase (no tapa la escena) */
-.jardin-chip { position: absolute; top: 3%; left: 3%; z-index: 2; display: flex; align-items: center; gap: 6px; padding: 5px 11px; background: color-mix(in srgb, var(--superficie) 90%, transparent); border-radius: 999px; box-shadow: var(--sombra); font-size: 0.8rem; color: var(--texto); }
+.jardin-chip { position: absolute; top: 3%; left: 3%; z-index: 2; display: flex; align-items: center; gap: 6px; padding: 5px 11px; background: color-mix(in srgb, var(--superficie) 90%, transparent); border: 1px solid var(--linea); border-radius: 999px; box-shadow: var(--sombra); font-size: 0.8rem; color: var(--texto); }
 .jardin-chip-cara { font-size: 1rem; line-height: 1; }
 .jardin-puntos { display: flex; gap: 3px; }
 .jardin-puntos i { width: 7px; height: 7px; border-radius: 50%; background: var(--linea); }
-.jardin-puntos .punto-hecho { background: var(--verde); }
+.jardin-puntos .punto-hecho { background: var(--primario); }
 
 .jardin-titulo { display: flex; align-items: center; gap: 12px; }
 .jardin-foto { width: 56px; height: 56px; flex-shrink: 0; object-fit: cover; border-radius: 14px; box-shadow: var(--sombra); }
@@ -44,30 +45,30 @@
 .jardin .barra-relleno { transition: width 0.6s ease; }
 .jardin-riego { display: block; margin-top: 12px; color: var(--texto-suave); }
 
-.jardin-consejo { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--ambar-claro); border-radius: var(--radio); }
+.jardin-consejo { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--ambar-claro); border: 1px solid color-mix(in srgb, var(--luz) 35%, transparent); border-radius: var(--radio); }
 .jardin-consejo span { font-size: 1.5rem; }
 .jardin-consejo p { font-weight: 600; line-height: 1.4; }
 
 /* Botones de cuidado */
 .jardin-acciones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.jardin-accion { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 8px; border: 0; border-radius: var(--radio); background: var(--superficie); box-shadow: var(--sombra); color: var(--texto); cursor: pointer; transition: transform 0.15s ease, background var(--transicion); }
+.jardin-accion { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 8px; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie); box-shadow: var(--sombra); color: var(--texto); cursor: pointer; transition: transform 0.15s ease, background var(--transicion); }
 .jardin-accion span { font-size: 1.8rem; }
-.jardin-accion small { color: var(--verde-oscuro); font-weight: 800; }
-.jardin-accion:hover { background: var(--verde-claro); }
+.jardin-accion small { color: var(--primario); font-weight: 800; }
+.jardin-accion:hover { background: var(--tinte); }
 .jardin-accion:active { transform: scale(0.92); }
 
-.jardin-fondos-boton { position: absolute; top: 3%; right: 3%; z-index: 2; width: 38px; height: 38px; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--superficie) 90%, transparent); box-shadow: var(--sombra); font-size: 1.15rem; cursor: pointer; transition: transform 0.15s ease; }
+.jardin-fondos-boton { position: absolute; top: 3%; right: 3%; z-index: 2; width: 38px; height: 38px; border: 1px solid var(--linea); border-radius: 50%; background: color-mix(in srgb, var(--superficie) 90%, transparent); box-shadow: var(--sombra); font-size: 1.15rem; cursor: pointer; transition: transform 0.15s ease; }
 .jardin-fondos-boton:hover { transform: scale(1.08); }
 
 /* Abono de la tienda */
-.jardin-abono { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px; border: 2px dashed var(--verde); border-radius: var(--radio); background: var(--verde-claro); color: var(--texto); font: inherit; cursor: pointer; }
+.jardin-abono { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px; border: 2px dashed var(--primario); border-radius: var(--radio); background: var(--tinte); color: var(--texto); font: inherit; cursor: pointer; }
 .jardin-abono span { font-size: 1.5rem; }
-.jardin-abono small { color: var(--verde-oscuro); font-weight: 800; }
+.jardin-abono small { color: var(--primario); font-weight: 800; }
 .jardin-abono:disabled { opacity: 0.6; cursor: wait; }
-.jardin-tienda-enlace { align-self: center; color: var(--verde-oscuro); font-weight: 800; }
+.jardin-tienda-enlace { align-self: center; color: var(--primario); font-weight: 800; }
 
 /* Aviso */
-.jardin-aviso { position: fixed; left: 50%; top: 76px; z-index: 15; max-width: calc(100% - 32px); padding: 12px 20px; transform: translateX(-50%); background: #1f2937; color: #fff; border-radius: 999px; font-weight: 600; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); animation: aviso-entra 0.3s ease both; }
+.jardin-aviso { position: fixed; left: 50%; top: 76px; z-index: 15; max-width: calc(100% - 32px); padding: 12px 20px; transform: translateX(-50%); background: var(--texto); color: var(--fondo); border-radius: 999px; font-weight: 600; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); animation: aviso-entra 0.3s ease both; }
 @keyframes aviso-entra { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
 @media (min-width: 861px) {
@@ -83,17 +84,17 @@
 .jardin-marco > :not(.escena) { z-index: 1; }
 
 /* Evento: prevenir, recuperacion, planta muerta y golpe */
-.jardin-prevenir { padding: 12px; border: 0; border-radius: var(--radio); background: var(--rojo); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.jardin-prevenir { padding: 12px; border: 0; border-radius: var(--radio); background: var(--peligro); color: var(--sobre-primario); font: inherit; font-weight: 800; cursor: pointer; }
 .jardin-prevenir:disabled { cursor: default; opacity: 0.7; }
-.jardin-prevenir-hecho { background: var(--verde-claro); color: var(--verde-oscuro); opacity: 1 !important; }
+.jardin-prevenir-hecho { background: var(--tinte); color: var(--primario); opacity: 1 !important; }
 .jardin-recuperacion { padding: 12px 14px; background: var(--rojo-claro); border: 1.5px solid color-mix(in srgb, var(--rojo) 55%, transparent); border-radius: var(--radio); color: var(--texto); }
-.jardin-recuperacion b { color: var(--rojo); }
+.jardin-recuperacion b { color: var(--peligro); }
 .jardin-recuperacion p { margin-top: 4px; font-size: 0.85rem; color: var(--texto-suave); }
-.jardin-muerta { display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--superficie); border-radius: var(--radio); box-shadow: var(--sombra); }
+.jardin-muerta { display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); box-shadow: var(--sombra); }
 .jardin-muerta p { color: var(--texto-suave); font-size: 0.9rem; }
-.jardin-revivir { padding: 12px; border: 0; border-radius: var(--radio); background: var(--verde); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.jardin-revivir { padding: 12px; border: 0; border-radius: var(--radio); background: var(--primario); color: var(--sobre-primario); font: inherit; font-weight: 800; cursor: pointer; }
 .jardin-revivir:disabled { opacity: 0.6; cursor: wait; }
-.jardin-resguardo { position: absolute; left: 3%; bottom: 3%; z-index: 2; padding: 5px 11px; background: color-mix(in srgb, var(--superficie) 90%, transparent); border-radius: 999px; font-size: 0.8rem; font-weight: 700; color: var(--verde-oscuro); }
+.jardin-resguardo { position: absolute; left: 3%; bottom: 3%; z-index: 2; padding: 5px 11px; background: color-mix(in srgb, var(--superficie) 90%, transparent); border-radius: 999px; font-size: 0.8rem; font-weight: 700; color: var(--primario); }
 .jardin-escudo { position: absolute; left: 50%; top: 40%; z-index: 4; font-size: 4rem; animation: escudo-crece 1.2s ease-out both; pointer-events: none; }
 @keyframes escudo-crece { from { transform: translate(-50%, -50%) scale(0.3); opacity: 1; } to { transform: translate(-50%, -50%) scale(2.4); opacity: 0; } }
 .jardin-golpe { position: absolute; inset: auto 6% 12% 6%; z-index: 4; padding: 12px 14px; background: rgba(31, 41, 55, 0.88); border-radius: var(--radio); color: #fff; font-weight: 800; text-align: center; animation: aparece 0.3s ease both; }
