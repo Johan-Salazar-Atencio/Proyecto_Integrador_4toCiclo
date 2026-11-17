@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { RUTAS } from '../../../routes/rutas'
 import { cuidadosCatalogo } from '../../../services/catalogo'
+import Icono from '../coleccion/Iconos'
 import FichaPlanta from '../planta/FichaPlanta'
 
 // Ficha de una especie del catalogo: solo lectura (sin Digitalizar ni Guardar).
@@ -29,7 +30,7 @@ export default function DetalleCatalogo() {
   if (estado.error) {
     return (
       <div className="coleccion-vacio aparece">
-        <span>😕</span>
+        <span className="coleccion-vacio-icono"><Icono nombre="warn" tam={34} /></span>
         <h2>{estado.error}</h2>
         <button className="boton boton-suave" onClick={cargar}>Reintentar</button>
         <Link to={RUTAS.CATALOGO}>← Volver a la enciclopedia</Link>
