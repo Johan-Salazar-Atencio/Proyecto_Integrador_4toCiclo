@@ -455,7 +455,7 @@ private fun Accion(texto: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun DialogoApodo(planta: PlantSummary, onGuardar: (String) -> Unit, onCancelar: () -> Unit) {
+internal fun DialogoApodo(planta: PlantSummary, onGuardar: (String) -> Unit, onCancelar: () -> Unit) {
     var texto by remember { mutableStateOf(planta.name) }
     AlertDialog(
         onDismissRequest = onCancelar,

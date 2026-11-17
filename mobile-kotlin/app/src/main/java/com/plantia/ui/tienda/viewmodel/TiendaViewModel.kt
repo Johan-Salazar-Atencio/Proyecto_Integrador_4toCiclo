@@ -110,16 +110,16 @@ class TiendaViewModel(
         }
     }
 
-    /** Compra un abono y lo usa en la planta del jardin. */
-    fun usarAbono() = accion {
+    /** Compra el abono elegido y lo usa en la planta del jardin. */
+    fun usarAbono(abono: TiendaItem) = accion {
         when (val activa = garden.plantaActiva()) {
             is PlantaActivaResultado.ConPlanta -> {
                 val id = activa.planta.id
                 if (id == null) {
                     aviso = "No se encontro tu planta"
-                } else when (val r = tienda.usarAbono(id)) {
+                } else when (val r = tienda.usarAbono(id, abono.id)) {
                     is AbonoResultado.Con -> {
-                        aplicar(tienda.cargar(), "¡Abono aplicado! ${r.planta.name} ganó un día de crecimiento 🌱")
+                        aplicar(tienda.cargar(), "¡Abono aplicado! ${r.planta.name} creció 🌱")
                     }
                     is AbonoResultado.Fallo -> aviso = r.mensaje
                 }

@@ -134,7 +134,8 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             HomeScreen(
                 onNavigateToGarden = { navController.navigate(Routes.VIRTUAL_GARDEN) },
                 onNavigateToTienda = { navController.navigate(Routes.TIENDA) },
-                onNavigateToMisiones = { navController.navigate(Routes.MISIONES) }
+                onNavigateToMisiones = { navController.navigate(Routes.MISIONES) },
+                onScan = { navController.navigate(Routes.SCAN) }
             )
         }
 

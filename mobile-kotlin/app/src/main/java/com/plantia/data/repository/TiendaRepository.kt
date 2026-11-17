@@ -41,8 +41,8 @@ interface TiendaRepository {
 
     suspend fun comprar(idItem: Int): TiendaResultado
 
-    /** Compra un abono y lo usa en la planta: +1 dia de crecimiento (maximo uno al dia por planta). */
-    suspend fun usarAbono(idPlanta: Int): AbonoResultado
+    /** Compra el abono `idItem` (null = el mas barato) y lo usa en la planta (maximo uno al dia por planta). */
+    suspend fun usarAbono(idPlanta: Int, idItem: Int? = null): AbonoResultado
 
     /** Temas que se le pueden poner a esa planta (el de siempre y los comprados), con el que tiene puesto. */
     suspend fun fondosDePlanta(idPlanta: Int): FondosResultado
@@ -62,9 +62,9 @@ class RemoteTiendaRepository(
 
     override suspend fun comprar(idItem: Int): TiendaResultado = tienda { api().comprarItem(idItem) }
 
-    override suspend fun usarAbono(idPlanta: Int): AbonoResultado = withContext(Dispatchers.IO) {
+    override suspend fun usarAbono(idPlanta: Int, idItem: Int?): AbonoResultado = withContext(Dispatchers.IO) {
         try {
-            val respuesta = api().abonoTienda(idPlanta)
+            val respuesta = api().abonoTienda(idPlanta, if (idItem != null) mapOf("idItem" to idItem) else emptyMap())
             val cuerpo = respuesta.body()
             if (respuesta.isSuccessful && cuerpo != null) AbonoResultado.Con(cuerpo.toDomain())
             else AbonoResultado.Fallo(mensajeDe(respuesta))

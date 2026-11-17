@@ -41,6 +41,8 @@ import com.plantia.ui.escena.EscenaViewModel
 import com.plantia.ui.home.components.EventoCard
 import com.plantia.ui.home.components.MisionesResumenCard
 import com.plantia.ui.home.components.PlantSummaryCard
+import com.plantia.ui.home.components.SinEventoCard
+import com.plantia.ui.home.components.SinPlantasCard
 import com.plantia.ui.home.components.UserHeaderCard
 import com.plantia.ui.home.viewmodel.HomeViewModel
 import com.plantia.ui.theme.AmberAlert
@@ -55,7 +57,8 @@ import com.plantia.ui.theme.TextPrimary
 fun HomeScreen(
     onNavigateToGarden: () -> Unit = {},
     onNavigateToTienda: () -> Unit = {},
-    onNavigateToMisiones: () -> Unit = {}
+    onNavigateToMisiones: () -> Unit = {},
+    onScan: () -> Unit = {}
 ) {
     val homeViewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
     val escenaViewModel: EscenaViewModel = viewModel(factory = EscenaViewModel.Factory)
@@ -131,6 +134,11 @@ fun HomeScreen(
                     UserHeaderCard(user = usuario, onHojas = onNavigateToTienda)
                 }
 
+                // Sin plantas el Inicio no queda vacio: invita a escanear la primera
+                if (state.planta == null && state.error == null) {
+                    SinPlantasCard(onScan = onScan)
+                }
+
                 state.planta?.let { planta ->
                     PlantSummaryCard(
                         plant = planta,
@@ -144,8 +152,11 @@ fun HomeScreen(
                 }
 
                 // El evento activo con su imagen y cuenta regresiva; tocarlo lleva a Misiones, donde se previene
-                state.alerta?.let { alerta ->
-                    EventoCard(alerta = alerta, onClick = onNavigateToMisiones)
+                // Sin evento se ve un aviso tranquilo con consejos que van pasando
+                if (state.alerta != null) {
+                    EventoCard(alerta = state.alerta, onClick = onNavigateToMisiones)
+                } else if (state.error == null) {
+                    SinEventoCard()
                 }
 
                 if (state.misiones.isNotEmpty()) {

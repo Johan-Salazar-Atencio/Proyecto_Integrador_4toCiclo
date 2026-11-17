@@ -138,7 +138,7 @@ private fun Contenido(
     onPestana: (String) -> Unit,
     ocupado: Boolean,
     onComprar: (TiendaItem) -> Unit,
-    onAbono: () -> Unit,
+    onAbono: (TiendaItem) -> Unit,
     onAplicar: (TiendaItem) -> Unit
 ) {
     LazyColumn(
@@ -218,11 +218,11 @@ private fun Contenido(
                 TarjetaFondo(fondo, tienda.monedas, ocupado, onComprar)
             }
         } else {
-            val abono = tienda.abono
-            if (abono == null) {
+            if (tienda.abonos.isEmpty()) {
                 item { Text("El abono no está disponible por ahora.", color = TextSecondary, fontSize = 14.sp) }
-            } else {
-                item { TarjetaAbono(abono, tienda.monedas, ocupado, onAbono) }
+            }
+            items(tienda.abonos, key = { "a${it.id}" }) { abono ->
+                TarjetaAbono(abono, tienda.monedas, ocupado) { onAbono(abono) }
             }
         }
         item { Spacer(Modifier.height(8.dp)) }

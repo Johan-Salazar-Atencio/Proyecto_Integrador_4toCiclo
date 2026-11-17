@@ -1,4 +1,4 @@
--- V25: varios tipos de abono (medio dia, 1 dia y 3 dias de crecimiento) y fotos en la coleccion.
+-- V26: varios tipos de abono (medio dia, 1 dia y 3 dias de crecimiento) y fotos en la coleccion.
 -- Aditiva: no borra datos. El abono se mide en "medios dias" para poder dar medio dia (2 medios = 1 dia).
 
 -- Cuantos medios dias de crecimiento suma cada abono (los articulos que no son abono lo ignoran)

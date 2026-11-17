@@ -125,9 +125,9 @@ interface PlantiaApi {
     @PUT("api/v1/plantas/{id}/fondo")
     suspend fun ponerFondo(@Path("id") idPlanta: Int, @Body body: Map<String, Int>): Response<List<TemaFondoDto>>
 
-    /** Compra y usa un abono: +1 dia de crecimiento de la planta (maximo uno al dia). */
+    /** Compra y usa un abono (medio dia, 1 o 3 dias de crecimiento; maximo uno al dia). Body: { "idItem": n }; vacio = el mas barato. */
     @POST("api/v1/plantas/{id}/abono-tienda")
-    suspend fun abonoTienda(@Path("id") idPlanta: Int): Response<PlantSummaryDto>
+    suspend fun abonoTienda(@Path("id") idPlanta: Int, @Body body: Map<String, Int>): Response<PlantSummaryDto>
 
     /** Animaciones de desastre (aviso y pico) con sus frames. */
     @GET("api/v1/animaciones")

@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Science
@@ -71,6 +72,11 @@ import com.plantia.ui.garden.components.CareActionButton
 import com.plantia.ui.escena.Escena
 import com.plantia.ui.escena.EscenaViewModel
 import com.plantia.ui.garden.components.FondosPlantaSheet
+import com.plantia.ui.garden.components.ColorAgua
+import com.plantia.ui.garden.components.ColorLuz
+import com.plantia.ui.garden.components.ColorVida
+import com.plantia.ui.garden.components.HojaAbonos
+import com.plantia.ui.collection.virtual.DialogoApodo
 import com.plantia.ui.garden.components.PlantFrame
 import com.plantia.ui.garden.viewmodel.GardenUiState
 import com.plantia.ui.garden.viewmodel.GardenViewModel
@@ -194,6 +200,27 @@ fun VirtualGardenScreen(
                     onCerrar = viewModel::cerrarFondos
                 )
             }
+            val plantaDelJardin = (viewModel.uiState as? GardenUiState.Success)?.planta
+            if (viewModel.eligiendoAbono && plantaDelJardin != null) {
+                HojaAbonos(
+                    nombrePlanta = plantaDelJardin.name,
+                    abonos = viewModel.abonos,
+                    hojas = viewModel.hojas,
+                    onUsar = { abono ->
+                        viewModel.usarAbono(abono) { mensaje ->
+                            scope.launch {
+                                snackbar.currentSnackbarData?.dismiss()
+                                snackbar.showSnackbar(mensaje)
+                            }
+                        }
+                    },
+                    onTienda = {
+                        viewModel.cerrarAbonos()
+                        onTienda()
+                    },
+                    onCerrar = viewModel::cerrarAbonos
+                )
+            }
             when (val estado = viewModel.uiState) {
                 GardenUiState.Loading -> CircularProgressIndicator(
                     color = GreenPrimary,
@@ -216,7 +243,7 @@ fun VirtualGardenScreen(
                 is GardenUiState.Success -> JardinContenido(
                     escena = escenaViewModel.escena,
                     planta = estado.planta,
-                    abono = viewModel.abono,
+                    abonos = viewModel.abonos,
                     evento = if (viewModel.puedePrevenir || estado.planta.refugiada) viewModel.evento else null,
                     previniendo = viewModel.previniendo,
                     efectoProteccion = viewModel.proteccionesNuevas,
@@ -247,8 +274,9 @@ fun VirtualGardenScreen(
                             }
                         }
                     },
-                    onAbono = {
-                        viewModel.usarAbono { mensaje ->
+                    onAbonos = viewModel::abrirAbonos,
+                    onRenombrar = { apodo ->
+                        viewModel.renombrar(apodo) { mensaje ->
                             scope.launch {
                                 snackbar.currentSnackbarData?.dismiss()
                                 snackbar.showSnackbar(mensaje)
@@ -274,7 +302,7 @@ fun VirtualGardenScreen(
 internal fun JardinContenido(
     planta: PlantSummary,
     escena: Escena? = null,
-    abono: TiendaItem? = null,
+    abonos: List<TiendaItem> = emptyList(),
     /** Evento activo (o null): con el aparece el boton "Prevenir evento" junto a los cuidados. */
     evento: WeatherAlert? = null,
     previniendo: Boolean = false,
@@ -285,7 +313,10 @@ internal fun JardinContenido(
     /** Efectos: escudo al prevenir el evento y golpe del evento sobre la planta (ver PlantFrame). */
     efectoProteccion: Int = 0,
     arrasando: Boolean = false,
-    onAbono: () -> Unit = {},
+    /** Abre la hoja para elegir el abono (medio dia, 1 dia, 3 dias). */
+    onAbonos: () -> Unit = {},
+    /** Cambia el apodo de la planta; null = no se ofrece editarlo. */
+    onRenombrar: ((String) -> Unit)? = null,
     onTienda: () -> Unit = {},
     onFondos: (() -> Unit)? = null,
     onCuidar: (AccionCuidado) -> Unit
@@ -329,8 +360,8 @@ internal fun JardinContenido(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                EncabezadoPlanta(planta)
-                CuerpoJardin(planta, evento, previniendo, onPrevenir, abono, onAbono, onTienda, reviviendo, onRevivir, onCuidar)
+                EncabezadoPlanta(planta, onRenombrar)
+                CuerpoJardin(planta, evento, previniendo, onPrevenir, abonos.isNotEmpty(), onAbonos, onTienda, reviviendo, onRevivir, onCuidar)
                 Spacer(Modifier.height(4.dp))
             }
         }
@@ -342,7 +373,7 @@ internal fun JardinContenido(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            EncabezadoPlanta(planta)
+            EncabezadoPlanta(planta, onRenombrar)
             PlantFrame(
                 nombre = planta.name,
                 animo = estadoAnimo(planta),
@@ -360,7 +391,7 @@ internal fun JardinContenido(
                 macetaCodigo = planta.macetaCodigo,
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f)
             )
-            CuerpoJardin(planta, evento, previniendo, onPrevenir, abono, onAbono, onTienda, reviviendo, onRevivir, onCuidar)
+            CuerpoJardin(planta, evento, previniendo, onPrevenir, abonos.isNotEmpty(), onAbonos, onTienda, reviviendo, onRevivir, onCuidar)
             Spacer(Modifier.height(8.dp))
         }
     }
@@ -376,8 +407,8 @@ private fun ColumnScope.CuerpoJardin(
     evento: WeatherAlert?,
     previniendo: Boolean,
     onPrevenir: () -> Unit,
-    abono: TiendaItem?,
-    onAbono: () -> Unit,
+    hayAbonos: Boolean,
+    onAbonos: () -> Unit,
     onTienda: () -> Unit,
     reviviendo: Boolean,
     onRevivir: () -> Unit,
@@ -391,7 +422,7 @@ private fun ColumnScope.CuerpoJardin(
     if (planta.enRecuperacion) TarjetaRecuperacion(planta)
     TarjetaVital(planta)
     TarjetaAcciones(planta, evento, previniendo, onPrevenir, onCuidar)
-    TarjetaAbono(abono, onAbono, onTienda)
+    TarjetaAbono(hayAbonos, onAbonos, onTienda)
     TarjetaConsejo(consejo(planta))
 }
 
@@ -461,13 +492,31 @@ private fun TarjetaMuerta(planta: PlantSummary, reviviendo: Boolean, onRevivir: 
     }
 }
 
-/** Nombre y especie fuera del marco, para que nada tape la escena. */
+/**
+ * Apodo grande y, debajo, la especie. Mientras no se use apodo, el apodo es el nombre de la planta.
+ * El lapiz abre el dialogo para cambiarlo (vacio vuelve al nombre de la especie).
+ */
 @Composable
-private fun EncabezadoPlanta(planta: PlantSummary) {
-    Column(Modifier.fillMaxWidth()) {
-        Text(planta.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-        if (planta.species.isNotBlank()) {
-            Text(planta.species, fontSize = 13.sp, fontStyle = FontStyle.Italic, color = TextSecondary)
+private fun EncabezadoPlanta(planta: PlantSummary, onRenombrar: ((String) -> Unit)?) {
+    var editando by remember { mutableStateOf(false) }
+    if (editando && onRenombrar != null) {
+        DialogoApodo(
+            planta = planta,
+            onGuardar = { apodo -> editando = false; onRenombrar(apodo) },
+            onCancelar = { editando = false }
+        )
+    }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(planta.name, fontSize = 28.sp, lineHeight = 32.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+            if (planta.species.isNotBlank()) {
+                Text(planta.species, fontSize = 13.sp, fontStyle = FontStyle.Italic, color = TextSecondary)
+            }
+        }
+        if (onRenombrar != null) {
+            IconButton(onClick = { editando = true }) {
+                Icon(Icons.Filled.Edit, contentDescription = "Cambiar apodo", tint = GreenDark)
+            }
         }
     }
 }
@@ -498,10 +547,28 @@ private fun TarjetaVital(planta: PlantSummary) {
             Text("Último riego: ${planta.lastWatered}", fontSize = 12.sp, color = TextSecondary)
         }
         Spacer(Modifier.height(14.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            AnimatedStatBar("Salud", Icons.Filled.Favorite, planta.healthPercent)
-            AnimatedStatBar("Agua", Icons.Filled.WaterDrop, planta.humidityPercent)
-            AnimatedStatBar("Luz", Icons.Filled.WbSunny, planta.lightPercent)
+        // La salud manda: barra grande y roja. El agua y la luz son las que la mantienen, mas pequenas.
+        AnimatedStatBar(
+            "Salud", Icons.Filled.Favorite, planta.healthPercent,
+            colorFijo = ColorVida, alto = 18.dp, tamanoTexto = 18.sp
+        )
+        Text(
+            if (planta.healthPercent < 30) "¡Está muy débil! Dale agua y luz."
+            else "Se mantiene con agua y luz.",
+            fontSize = 12.sp,
+            color = if (planta.healthPercent < 30) ColorVida else TextSecondary,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+        Spacer(Modifier.height(14.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            AnimatedStatBar(
+                "Agua", Icons.Filled.WaterDrop, planta.humidityPercent,
+                modifier = Modifier.weight(1f), colorFijo = ColorAgua, alto = 8.dp, tamanoTexto = 13.sp
+            )
+            AnimatedStatBar(
+                "Luz", Icons.Filled.WbSunny, planta.lightPercent,
+                modifier = Modifier.weight(1f), colorFijo = ColorLuz, alto = 8.dp, tamanoTexto = 13.sp
+            )
         }
     }
 }
@@ -518,10 +585,11 @@ private fun TarjetaAcciones(
         Text("Cuidados", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AccionCuidado.entries.forEach { accion ->
+            // El abono es especial (se compra en la tienda): aqui solo se ofrece para recuperar una planta golpeada
+            AccionCuidado.entries.filter { it != AccionCuidado.ABONAR || planta.enRecuperacion }.forEach { accion ->
                 val (icono, color) = when (accion) {
-                    AccionCuidado.REGAR -> Icons.Filled.WaterDrop to BlueInfo
-                    AccionCuidado.SOL -> Icons.Filled.WbSunny to AmberAlert
+                    AccionCuidado.REGAR -> Icons.Filled.WaterDrop to ColorAgua
+                    AccionCuidado.SOL -> Icons.Filled.WbSunny to ColorLuz
                     AccionCuidado.ABONAR -> Icons.Filled.Science to GreenPrimary
                 }
                 CareActionButton(
@@ -572,19 +640,19 @@ private fun BotonPrevenir(protegida: Boolean, previniendo: Boolean, onPrevenir: 
     }
 }
 
-/** Abono de la tienda: +1 dia de crecimiento a cambio de monedas (maximo uno al dia por planta). */
+/** Abono: un articulo especial de la tienda (medio dia, 1 dia o 3 dias de crecimiento); abre la hoja para elegirlo. */
 @Composable
-private fun TarjetaAbono(abono: TiendaItem?, onAbono: () -> Unit, onTienda: () -> Unit) {
-    if (abono != null) {
+private fun TarjetaAbono(hayAbonos: Boolean, onAbonos: () -> Unit, onTienda: () -> Unit) {
+    if (hayAbonos) {
         Card(
-            onClick = onAbono,
+            onClick = onAbonos,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = GreenLight)
         ) {
             Column(Modifier.fillMaxWidth().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("🌿 ${abono.nombre}: +1 día de crecimiento", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                Text("${abono.precio} 🍃 · máximo 1 al día", fontSize = 12.sp, color = GreenDark, fontWeight = FontWeight.SemiBold)
+                Text("🌿 Abonar a mi planta", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text("Elige un abono y hazla crecer más rápido", fontSize = 12.sp, color = GreenDark, fontWeight = FontWeight.SemiBold)
             }
         }
     }

@@ -7,7 +7,9 @@ data class Tienda(
     val items: List<TiendaItem>
 ) {
     val fondos: List<TiendaItem> get() = items.filter { it.tipo == TiendaItem.FONDO }
-    val abono: TiendaItem? get() = items.firstOrNull { it.tipo == TiendaItem.ABONO }
+    /** Abonos a la venta, del mas barato al mas caro (medio dia, 1 dia, 3 dias...). */
+    val abonos: List<TiendaItem> get() = items.filter { it.tipo == TiendaItem.ABONO }.sortedBy { it.precio }
+    val abono: TiendaItem? get() = abonos.firstOrNull()
     val macetas: List<TiendaItem> get() = items.filter { it.tipo == TiendaItem.MACETA }
     val invernaderos: List<TiendaItem> get() = items.filter { it.tipo == TiendaItem.INVERNADERO }
 }

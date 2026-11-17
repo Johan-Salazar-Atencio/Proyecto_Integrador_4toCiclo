@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,6 +29,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.plantia.ui.theme.AmberAlert
@@ -37,6 +40,11 @@ import com.plantia.ui.theme.TextPrimary
 import kotlin.math.roundToInt
 
 private val RojoCritico = Color(0xFFEF4444)
+
+/** Cada necesidad tiene su color fijo: la vida es roja como el corazon, el agua azul y la luz amarilla. */
+internal val ColorVida = Color(0xFFE53935)
+internal val ColorAgua = Color(0xFF2196F3)
+internal val ColorLuz = Color(0xFFFBC02D)
 
 /** Verde si va bien, ambar si baja, rojo si es critico. */
 internal fun colorPorNivel(porcentaje: Int): Color = when {
@@ -54,7 +62,11 @@ fun AnimatedStatBar(
     etiqueta: String,
     icono: ImageVector,
     porcentaje: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Color fijo de la barra; null = verde, ambar o rojo segun el nivel. */
+    colorFijo: Color? = null,
+    alto: Dp = 10.dp,
+    tamanoTexto: TextUnit = 14.sp
 ) {
     // Arranca en 0 y `LaunchedEffect` lo sube al valor real: de ahi la animacion inicial.
     var objetivo by remember { mutableFloatStateOf(0f) }
@@ -66,7 +78,7 @@ fun AnimatedStatBar(
         label = "progreso_$etiqueta"
     )
     val color by animateColorAsState(
-        targetValue = colorPorNivel(porcentaje),
+        targetValue = colorFijo ?: colorPorNivel(porcentaje),
         animationSpec = tween(500),
         label = "color_$etiqueta"
     )
@@ -76,18 +88,18 @@ fun AnimatedStatBar(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icono, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+            Icon(icono, contentDescription = null, tint = color, modifier = Modifier.size(if (alto > 12.dp) 22.dp else 18.dp))
             Spacer(Modifier.size(8.dp))
             Text(
                 text = etiqueta,
-                fontSize = 14.sp,
+                fontSize = tamanoTexto,
                 fontWeight = FontWeight.SemiBold,
                 color = TextPrimary,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 text = "${(progreso * 100).roundToInt()}%",
-                fontSize = 14.sp,
+                fontSize = tamanoTexto,
                 fontWeight = FontWeight.Bold,
                 color = color
             )
@@ -96,13 +108,15 @@ fun AnimatedStatBar(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(10.dp)
+                .height(alto)
                 .clip(RoundedCornerShape(50))
                 .background(DividerColor)
         ) {
+            // El minimo de ancho evita que un valor bajo se vea como una punta deformada
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
+                    .then(if (progreso > 0f) Modifier.widthIn(min = alto) else Modifier)
                     .fillMaxWidth(progreso)
                     .clip(RoundedCornerShape(50))
                     .background(color)
