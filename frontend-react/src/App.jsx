@@ -11,7 +11,6 @@ import Misiones from './pages/admin/misiones/Misiones'
 import TiendaAdmin from './pages/admin/tienda/TiendaAdmin'
 import Dashboard from './pages/admin/dashboard/Dashboard'
 import JuegoAdmin from './pages/admin/juego/JuegoAdmin'
-import TiposEventoAdmin from './pages/admin/tipos-evento/TiposEventoAdmin'
 import Auth from './pages/user/auth/Auth'
 import Catalogo from './pages/user/catalogo/Catalogo'
 import DetalleCatalogo from './pages/user/catalogo/DetalleCatalogo'
@@ -73,7 +72,7 @@ export default function App() {
         <Route path={RUTAS_ADMIN.MISIONES} element={<Misiones />} />
         <Route path={RUTAS_ADMIN.TIENDA} element={<TiendaAdmin />} />
         <Route path={RUTAS_ADMIN.JUEGO} element={<JuegoAdmin />} />
-        <Route path={RUTAS_ADMIN.TIPOS_EVENTO} element={<TiposEventoAdmin />} />
+        <Route path={RUTAS_ADMIN.TIPOS_EVENTO} element={<Navigate to={RUTAS_ADMIN.EVENTOS} replace />} />
         <Route path={RUTAS_ADMIN.CATALOGO} element={<CatalogoAdmin />} />
       </Route>
 
