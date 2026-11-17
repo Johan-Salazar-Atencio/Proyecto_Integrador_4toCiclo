@@ -40,7 +40,8 @@ import androidx.compose.ui.unit.sp
 import com.plantia.data.model.RecentScan
 import com.plantia.ui.components.MiniaturaEscaneo
 import com.plantia.ui.theme.BackgroundLight
-import com.plantia.ui.theme.GreenPrimary
+import com.plantia.ui.theme.Primario
+import com.plantia.ui.components.tarjeta
 import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
@@ -89,7 +90,7 @@ fun HistorialScreen(
                 cargando -> Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator(color = GreenPrimary) }
+                ) { CircularProgressIndicator(color = Primario) }
 
                 escaneos.isEmpty() -> Box(
                     modifier = Modifier.fillMaxSize(),
@@ -118,12 +119,7 @@ fun HistorialScreen(
 
 @Composable
 private fun HistorialItem(escaneo: RecentScan) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = SurfaceWhite,
-        shadowElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().tarjeta()) {
         Row(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically

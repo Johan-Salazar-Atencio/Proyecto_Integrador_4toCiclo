@@ -21,7 +21,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.CenterFocusStrong
+import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import com.plantia.ui.theme.PrimarioOscuro
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -49,7 +64,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.ui.scan.components.CameraPreview
 import com.plantia.ui.scan.components.FlashToggleButton
 import com.plantia.ui.scan.components.PlantResultCard
-import com.plantia.ui.scan.components.RecentScansRow
 import com.plantia.ui.scan.components.ScanControlsBar
 import com.plantia.ui.scan.components.ScanOverlay
 import com.plantia.ui.scan.components.ScanProgressOverlay
@@ -59,6 +73,7 @@ import com.plantia.util.ImagenLocal
 import kotlinx.coroutines.delay
 import java.io.File
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ScanScreen(
     onNavigateToHome: () -> Unit = {},
@@ -161,218 +176,77 @@ fun ScanScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        if (isLandscape) {
-            // LANDSCAPE: Row con statusBarsPadding y navigationBarsPadding
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .navigationBarsPadding(),
-                horizontalArrangement = Arrangement.spacedBy(0.dp)
-            ) {
-                // LADO IZQUIERDO: 60% (weight 1.2f) - Cámara + marco verde con márgenes
-                Box(
-                    modifier = Modifier
-                        .weight(1.2f)
-                        .fillMaxSize()
-                        .background(Color.Black)
-                ) {
-                    CameraPreview(
-                        modifier = Modifier.fillMaxSize(),
-                        onImageCaptured = onImageCaptured,
-                        onError = onCameraError,
-                        lensFacing = lensFacing,
-                        torchEnabled = torchEnabled,
-                        captureTrigger = captureTrigger
-                    )
+        // Camara a pantalla completa; todo lo demas flota encima (consejos, marco, texto y controles)
+        CameraPreview(
+            modifier = Modifier.fillMaxSize(),
+            onImageCaptured = onImageCaptured,
+            onError = onCameraError,
+            lensFacing = lensFacing,
+            torchEnabled = torchEnabled,
+            captureTrigger = captureTrigger
+        )
 
-                    // Contenedor del marco verde con padding superior para evitar colisión con TopBar
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(top = 72.dp, start = 24.dp, end = 24.dp, bottom = 16.dp)
-                    ) {
-                        ScanOverlay(modifier = Modifier.align(Alignment.Center))
-                    }
-
-                    // Flash (linterna): solo en la camara trasera.
-                    if (lensFacing == CameraSelector.LENS_FACING_BACK) {
-                        FlashToggleButton(
-                            torchEnabled = torchEnabled,
-                            onToggle = { torchEnabled = !torchEnabled },
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(top = 84.dp, end = 20.dp)
-                        )
-                    }
-
-                    // Barra superior (TopBar) con statusBarsPadding
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .align(Alignment.TopStart),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = { onNavigateToHome() },
-                            modifier = Modifier.background(
-                                color = Color.Black.copy(alpha = 0.5f),
-                                shape = CircleShape
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = Color.White
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "Escanear Planta",
-                            color = Color.White,
-                            fontSize = 18.sp
-                        )
-                    }
+        // Barra superior: volver, historial y girar la camara; debajo, los tres consejos
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                BotonRedondoCamara(onClick = onNavigateToHome, descripcion = "Volver") {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
                 }
-
-                // LADO DERECHO: 40% (weight 0.8f) - Controles + historial con scroll
-                Column(
-                    modifier = Modifier
-                        .weight(0.8f)
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.9f))
-                        .padding(horizontal = 16.dp, vertical = 24.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Text(
-                        text = "Escaneos recientes",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    RecentScansRow(
-                        scans = scanViewModel.recientes,
-                        onViewHistoryClick = onNavigateToHistory
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    ScanControlsBar(
-                        onGalleryClick = {
-                            galleryLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        },
-                        onCaptureClick = onCaptureClick,
-                        onFlipCameraClick = onFlipCamera
-                    )
+                Spacer(Modifier.weight(1f))
+                BotonRedondoCamara(onClick = onNavigateToHistory, descripcion = "Historial de escaneos") {
+                    Icon(Icons.Filled.History, contentDescription = null, tint = Color.White)
+                }
+                Spacer(Modifier.width(8.dp))
+                BotonRedondoCamara(onClick = onFlipCamera, descripcion = "Girar cámara") {
+                    Icon(Icons.Filled.Cameraswitch, contentDescription = null, tint = Color.White)
                 }
             }
-        } else {
-            // PORTRAIT: Column con camera+overlay usando weight(1f) y panel inferior fijo
-            Column(
-                modifier = Modifier.fillMaxSize()
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // ÁREA SUPERIOR: Cámara + marco verde (peso 1f = ocupa espacio disponible)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .background(Color.Black)
-                ) {
-                    CameraPreview(
-                        modifier = Modifier.fillMaxSize(),
-                        onImageCaptured = onImageCaptured,
-                        onError = onCameraError,
-                        lensFacing = lensFacing,
-                        torchEnabled = torchEnabled,
-                        captureTrigger = captureTrigger
-                    )
-
-                    // Contenedor del marco verde con padding superior para evitar colisión con TopBar
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(top = 72.dp, start = 24.dp, end = 24.dp, bottom = 16.dp)
-                    ) {
-                        ScanOverlay(modifier = Modifier.align(Alignment.Center))
-                    }
-
-                    // Flash (linterna): solo en la camara trasera.
-                    if (lensFacing == CameraSelector.LENS_FACING_BACK) {
-                        FlashToggleButton(
-                            torchEnabled = torchEnabled,
-                            onToggle = { torchEnabled = !torchEnabled },
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(top = 84.dp, end = 20.dp)
-                        )
-                    }
-
-                    // Barra superior (TopBar) con statusBarsPadding
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .align(Alignment.TopStart),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = { onNavigateToHome() },
-                            modifier = Modifier.background(
-                                color = Color.Black.copy(alpha = 0.5f),
-                                shape = CircleShape
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = Color.White
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "Escanear Planta",
-                            color = Color.White,
-                            fontSize = 18.sp
-                        )
-                    }
-                }
-
-                // ÁREA INFERIOR: Panel de controles e historial (altura fija, no invade cámara)
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 16.dp)
-                        .background(Color.Black.copy(alpha = 0.9f))
-                ) {
-                    Text(
-                        text = "Escaneos recientes",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    RecentScansRow(
-                        scans = scanViewModel.recientes,
-                        onViewHistoryClick = onNavigateToHistory
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    ScanControlsBar(
-                        onGalleryClick = {
-                            galleryLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        },
-                        onCaptureClick = onCaptureClick,
-                        onFlipCameraClick = onFlipCamera
-                    )
-                }
+                ConsejoCamara(Icons.Filled.WbSunny, "Buena luz")
+                ConsejoCamara(Icons.Filled.Eco, "Hojas a la vista")
+                ConsejoCamara(Icons.Filled.CenterFocusStrong, "Una sola planta")
             }
         }
+
+        // Marco y texto, centrados un poco por encima del medio como en la referencia
+        Column(
+            modifier = Modifier.align(Alignment.Center).offset(y = if (isLandscape) 0.dp else (-8).dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            ScanOverlay(lado = if (isLandscape) 150.dp else 224.dp)
+            Spacer(Modifier.height(if (isLandscape) 6.dp else 14.dp))
+            Text("Toma o elige una foto", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Se identifica con IA", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp)
+        }
+
+        // Controles: galeria, obturador y flash
+        ScanControlsBar(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = if (isLandscape) 12.dp else 32.dp),
+            onGalleryClick = {
+                galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            },
+            onCaptureClick = onCaptureClick,
+            derecha = {
+                // La camara frontal no tiene linterna
+                if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+                    FlashToggleButton(torchEnabled = torchEnabled, onToggle = { torchEnabled = !torchEnabled })
+                }
+            }
+        )
 
         // Resultado del escaneo (identificación + cuidados) sobre la cámara
         val scanState = scanViewModel.uiState
@@ -419,4 +293,31 @@ fun ScanScreen(
             }
         }
     }
+}
+/** Consejo sobre la camara: pildora oscura translucida con icono lima. */
+@Composable
+private fun ConsejoCamara(icono: androidx.compose.ui.graphics.vector.ImageVector, texto: String) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(50))
+            .background(Color.Black.copy(alpha = 0.6f))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Icon(icono, contentDescription = null, tint = PrimarioOscuro, modifier = Modifier.size(14.dp))
+        Text(texto, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Boton redondo translucido de la barra superior de la camara. */
+@Composable
+private fun BotonRedondoCamara(onClick: () -> Unit, descripcion: String, icono: @Composable () -> Unit) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(42.dp)
+            .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+            .semantics { contentDescription = descripcion }
+    ) { icono() }
 }
