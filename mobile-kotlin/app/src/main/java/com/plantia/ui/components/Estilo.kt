@@ -11,23 +11,29 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.plantia.ui.theme.DividerColor
+import com.plantia.ui.theme.SurfaceWhite
 
 /**
- * Borde de color con un brillo difuminado alrededor (propuesta E). El color dice que significa la tarjeta:
- * verde lo normal, ambar un evento, rojo un peligro, azul informacion. Va antes del clip y del fondo.
+ * Borde de las tarjetas del nuevo diseno: 1dp del color de linea del tema y sin sombra fuerte. Se conservan
+ * los parametros [color] y [elevacion] por compatibilidad con las pantallas que ya lo usan: ya no pintan brillo.
  */
+@Suppress("UNUSED_PARAMETER")
 fun Modifier.brilloTarjeta(
     color: Color,
-    forma: Shape = RoundedCornerShape(20.dp),
-    elevacion: Dp = 10.dp
-): Modifier = this
-    .shadow(elevacion, forma, clip = false, ambientColor = color.copy(alpha = 0.35f), spotColor = color.copy(alpha = 0.5f))
-    .border(1.5.dp, color.copy(alpha = 0.6f), forma)
+    forma: Shape = RoundedCornerShape(24.dp),
+    elevacion: Dp = 0.dp
+): Modifier = composed { this.border(1.dp, DividerColor, forma) }
+
+/** Tarjeta del nuevo diseno: fondo de tarjeta, borde de 1dp y esquinas de 24dp. */
+fun Modifier.tarjeta(forma: Shape = RoundedCornerShape(24.dp)): Modifier = composed {
+    this.clip(forma).background(SurfaceWhite, forma).border(1.dp, DividerColor, forma)
+}
 
 /**
  * La barra de progreso de toda la app (XP, salud, agua, luz, misiones). A diferencia de la de Material 3,
