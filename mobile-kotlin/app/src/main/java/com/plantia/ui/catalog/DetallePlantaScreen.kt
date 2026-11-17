@@ -1,5 +1,9 @@
 package com.plantia.ui.catalog
 
+import com.plantia.ui.theme.DividerColor
+
+import androidx.compose.foundation.BorderStroke
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -115,9 +119,9 @@ fun DetallePlantaScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(24.dp),
                         color = SurfaceWhite,
-                        shadowElevation = 2.dp
+                        border = BorderStroke(1.dp, DividerColor)
                     ) {
                         Row(
                             modifier = Modifier.padding(18.dp),

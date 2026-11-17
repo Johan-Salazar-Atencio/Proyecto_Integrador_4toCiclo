@@ -1,5 +1,9 @@
 package com.plantia.ui.garden.components
 
+import com.plantia.ui.theme.DividerColor
+
+import androidx.compose.foundation.BorderStroke
+
 import com.plantia.ui.theme.SobrePrimario
 
 import androidx.compose.foundation.background
@@ -77,9 +81,10 @@ fun HojaAbonos(
                 val alcanza = hojas == null || hojas >= abono.precio
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceWhite)
-                ) {
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+        border = BorderStroke(1.dp, DividerColor)
+    ) {
                     Row(
                         Modifier.padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically,

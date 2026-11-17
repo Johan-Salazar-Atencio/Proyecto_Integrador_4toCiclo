@@ -1,5 +1,9 @@
 package com.plantia.ui.profile
 
+import com.plantia.ui.theme.DividerColor
+
+import androidx.compose.foundation.BorderStroke
+
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
 import com.plantia.ui.theme.FondoDegradado
@@ -113,8 +117,9 @@ fun EditarDatosScreen(
 @Composable
 private fun FilaSoloLectura(titulo: String, valor: String, nota: String) {
     Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, DividerColor)
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(titulo, fontSize = 12.sp, color = TextSecondary)
@@ -129,8 +134,9 @@ private fun FilaSoloLectura(titulo: String, valor: String, nota: String) {
 private fun FilaEditable(titulo: String, inicial: String, etiqueta: String, onGuardar: (String) -> Unit) {
     var texto by remember(inicial) { mutableStateOf(inicial) }
     Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, DividerColor)
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(titulo, fontSize = 12.sp, color = TextSecondary)

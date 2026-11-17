@@ -1,5 +1,9 @@
 package com.plantia.ui.catalog
 
+import com.plantia.ui.theme.DividerColor
+
+import androidx.compose.foundation.BorderStroke
+
 import com.plantia.ui.theme.Peligro
 
 import androidx.compose.foundation.background
@@ -167,9 +171,9 @@ fun CatalogoScreen(
 @Composable
 private fun CatalogoCard(item: CatalogoItem, onClick: () -> Unit) {
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(24.dp),
         color = SurfaceWhite,
-        shadowElevation = 1.dp,
+        border = BorderStroke(1.dp, DividerColor),
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }

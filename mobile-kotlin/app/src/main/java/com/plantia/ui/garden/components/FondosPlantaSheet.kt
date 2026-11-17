@@ -1,5 +1,9 @@
 package com.plantia.ui.garden.components
 
+import com.plantia.ui.theme.DividerColor
+
+import androidx.compose.foundation.BorderStroke
+
 import com.plantia.ui.theme.SobrePrimario
 
 import androidx.compose.foundation.layout.Arrangement
@@ -89,8 +93,9 @@ fun FondosPlantaSheet(
 private fun TarjetaTema(tema: TemaFondo, onElegir: (TemaFondo) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+        border = BorderStroke(1.dp, DividerColor)
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             EscenasDelTema(tema.variantes)

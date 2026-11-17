@@ -1,5 +1,7 @@
 package com.plantia.ui.misiones
 
+import com.plantia.ui.theme.DividerColor
+
 import com.plantia.ui.theme.SuperficieElevada
 
 import com.plantia.ui.theme.SobrePrimario
@@ -166,7 +168,7 @@ private fun TarjetaEvento(mision: DailyMission, onIr: () -> Unit) {
     val restante = rememberCuentaRegresiva(mision.endsInSeconds)
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = RojoClaro),
         border = BorderStroke(1.5.dp, RojoTexto.copy(alpha = 0.6f))
     ) {
