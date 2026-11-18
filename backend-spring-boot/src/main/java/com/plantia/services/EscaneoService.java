@@ -88,18 +88,7 @@ public class EscaneoService {
     }
 
     private ScanResultDto registrar(Integer userId, String imagenUrl, IaResultDto ia) {
-        // Identificado solo si la IA devolvio un nombre cientifico real con
-        // confianza > 0. El motor responde "Desconocido"/"No identificable"/
-        // "No identificado" (confianza 0) cuando la foto no sirve; ese
-        // marcador NO debe crear especies en el catalogo.
-        String nombreCientificoIa = ia.nombreCientifico() == null ? "" : ia.nombreCientifico().trim();
-        boolean confianzaPositiva = ia.confianza() != null && ia.confianza() > 0;
-        boolean nombreReal = !nombreCientificoIa.isBlank()
-                && !nombreCientificoIa.equalsIgnoreCase("desconocido")
-                && !nombreCientificoIa.equalsIgnoreCase("unknown")
-                && !nombreCientificoIa.equalsIgnoreCase("no identificable")
-                && !nombreCientificoIa.equalsIgnoreCase("no identificado");
-        boolean identificado = confianzaPositiva && nombreReal;
+        boolean identificado = esIdentificado(ia);
 
         PlantaCatalogo catalogo = null;
         if (identificado) {
@@ -145,6 +134,29 @@ public class EscaneoService {
                 identificado ? ia.apariencia() : null,
                 progreso
         );
+    }
+
+    /** Confianza minima (0-100) para dar por buena una especie: por debajo la IA esta adivinando. */
+    static final double CONFIANZA_MINIMA = 50.0;
+
+    /**
+     * Identificado solo si la IA devolvio una especie concreta con confianza suficiente. Si no, el
+     * escaneo se guarda como "sin identificar": no crea entrada en el catalogo ni paga hojas/XP.
+     * Antes bastaba confianza > 0 y las respuestas genericas ("Plantae sp.", "Plantae indet.", 10 %)
+     * creaban especies falsas que pagaban ESCANEO_NUEVA cada vez.
+     */
+    static boolean esIdentificado(IaResultDto ia) {
+        if (ia.confianza() == null || ia.confianza() < CONFIANZA_MINIMA) {
+            return false;
+        }
+        String nombre = ia.nombreCientifico() == null ? "" : ia.nombreCientifico().trim().toLowerCase();
+        if (nombre.isBlank() || !nombre.matches(".*[a-z].*")) {
+            return false;
+        }
+        // Reino o marcadores de "no se": no es una especie
+        return !nombre.startsWith("plantae")
+                && !nombre.startsWith("planta ")
+                && !nombre.matches(".*\\b(desconocid[ao]|unknown|indet\\.?|indeterminad[ao]|gen[eé]ric[ao]|no identificad[ao]|no identificable)\\b.*");
     }
 
     /**

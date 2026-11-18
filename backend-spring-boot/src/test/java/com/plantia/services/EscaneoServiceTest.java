@@ -69,6 +69,26 @@ class EscaneoServiceTest {
     }
 
     @Test
+    void soloUnaEspecieConcretaConConfianzaSuficienteCuentaComoIdentificada() {
+        assertThat(EscaneoService.esIdentificado(resultado("Monstera deliciosa", 92.5))).isTrue();
+        assertThat(EscaneoService.esIdentificado(resultado("Ficus sp.", 70.0))).isTrue();
+        assertThat(EscaneoService.esIdentificado(resultado("Echinocactus grusonii", 50.0))).isTrue();
+
+        assertThat(EscaneoService.esIdentificado(resultado("Monstera deliciosa", 10.0))).isFalse();
+        assertThat(EscaneoService.esIdentificado(resultado("Monstera deliciosa", null))).isFalse();
+        assertThat(EscaneoService.esIdentificado(resultado("Plantae sp.", 50.0))).isFalse();
+        assertThat(EscaneoService.esIdentificado(resultado("Plantae indet.", 90.0))).isFalse();
+        assertThat(EscaneoService.esIdentificado(resultado("Plantae generica", 90.0))).isFalse();
+        assertThat(EscaneoService.esIdentificado(resultado("Desconocido", 90.0))).isFalse();
+        assertThat(EscaneoService.esIdentificado(resultado("Especie indeterminada", 90.0))).isFalse();
+        assertThat(EscaneoService.esIdentificado(resultado("  ", 90.0))).isFalse();
+    }
+
+    private static IaResultDto resultado(String cientifico, Double confianza) {
+        return new IaResultDto("x", cientifico, confianza, List.of(), "{}");
+    }
+
+    @Test
     void siFallaElGuardadoSeBorraLaFoto() {
         when(escaneoRepo.save(any())).thenThrow(new IllegalStateException("BD caida"));
         assertThatThrownBy(() -> service.escanear(1, foto)).isInstanceOf(IllegalStateException.class);
