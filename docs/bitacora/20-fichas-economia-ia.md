@@ -500,7 +500,7 @@ El código web era anterior a V26:
 - **Interfaz:** cuadrícula de 3 columnas (1 por debajo de 480 px). Cada botón muestra nombre, descripción y precio; si está bloqueado, "🔒 Nivel N".
 
 ### Detalle a tener en cuenta
-`diasGanados` devuelve "medio día" cuando la diferencia de `diasCuidados` es ≤ 0. Es correcto para el abono suave, que deja `medio_dia_pendiente = true` sin sumar un día entero. Pero si la planta **ya estaba en el máximo** (`diasTotales`), cualquier abono da diferencia 0 y el aviso también diría "medio día". Hoy el servidor no impide abonar una planta completa, así que es un caso posible (y cobra). Ver [ECO-03](#eco-03--abonos-de-medio-día-1-día-y-3-días-medios_dias-y-medio_dia_pendiente).
+`diasGanados` devuelve "medio día" cuando la diferencia de `diasCuidados` es ≤ 0. Es correcto para el abono suave, que deja `medio_dia_pendiente = true` sin sumar un día entero. Una planta **ya completa** no llega a ese caso: `AbonoService.abonar` la rechaza antes de cobrar con 409 "La planta ya creció del todo" (`if (valor(p.getDiasCuidados()) >= total)`). *Corrección del 18-nov: una versión anterior de esta ficha decía que se cobraba igual, y era falso.* Ver [ECO-03](#eco-03--abonos-de-medio-día-1-día-y-3-días-medios_dias-y-medio_dia_pendiente).
 
 ---
 
@@ -549,12 +549,20 @@ Recorrido con un ejemplo (`diasTotales` = 10, `diasCuidados` = 3, sin pendiente)
 ### Contrato del endpoint
 `POST /api/v1/plantas/{id}/abono-tienda`, cuerpo opcional `{ "idItem": n }`.
 - Sin cuerpo, aplica el abono más barato (compatible con clientes antiguos).
-- 404 "Ese abono no está en la tienda" si el `idItem` no es un ABONO activo.
-- 409 si ya se abonó esa planta hoy.
-- 402 si faltan monedas.
+Comprobaciones de `AbonoService.abonar`, en orden y siempre **antes** de cobrar:
+
+| # | Condición | Respuesta |
+|---|---|---|
+| 1 | la planta no es del usuario | 404 "Planta no encontrada" |
+| 2 | está muerta o con salud < 30 (`SALUD_MARCHITA`) | 409 "Primero hay que recuperar la planta" |
+| 3 | ya creció del todo (`diasCuidados >= diasTotales`) | 409 "La planta ya creció del todo" |
+| 4 | ya se usó un abono de tienda hoy con esa planta | 409 "Ya usaste un abono con esta planta hoy" |
+| 5 | el `idItem` no es un ABONO activo | 404 "Ese abono no está en la tienda" |
+| 6 | no alcanzan las hojas | 402 "No te alcanzan las monedas" |
+
+Sin cuerpo, aplica el abono más barato (compatible con clientes antiguos).
 
 ### Deuda técnica observada
-- No hay comprobación de "planta ya completa": se cobra aunque no crezca.
 - El **móvil** envía siempre un cuerpo (`emptyMap()` → `{}` si no elige). Spring lo trata igual que sin cuerpo, porque `body.get("idItem")` da `null`.
 
 ---

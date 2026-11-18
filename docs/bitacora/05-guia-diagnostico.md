@@ -81,8 +81,8 @@ Saldo insuficiente. Es lo esperado. En el móvil, `HojaAbonos` deja intentarlo s
 ### C4. 409 al abonar
 Ya se abonó esa planta hoy (`ultimo_dia_abono_tienda == hoy`). Un abono al día por planta.
 
-### C5. El abono dice "ganó medio día" con un abono de 1 o 3 días
-La planta ya estaba en el máximo de días ([ECO-02](20-fichas-economia-ia.md#eco-02--el-jardín-web-solo-ofrecía-un-abono-y-anunciaba-1-día-siempre), [ECO-03](20-fichas-economia-ia.md#eco-03--abonos-de-medio-día-1-día-y-3-días-medios_dias-y-medio_dia_pendiente)). Se cobra igual (deuda conocida).
+### C5. El abono responde 409 "La planta ya creció del todo" o "Primero hay que recuperar la planta"
+La planta ya llegó a sus días totales, o tiene salud < 30. En ambos casos el servidor rechaza el abono **antes de cobrar** ([ECO-03](20-fichas-economia-ia.md#eco-03--abonos-de-medio-día-1-día-y-3-días-medios_dias-y-medio_dia_pendiente)). Con salud < 30, recupérala primero con el cuidado gratuito «Abonar» (+10, o +45 en recuperación).
 
 ### C6. Un premio no llega
 - Mira el tope diario de la regla (ECO-04): `ESCANEO_NUEVA` 5, `ESCANEO_REPETIDO` 3, `REGAR` 5…
