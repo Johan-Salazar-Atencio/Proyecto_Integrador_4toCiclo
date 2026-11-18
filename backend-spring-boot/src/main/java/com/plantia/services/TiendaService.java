@@ -77,6 +77,7 @@ public class TiendaService {
      */
     @Transactional
     public TiendaDto comprar(Integer userId, Integer idItem) {
+        usuarioRepo.bloquear(userId); // antes de leer saldo e inventario: evita el doble gasto
         ItemTienda item = itemRepo.findById(idItem)
                 .filter(i -> Boolean.TRUE.equals(i.getActivo()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Articulo no encontrado"));

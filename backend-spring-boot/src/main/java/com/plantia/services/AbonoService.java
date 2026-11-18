@@ -40,6 +40,7 @@ public class AbonoService {
     }
 
     void abonar(Integer userId, Integer idPlantaUsuario, Integer idItem, LocalDate hoy) {
+        usuarioRepo.bloquear(userId); // antes de leer saldo y "abono de hoy": evita pagar o abonar dos veces
         PlantaUsuario p = plantaRepo.findById(idPlantaUsuario)
                 .filter(x -> userId.equals(x.getIdUsuario()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Planta no encontrada"));

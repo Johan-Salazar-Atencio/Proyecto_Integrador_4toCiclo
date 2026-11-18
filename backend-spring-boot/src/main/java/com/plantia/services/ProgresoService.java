@@ -104,6 +104,7 @@ public class ProgresoService {
 
     private ProgresoDto aplicar(Integer userId, List<String> motivos, List<String> acciones,
                                 Integer idReferencia, LocalDateTime ahora, boolean conRacha) {
+        usuarioRepo.bloquear(userId); // premios simultaneos no se pisan (ni XP, ni monedas, ni topes diarios)
         Usuario u = usuarioRepo.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         List<Nivel> niveles = nivelRepo.findAll().stream()

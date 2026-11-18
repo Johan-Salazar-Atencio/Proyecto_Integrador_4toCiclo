@@ -3,6 +3,7 @@ package com.plantia.config;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.http.HttpMethod;
@@ -21,6 +22,12 @@ class ManejadorErroresTest {
     void rutaInexistenteDa404() {
         var r = manejador.inesperado(new NoResourceFoundException(HttpMethod.GET, "api/v1/nada"));
         assertEquals(404, r.getStatusCode().value());
+    }
+
+    @Test
+    void choqueConRestriccionDeLaBdDa409() {
+        var r = manejador.conflictoDeDatos(new DataIntegrityViolationException("llave duplicada ux_inventario_usuario_item"));
+        assertEquals(409, r.getStatusCode().value());
     }
 
     @Test

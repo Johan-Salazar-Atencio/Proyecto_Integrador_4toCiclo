@@ -443,6 +443,7 @@ public class PlantasService {
      */
     @Transactional
     public PlantSummaryDto revivir(Integer userId, Integer idPlantaUsuario) {
+        usuarioRepo.bloquear(userId); // antes de leer el saldo: evita revivir dos veces pagando una
         PlantaUsuario p = propia(userId, idPlantaUsuario);
         exigirFueraDelBaul(p);
         if (!"MUERTA".equals(p.getEtapaCrecimiento())) {

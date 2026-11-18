@@ -5,6 +5,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.TypeMismatchException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +46,16 @@ public class ManejadorErrores {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     ResponseEntity<Map<String, String>> archivoGrande(MaxUploadSizeExceededException e) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(Map.of("error", "La imagen supera los 15 MB"));
+    }
+
+    /**
+     * Una restriccion de la BD frena la operacion (por ejemplo, comprar dos veces el mismo articulo a la
+     * vez choca con el indice unico, o el saldo quedaria negativo). Es un conflicto del cliente, no un 500.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ResponseEntity<Map<String, String>> conflictoDeDatos(DataIntegrityViolationException e) {
+        log.warn("Restriccion de la BD: {}", e.getMostSpecificCause().getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "La operacion choca con datos existentes; vuelve a intentarlo"));
     }
 
     /** Cuerpo ilegible (JSON mal formado) o parametro con tipo equivocado ("abc" donde va un id). */
