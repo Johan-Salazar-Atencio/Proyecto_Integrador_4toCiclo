@@ -61,7 +61,8 @@ function pintarParticula(ctx, p) {
 
 // `maceta` es el codigo de la maceta comprada (AZUL, ROSA...): se dibuja con su color. `sinSuelo` no dibuja
 // maceta (cuando otro la dibuja aparte, como el estante del invernadero).
-export default function PlantaPixel({ etapa = 0, apariencia = null, titulo, animar = true, efecto = null, className = '', maceta = null, sinSuelo = false }) {
+// `estado` ('marchita' o 'muerta') seca el dibujo de la etapa actual; sin estado la planta esta sana.
+export default function PlantaPixel({ etapa = 0, estado = null, apariencia = null, titulo, animar = true, efecto = null, className = '', maceta = null, sinSuelo = false }) {
   const codigoMaceta = sinSuelo ? SIN_MACETA : maceta
   const lienzo = useRef(null)
   const st = useRef({ etapa, tic: 0, cambio: null, efectos: [], particulas: [], brinco: -1 })
@@ -81,8 +82,9 @@ export default function PlantaPixel({ etapa = 0, apariencia = null, titulo, anim
         visible = paso % 2 === 0 ? s.cambio.de : s.etapa
         blanco = paso % 2 === 1 && paso < PARPADEOS - 1
       }
-      const k = quieto || visible === ETAPA_MARCHITA ? 0 : Math.floor(s.tic / TICS_POR_FOTOGRAMA)
-      imagen.data.set(fotograma(apariencia, visible, k % FOTOGRAMAS, codigoMaceta))
+      const seca = estado || visible === ETAPA_MARCHITA
+      const k = quieto || seca ? 0 : Math.floor(s.tic / TICS_POR_FOTOGRAMA)
+      imagen.data.set(fotograma(apariencia, visible, k % FOTOGRAMAS, codigoMaceta, estado))
       if (blanco) {
         // Silueta en blanco: el destello clasico de "evolucion"
         const d = imagen.data
@@ -104,7 +106,7 @@ export default function PlantaPixel({ etapa = 0, apariencia = null, titulo, anim
       for (const e of s.efectos) emitir(e.tipo, e.t++, s.particulas)
       s.efectos = s.efectos.filter((e) => e.t < 16)
       // De vez en cuando, un brillo sobre una hoja iluminada
-      if (s.tic % 34 === 0 && s.etapa !== ETAPA_MARCHITA && !s.cambio) {
+      if (s.tic % 34 === 0 && s.etapa !== ETAPA_MARCHITA && !estado && !s.cambio) {
         const d = fotograma(apariencia, s.etapa, 0, codigoMaceta)
         for (let i = 0; i < 12; i++) {
           const x = 6 + Math.floor(Math.random() * 52)
@@ -153,7 +155,7 @@ export default function PlantaPixel({ etapa = 0, apariencia = null, titulo, anim
     }
     cuadro = requestAnimationFrame(bucle)
     return () => cancelAnimationFrame(cuadro)
-  }, [apariencia, animar, codigoMaceta])
+  }, [apariencia, animar, codigoMaceta, estado])
 
   // Cambio de etapa: parpadeo entre la anterior y la nueva (sin animacion, se cambia y ya)
   useEffect(() => {

@@ -229,7 +229,7 @@ export default function Jardin() {
         <div className="jardin-planta">
           {llegando
             ? <Digitalizacion foto={foto} apariencia={planta.apariencia} maceta={planta.macetaCodigo} alTerminar={alDigitalizar} />
-            : <PlantaPixel etapa={etapa.indice} apariencia={planta.apariencia} maceta={planta.macetaCodigo} efecto={efecto} titulo={`${planta.name}: ${etapa.nombre}`} />}
+            : <PlantaPixel etapa={etapa.sprite} estado={etapa.estadoDibujo} apariencia={planta.apariencia} maceta={planta.macetaCodigo} efecto={efecto} titulo={`${planta.name}: ${etapa.nombre}`} />}
         </div>
         {escudo > 0 && <span key={`escudo-${escudo}`} className="jardin-escudo" aria-hidden="true">🛡️</span>}
         {golpe && <div className="jardin-golpe" role="alert">{textoDelGolpe(golpe)}</div>}
@@ -241,7 +241,7 @@ export default function Jardin() {
         >
           <span className="jardin-chip-cara">{animo.cara}</span>
           {etapa.total > 0 && (
-            <b>{marchita ? 'Marchita' : etapa.dias >= etapa.total ? 'Madura' : `Día ${etapa.dias}/${etapa.total}`}</b>
+            <b>{etapa.muerta ? 'Muerta' : marchita ? 'Marchita' : etapa.dias >= etapa.total ? 'Madura' : `Día ${etapa.dias}/${etapa.total}`}</b>
           )}
           {etapa.total > 0 && !marchita && (
             <span className="jardin-puntos" aria-hidden="true">

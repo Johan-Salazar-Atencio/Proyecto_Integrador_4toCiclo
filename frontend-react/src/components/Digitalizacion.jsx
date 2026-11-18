@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { LADO, macetaVacia } from './plantaPixelSprites'
+import { LADO, SIN_MACETA, fotograma, macetaVacia } from './plantaPixelSprites'
 import './planta-pixel.css'
 
 // Secuencia de "digitalizar": la foto real se va pixelando, se condensa en una semilla y cae
@@ -22,6 +22,27 @@ const FOTO = { x: 12, y: 3, lado: 40 }
 const SEMILLA = ['#8a6238', '#c79a5e', '#f0d9a8']
 const BRILLOS = ['#ffffff', '#fff3b0', '#d9f59a']
 
+// Sin foto (o si no carga): un "retrato" de la propia planta adulta sobre un cielo, para que la
+// secuencia pixele algo reconocible en vez de un bloque de color
+function retratoDe(apariencia) {
+  const lienzo = document.createElement('canvas')
+  lienzo.width = lienzo.height = LADO
+  const ctx = lienzo.getContext('2d')
+  const cielo = ctx.createLinearGradient(0, 0, 0, LADO)
+  cielo.addColorStop(0, '#a9ddf2')
+  cielo.addColorStop(1, '#e3f5e8')
+  ctx.fillStyle = cielo
+  ctx.fillRect(0, 0, LADO, LADO)
+  const planta = document.createElement('canvas')
+  planta.width = planta.height = LADO
+  const datos = planta.getContext('2d').createImageData(LADO, LADO)
+  datos.data.set(fotograma(apariencia, 5, 0, SIN_MACETA))
+  planta.getContext('2d').putImageData(datos, 0, 0)
+  // La planta sin maceta llega hasta la fila 47: se baja para llenar el cuadro
+  ctx.drawImage(planta, 0, 10)
+  return lienzo
+}
+
 export default function Digitalizacion({ foto = null, apariencia = null, maceta = null, alTerminar, titulo = 'Digitalizando la planta' }) {
   const lienzo = useRef(null)
   const terminar = useRef(alTerminar)
@@ -41,6 +62,7 @@ export default function Digitalizacion({ foto = null, apariencia = null, maceta 
     const chico = document.createElement('canvas')
 
     let imagen = null
+    const retrato = retratoDe(apariencia)
     let cuadro = 0
     let tic = 0
     let acabado = false
@@ -53,15 +75,14 @@ export default function Digitalizacion({ foto = null, apariencia = null, maceta 
     // La foto (recorte cuadrado centrado) reducida a `res` x `res` y ampliada sin suavizar
     const pintarFoto = (x, y, lado, res) => {
       px(x - 1, y - 1, lado + 2, lado + 2, '#2c2028')
-      if (!imagen) {
-        px(x, y, lado, lado, '#4f9a52')
-        return
-      }
+      const fuente = imagen || retrato
+      const ancho = fuente.naturalWidth || fuente.width
+      const alto = fuente.naturalHeight || fuente.height
       const n = Math.max(1, Math.round(res))
       chico.width = chico.height = n
       const c = chico.getContext('2d')
-      const corte = Math.min(imagen.naturalWidth, imagen.naturalHeight)
-      c.drawImage(imagen, (imagen.naturalWidth - corte) / 2, (imagen.naturalHeight - corte) / 2, corte, corte, 0, 0, n, n)
+      const corte = Math.min(ancho, alto)
+      c.drawImage(fuente, (ancho - corte) / 2, (alto - corte) / 2, corte, corte, 0, 0, n, n)
       ctx.drawImage(chico, x * ESCALA, y * ESCALA, lado * ESCALA, lado * ESCALA)
     }
 
@@ -125,7 +146,7 @@ export default function Digitalizacion({ foto = null, apariencia = null, maceta 
       cuadro = requestAnimationFrame(bucle)
     }
 
-    // Se espera a la foto un momento; si no llega, la secuencia sigue con un bloque de color
+    // Se espera a la foto un momento; si no llega, la secuencia sigue con el retrato de la planta
     let arrancado = false
     const arrancar = () => {
       if (arrancado || cancelado) return

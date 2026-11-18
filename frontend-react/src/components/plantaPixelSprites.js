@@ -428,7 +428,7 @@ function boton(P, x, y) {
 }
 
 function fruto(P, x, y, maduro) {
-  disco(P, x, y, maduro ? 2.7 : 1.9, maduro ? P.R.fruto : P.R.verde)
+  disco(P, x, y, maduro ? 2.7 : 2.3, maduro ? P.R.fruto : P.R.verde)
   const [cx, cy] = mec(P, x, y)
   pon(P.l, Math.round(cx), Math.round(cy - (maduro ? 3 : 2)), P.R.hoja[1])
 }
@@ -773,21 +773,27 @@ const FORMAS = {
 
 export const ETAPA_MARCHITA = 6
 
-function rampas(ap, marchita) {
+// Estados que cambian el dibujo sin cambiar la etapa: la planta se seca (marchita) o ya no tiene vida (muerta)
+export const MARCHITA = 'marchita'
+export const MUERTA = 'muerta'
+
+function rampas(ap, estado) {
   const verde = ap.colorHoja
-  const seco = mezclar(verde, '#b0803a', 0.74)
+  const seco = estado === MUERTA ? mezclar(verde, '#6e6258', 0.95) : mezclar(verde, '#b0803a', 0.74)
+  const marchita = Boolean(estado)
   return {
-    hoja: rampa(marchita ? seco : verde, { hoja: true }),
-    amarilla: rampa(mezclar(verde, '#c2a83e', 0.55), { hoja: true }),
-    brote: rampa(mezclar(verde, '#cfe86e', 0.45), { hoja: true }),
-    tallo: rampa(mezclar(verde, '#5d6b24', 0.4), { hoja: true }),
-    talloSeco: rampa('#7a5a34'),
+    hoja: rampa(marchita ? seco : verde, { hoja: estado !== MUERTA }),
+    amarilla: rampa(estado === MUERTA ? seco : mezclar(verde, '#c2a83e', 0.55), { hoja: estado !== MUERTA }),
+    brote: rampa(marchita ? seco : mezclar(verde, '#cfe86e', 0.45), { hoja: estado !== MUERTA }),
+    tallo: rampa(estado === MUERTA ? '#5b5149' : mezclar(verde, '#5d6b24', 0.4), { hoja: estado !== MUERTA }),
+    talloSeco: rampa(estado === MUERTA ? '#5b5149' : '#7a5a34'),
     punta: rampa(mezclar(verde, ap.colorFlor || '#e2637f', 0.5)),
     flor: rampa(ap.colorFlor || ap.colorFruto || '#f08ab0'),
     centro: rampa('#f2c230'),
     fruto: rampa(ap.colorFruto || ap.colorFlor || '#d9473b'),
-    verde: rampa(mezclar(verde, '#c4d64a', 0.5)),
-    tronco: rampa(marchita ? '#7d6650' : '#8a5a3c'),
+    // Fruto sin madurar: verde lima claro, para que se distinga de las hojas
+    verde: rampa(mezclar('#dbe96a', ap.colorFruto || '#d9473b', 0.12)),
+    tronco: rampa(estado === MUERTA ? '#5e554d' : marchita ? '#7d6650' : '#8a5a3c'),
     tutor: rampa('#a47a52'),
     semilla: rampa('#c79a5e'),
   }
@@ -802,24 +808,29 @@ function estiloMaceta(forma, codigo) {
   return { ...forma.maceta, color: paletaDeMaceta(codigo).cuerpo }
 }
 
-function dibujar(ap, etapa, k, codigoMaceta) {
+function dibujar(ap, etapa, k, codigoMaceta, estado) {
   const forma = FORMAS[ap.forma]
   const ciclo = cicloDe(ap)
-  const marchita = etapa === ETAPA_MARCHITA
+  // ETAPA_MARCHITA (6) es el formato antiguo: marchita con el tamano de la adulta
+  if (etapa === ETAPA_MARCHITA) {
+    etapa = 3
+    estado = estado || MARCHITA
+  }
+  const marchita = Boolean(estado)
   const l = lienzo()
   if (codigoMaceta !== SIN_MACETA) maceta(l, estiloMaceta(forma, codigoMaceta))
   const P = {
     l, k, marchita,
     rng: azar(ap.forma.length * 7919 + etapa * 104729),
-    amp: forma.amp, aleteo: forma.aleteo, caida: 3.5,
-    R: rampas(ap, marchita),
+    amp: forma.amp, aleteo: forma.aleteo, caida: estado === MUERTA ? 5.5 : 3.5,
+    R: rampas(ap, estado),
   }
   if (etapa === 0) {
     P.amp = 0.8
     P.aleteo = 9
     semilla(P)
   } else {
-    const e = marchita ? 3 : etapa
+    const e = etapa
     const puntos = forma.dibujo(P, e, ciclo)
     if (!marchita && e >= 4 && ciclo !== 'follaje') {
       for (const [x, y] of puntos) {
@@ -851,13 +862,13 @@ export function macetaVacia(apariencia, codigoMaceta = null) {
 }
 
 // Pixeles RGBA (64x64) del fotograma `k` de la planta en esa etapa (0..6), con la maceta indicada
-export function fotograma(apariencia, etapa, k = 0, codigoMaceta = null) {
+export function fotograma(apariencia, etapa, k = 0, codigoMaceta = null, estado = null) {
   const ap = aparienciaDe(apariencia)
   const e = Math.max(0, Math.min(ETAPA_MARCHITA, etapa | 0))
-  const clave = `${ap.forma}|${ap.colorHoja}|${ap.colorFlor}|${ap.colorFruto}|${cicloDe(ap)}|${e}|${codigoMaceta || ''}`
+  const clave = `${ap.forma}|${ap.colorHoja}|${ap.colorFlor}|${ap.colorFruto}|${cicloDe(ap)}|${e}|${codigoMaceta || ''}|${estado || ''}`
   if (!cache.has(clave)) cache.set(clave, [])
   const cuadros = cache.get(clave)
   const i = ((k % FOTOGRAMAS) + FOTOGRAMAS) % FOTOGRAMAS
-  if (!cuadros[i]) cuadros[i] = dibujar(ap, e, i, codigoMaceta)
+  if (!cuadros[i]) cuadros[i] = dibujar(ap, e, i, codigoMaceta, estado)
   return cuadros[i]
 }

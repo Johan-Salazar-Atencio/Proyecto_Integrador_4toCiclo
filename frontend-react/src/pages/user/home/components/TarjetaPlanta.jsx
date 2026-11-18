@@ -27,12 +27,12 @@ export default function TarjetaPlanta({ planta, plantas, ocupado, onMover, onEle
         <EscenaPixel />
         <button className="inicio-toque" onClick={entrar} aria-label={`Abrir ${planta.name} en el jardín`} />
         <div className="jardin-planta">
-          <PlantaPixel etapa={etapa.indice} apariencia={planta.apariencia} maceta={planta.macetaCodigo} titulo={`${planta.name}: ${etapa.nombre}`} />
+          <PlantaPixel etapa={etapa.sprite} estado={etapa.estadoDibujo} apariencia={planta.apariencia} maceta={planta.macetaCodigo} titulo={`${planta.name}: ${etapa.nombre}`} />
         </div>
         <div className={`jardin-chip ${animo.clase}`}>
           <span className="jardin-chip-cara">{animo.cara}</span>
           {etapa.total > 0 && (
-            <b>{etapa.marchita ? 'Marchita' : etapa.dias >= etapa.total ? 'Madura' : `Día ${etapa.dias}/${etapa.total}`}</b>
+            <b>{etapa.muerta ? 'Muerta' : etapa.marchita ? 'Marchita' : etapa.dias >= etapa.total ? 'Madura' : `Día ${etapa.dias}/${etapa.total}`}</b>
           )}
           {etapa.total > 0 && !etapa.marchita && (
             <span className="jardin-puntos" aria-hidden="true">
@@ -75,7 +75,7 @@ export default function TarjetaPlanta({ planta, plantas, ocupado, onMover, onEle
             return (
               <button key={p.id} className={`inicio-mini ${p.id === planta.id ? 'activa' : ''}`} onClick={() => onElegir(p)} disabled={ocupado} aria-pressed={p.id === planta.id} title={p.name}>
                 <span className="inicio-mini-vista">
-                  <PlantaPixel etapa={e.indice} apariencia={p.apariencia} maceta={p.macetaCodigo} animar={false} />
+                  <PlantaPixel etapa={e.sprite} estado={e.estadoDibujo} apariencia={p.apariencia} maceta={p.macetaCodigo} animar={false} />
                 </span>
                 <b>{p.name}</b>
               </button>

@@ -75,7 +75,7 @@ function PlantaEnEstante({ planta, onAbrir, onMenu }) {
         aria-label={`Abrir ${planta.name} en el jardín`}
         title={`${planta.name}: ${etapa.nombre}. Mantén pulsada para ver sus acciones.`}
       >
-        <PlantaPixel etapa={etapa.indice} apariencia={planta.apariencia} titulo={planta.name} animar={false} sinSuelo className="estante-dibujo" />
+        <PlantaPixel etapa={etapa.sprite} estado={etapa.estadoDibujo} apariencia={planta.apariencia} titulo={planta.name} animar={false} sinSuelo className="estante-dibujo" />
         <MacetaPixel codigo={planta.macetaCodigo} className="estante-maceta" />
       </button>
       {marca && <span className="estante-marca">{marca}</span>}

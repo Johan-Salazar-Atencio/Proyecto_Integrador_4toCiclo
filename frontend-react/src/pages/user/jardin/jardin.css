@@ -88,4 +88,5 @@
 .jardin-resguardo { position: absolute; left: 3%; bottom: 3%; z-index: 2; padding: 5px 11px; background: color-mix(in srgb, var(--superficie) 90%, transparent); border-radius: 999px; font-size: 0.8rem; font-weight: 700; color: var(--primario); }
 .jardin-escudo { position: absolute; left: 50%; top: 40%; z-index: 4; font-size: 4rem; animation: escudo-crece 1.2s ease-out both; pointer-events: none; }
 @keyframes escudo-crece { from { transform: translate(-50%, -50%) scale(0.3); opacity: 1; } to { transform: translate(-50%, -50%) scale(2.4); opacity: 0; } }
-.jardin-golpe { position: absolute; inset: auto 6% 12% 6%; z-index: 4; padding: 12px 14px; background: rgba(31, 41, 55, 0.88); border-radius: var(--radio); color: #fff; font-weight: 800; text-align: center; animation: aparece 0.3s ease both; }
+/* Arriba, bajo el chip de etapa: abajo tapaba la maceta del sprite 64x64 */
+.jardin-golpe { position: absolute; inset: 15% 6% auto 6%; z-index: 4; padding: 12px 14px; background: rgba(31, 41, 55, 0.88); border-radius: var(--radio); color: #fff; font-weight: 800; text-align: center; animation: aparece 0.3s ease both; }

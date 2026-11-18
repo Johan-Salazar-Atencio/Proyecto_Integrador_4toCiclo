@@ -83,6 +83,12 @@ export default function DemoPlanta() {
                 <PlantaPixel etapa={i} apariencia={apariencia} titulo={`${nombre}: ${texto}`} />
               </div>
             ))}
+            {/* Marchita y muerta en su propia etapa (brote y adulta), para comparar */}
+            {[[1, 'marchita', 'Brote marchito'], [5, 'marchita', 'Madura marchita'], [1, 'muerta', 'Brote muerto'], [5, 'muerta', 'Madura muerta']].map(([e, estado, texto]) => (
+              <div key={texto} style={{ width: 128, height: 128, background: FONDO, borderRadius: 16 }}>
+                <PlantaPixel etapa={e} estado={estado} apariencia={apariencia} titulo={`${nombre}: ${texto}`} />
+              </div>
+            ))}
           </div>
         </section>
       ))}

@@ -44,16 +44,23 @@ export function faseNumero(dias, total) {
   return dias >= Math.ceil(total * 0.35) ? 2 : 1
 }
 
-// { indice, nombre, marchita, dias, total, fase } — `indice` es el sprite (0 a 5, o 6 si esta marchita)
+// { indice, sprite, estadoDibujo, nombre, marchita, dias, total, fase }
+// `indice` es 0 a 5, o 6 si esta marchita (para comparar etapas y avisar). Para dibujar se usan `sprite`
+// (la etapa de crecimiento real, tambien marchita) y `estadoDibujo` ('marchita', 'muerta' o null).
 export function etapaDe(planta) {
   const dias = planta.diasCuidados || 0
   const total = planta.diasTotales || 0
   const marchita = estaMarchita(planta)
-  const indice = marchita ? ETAPA_MARCHITA : indiceSprite(dias, total)
+  const sprite = indiceSprite(dias, total)
+  const indice = marchita ? ETAPA_MARCHITA : sprite
+  const muerta = planta.fase === 'MUERTA'
   return {
     indice,
-    nombre: marchita ? NOMBRE_MARCHITA : etapasDe(planta)[indice].nombre,
+    sprite,
+    estadoDibujo: muerta ? 'muerta' : marchita ? 'marchita' : null,
+    nombre: muerta ? 'Muerta' : marchita ? NOMBRE_MARCHITA : etapasDe(planta)[indice].nombre,
     marchita,
+    muerta,
     dias,
     total,
     fase: faseNumero(dias, total),
