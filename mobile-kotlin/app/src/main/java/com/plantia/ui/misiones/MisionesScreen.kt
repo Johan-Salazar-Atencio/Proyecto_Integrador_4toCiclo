@@ -1,5 +1,17 @@
 package com.plantia.ui.misiones
 
+import com.plantia.ui.theme.DividerColor
+
+import com.plantia.ui.theme.SuperficieElevada
+
+import com.plantia.ui.theme.SobrePrimario
+
+import com.plantia.ui.theme.Peligro
+
+import androidx.compose.foundation.background
+import com.plantia.ui.theme.FondoDegradado
+import com.plantia.ui.components.BarraProgreso
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,7 +103,8 @@ fun MisionesScreen(
     }
 
     Scaffold(
-        containerColor = BackgroundLight,
+        containerColor = Color.Transparent,
+        modifier = Modifier.background(FondoDegradado),
         topBar = {
             TopAppBar(
                 title = { Text("Misiones", fontWeight = FontWeight.SemiBold, color = TextPrimary) },
@@ -99,7 +112,7 @@ fun MisionesScreen(
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundLight,
+                    containerColor = Color.Transparent,
                     titleContentColor = TextPrimary,
                     navigationIconContentColor = TextPrimary
                 )
@@ -155,7 +168,7 @@ private fun TarjetaEvento(mision: DailyMission, onIr: () -> Unit) {
     val restante = rememberCuentaRegresiva(mision.endsInSeconds)
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = RojoClaro),
         border = BorderStroke(1.5.dp, RojoTexto.copy(alpha = 0.6f))
     ) {
@@ -174,12 +187,7 @@ private fun TarjetaEvento(mision: DailyMission, onIr: () -> Unit) {
                 }
             }
             Text(mision.title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            LinearProgressIndicator(
-                progress = { mision.progress },
-                modifier = Modifier.fillMaxWidth().height(8.dp),
-                color = RojoTexto,
-                trackColor = Color.White
-            )
+            BarraProgreso(progreso = mision.progress, color = Peligro, pista = SuperficieElevada)
             Text(
                 "${mision.currentCount} de ${mision.targetCount} plantas protegidas · ${mision.reward}",
                 fontSize = 13.sp,
@@ -198,9 +206,9 @@ private fun TarjetaEvento(mision: DailyMission, onIr: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = RojoTexto,
-                    contentColor = Color.White,
-                    disabledContainerColor = Color.White,
+                    containerColor = Peligro,
+                    contentColor = SobrePrimario,
+                    disabledContainerColor = SuperficieElevada,
                     disabledContentColor = GreenDark
                 )
             ) {

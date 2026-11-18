@@ -24,9 +24,9 @@ echo [Plantia] Conecta el telefono por USB; se reaplica solo al reconectar.
 echo [Plantia] Ctrl+C para salir.
 echo.
 
-:loop
 "%ADB%" start-server >nul 2>&1
 
+:loop
 rem %%a = numero de serie, %%b = estado (device / unauthorized / offline)
 set "DEV="
 for /f "skip=1 tokens=1,2" %%a in ('"%ADB%" devices 2^>nul') do (
@@ -36,7 +36,7 @@ for /f "skip=1 tokens=1,2" %%a in ('"%ADB%" devices 2^>nul') do (
 if defined DEV (
     if not defined CONECTADO (
         set "CONECTADO=1"
-        echo [Plantia] Telefono conectado: %%~nx...
+        echo [Plantia] Telefono conectado: !DEV!
         echo [Plantia]   http://127.0.0.1:8080/  (adb reverse)
     )
     rem idempotente: si ya existe el mapeo, no cambia nada

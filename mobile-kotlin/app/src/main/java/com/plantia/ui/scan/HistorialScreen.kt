@@ -1,5 +1,8 @@
 package com.plantia.ui.scan
 
+import androidx.compose.ui.graphics.Color
+import com.plantia.ui.theme.FondoDegradado
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,8 +38,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.plantia.data.model.RecentScan
+import com.plantia.ui.components.MiniaturaEscaneo
 import com.plantia.ui.theme.BackgroundLight
-import com.plantia.ui.theme.GreenPrimary
+import com.plantia.ui.theme.Primario
+import com.plantia.ui.components.tarjeta
 import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
@@ -70,11 +75,11 @@ fun HistorialScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceWhite)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
-        containerColor = BackgroundLight,
-        modifier = modifier
+        containerColor = Color.Transparent,
+        modifier = modifier.background(FondoDegradado)
     ) { padding ->
         Box(
             modifier = Modifier
@@ -85,7 +90,7 @@ fun HistorialScreen(
                 cargando -> Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator(color = GreenPrimary) }
+                ) { CircularProgressIndicator(color = Primario) }
 
                 escaneos.isEmpty() -> Box(
                     modifier = Modifier.fillMaxSize(),
@@ -114,30 +119,12 @@ fun HistorialScreen(
 
 @Composable
 private fun HistorialItem(escaneo: RecentScan) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = SurfaceWhite,
-        shadowElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().tarjeta()) {
         Row(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(escaneo.statusColor.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocalFlorist,
-                    contentDescription = null,
-                    tint = escaneo.statusColor,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+            MiniaturaEscaneo(fotoUrl = escaneo.fotoUrl, color = escaneo.statusColor, tamano = 56.dp)
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(

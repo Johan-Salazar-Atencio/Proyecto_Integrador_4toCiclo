@@ -1,5 +1,9 @@
 package com.plantia.ui.auth
 
+import com.plantia.ui.theme.DividerColor
+
+import androidx.compose.foundation.BorderStroke
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -187,9 +191,9 @@ private fun Formulario(viewModel: AuthViewModel, onTerminos: () -> Unit, modifie
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        border = BorderStroke(1.dp, DividerColor)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),

@@ -2,19 +2,20 @@ import { useNavigate } from 'react-router-dom'
 import { RUTAS } from '../../../../routes/rutas'
 import EscenaPixel from '../../../../components/EscenaPixel'
 import PlantaPixel from '../../../../components/PlantaPixel'
+import Icono from '../../../../components/Icono'
 import { ACCIONES } from '../../jardin/acciones'
 import { estadoAnimo } from '../../jardin/animo'
 import { etapaDe } from '../../jardin/etapas'
 
 const BOTONES = [
-  { accion: 'REGAR', texto: 'Regar', icono: '💧', clase: 'cuidado-agua' },
-  { accion: 'SOL', texto: 'Luz', icono: '☀️', clase: 'cuidado-luz' },
-  { accion: 'ABONAR', texto: 'Abono', icono: '🌿', clase: 'cuidado-abono' },
+  { accion: 'REGAR', texto: 'Regar', icono: 'drop', color: 'var(--agua)' },
+  { accion: 'SOL', texto: 'Luz', icono: 'sun', color: 'var(--luz)' },
+  { accion: 'ABONAR', texto: 'Abono', icono: 'leaf', color: 'var(--abono)' },
 ]
 
-// Planta del jardin (propuesta E): su escena en pixel art con la planta en su maceta, flechas para pasar a otra,
-// contador, nombre con su especie y los tres cuidados. Tocar la escena o el nombre entra al jardin.
-export default function TarjetaPlanta({ planta, plantas, ocupado, onMover, onCuidar }) {
+// Planta del jardin: su escena en pixel art con la planta en su maceta, flechas para pasar a otra, estado y dia,
+// nombre con su especie, los tres cuidados y la fila de tus plantas. Tocar la escena o el nombre entra al jardin.
+export default function TarjetaPlanta({ planta, plantas, ocupado, onMover, onElegir, onCuidar }) {
   const irA = useNavigate()
   const etapa = etapaDe(planta)
   const animo = estadoAnimo(planta)
@@ -41,8 +42,8 @@ export default function TarjetaPlanta({ planta, plantas, ocupado, onMover, onCui
         </div>
         {plantas.length > 1 && (
           <>
-            <button className="inicio-flecha inicio-flecha-izq" onClick={() => onMover(-1)} disabled={ocupado} aria-label="Planta anterior">‹</button>
-            <button className="inicio-flecha inicio-flecha-der" onClick={() => onMover(1)} disabled={ocupado} aria-label="Planta siguiente">›</button>
+            <button className="inicio-flecha inicio-flecha-izq" onClick={() => onMover(-1)} disabled={ocupado} aria-label="Planta anterior"><Icono nombre="l" /></button>
+            <button className="inicio-flecha inicio-flecha-der" onClick={() => onMover(1)} disabled={ocupado} aria-label="Planta siguiente"><Icono nombre="r" /></button>
           </>
         )}
       </div>
@@ -57,14 +58,30 @@ export default function TarjetaPlanta({ planta, plantas, ocupado, onMover, onCui
           💀 Murió · Revivir en el jardín{planta.costoRevivir != null ? ` (${planta.costoRevivir} 🍃)` : ''}
         </button>
       ) : (
-      <div className="inicio-cuidados">
-        {BOTONES.map(({ accion, texto, icono, clase }) => (
-          <button key={accion} className={`inicio-cuidado ${clase}`} onClick={() => onCuidar(accion)} disabled={ocupado} title={ACCIONES[accion].pista}>
-            <span>{icono}</span>
-            <b>{texto}</b>
-          </button>
-        ))}
-      </div>
+        <div className="inicio-cuidados">
+          {BOTONES.map(({ accion, texto, icono, color }) => (
+            <button key={accion} className="inicio-cuidado" style={{ '--c': color }} onClick={() => onCuidar(accion)} disabled={ocupado} title={ACCIONES[accion].pista}>
+              <span><Icono nombre={icono} /></span>
+              <b>{texto}</b>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {plantas.length > 1 && (
+        <div className="inicio-mias" role="group" aria-label="Tus plantas">
+          {plantas.slice(0, 4).map((p) => {
+            const e = etapaDe(p)
+            return (
+              <button key={p.id} className={`inicio-mini ${p.id === planta.id ? 'activa' : ''}`} onClick={() => onElegir(p)} disabled={ocupado} aria-pressed={p.id === planta.id} title={p.name}>
+                <span className="inicio-mini-vista">
+                  <PlantaPixel etapa={e.indice} apariencia={p.apariencia} maceta={p.macetaCodigo} animar={false} />
+                </span>
+                <b>{p.name}</b>
+              </button>
+            )
+          })}
+        </div>
       )}
     </section>
   )

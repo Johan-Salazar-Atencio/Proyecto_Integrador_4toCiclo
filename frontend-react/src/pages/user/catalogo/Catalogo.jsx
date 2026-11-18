@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RUTAS } from '../../../routes/rutas'
 import { listarCatalogo } from '../../../services/catalogo'
+import Icono from '../coleccion/Iconos'
 import './catalogo.css'
 
 const MS_ESPERA_BUSQUEDA = 350
@@ -32,9 +33,12 @@ export default function Catalogo() {
   return (
     <div className="catalogo">
       <div className="catalogo-filtros aparece">
-        <input type="search" placeholder="🔍 Buscar planta..." value={texto} onChange={(e) => setTexto(e.target.value)} />
+        <label className="catalogo-buscar">
+          <Icono nombre="search" tam={18} />
+          <input type="search" placeholder="Buscar planta..." aria-label="Buscar planta" value={texto} onChange={(e) => setTexto(e.target.value)} />
+        </label>
         <button className={`catalogo-toxicas ${soloToxicas ? 'activa' : ''}`} aria-pressed={soloToxicas} onClick={() => setSoloToxicas(!soloToxicas)}>
-          ⚠️ Solo tóxicas
+          <Icono nombre="warn" tam={16} /> Solo tóxicas
         </button>
       </div>
 
@@ -49,22 +53,23 @@ export default function Catalogo() {
 
           {!cargando && items.length === 0 ? (
             <div className="coleccion-vacio aparece">
-              <span>🔎</span>
+              <span className="coleccion-vacio-icono"><Icono nombre="search" tam={34} /></span>
               <h2>No se encontraron plantas</h2>
+              <p>Prueba con otro nombre o quita el filtro.</p>
             </div>
           ) : (
             <div className="catalogo-lista">
               {items.map((p, i) => (
-                <Link key={p.id} to={`${RUTAS.CATALOGO}/${p.id}`} state={{ planta: p }} className="tarjeta catalogo-item aparece" style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}>
-                  <span className="catalogo-icono">🌿</span>
+                <Link key={p.id} to={`${RUTAS.CATALOGO}/${p.id}`} state={{ planta: p }} className="catalogo-item aparece" style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}>
+                  <span className="catalogo-icono"><Icono nombre="leaf" tam={24} /></span>
                   <div>
                     <b>{p.nombreComun}</b>
                     <small>{p.nombreCientifico}</small>
                     <div className="catalogo-datos">
-                      <span>💧 Cada {p.frecuenciaRiegoDias} d</span>
-                      <span>☀️ {p.frecuenciaSolHoras} h</span>
-                      {p.temperaturaMinC != null && p.temperaturaMaxC != null && <span>🌡️ {p.temperaturaMinC}–{p.temperaturaMaxC} °C</span>}
-                      {p.esToxicaMascotas && <span className="chip-alerta">⚠️ Tóxica</span>}
+                      <span><Icono nombre="drop" tam={13} /> Cada {p.frecuenciaRiegoDias} d</span>
+                      <span><Icono nombre="sun" tam={13} /> {p.frecuenciaSolHoras} h</span>
+                      {p.temperaturaMinC != null && p.temperaturaMaxC != null && <span>{p.temperaturaMinC}–{p.temperaturaMaxC} °C</span>}
+                      {p.esToxicaMascotas && <span className="chip-alerta"><Icono nombre="warn" tam={13} /> Tóxica</span>}
                     </div>
                   </div>
                 </Link>

@@ -1,5 +1,13 @@
 package com.plantia.ui.scan.components
 
+import com.plantia.ui.theme.ColorDarkBackground
+import com.plantia.ui.theme.ColorDarkOutline
+import com.plantia.ui.theme.ColorDarkSurface
+import com.plantia.ui.theme.ColorDarkSurfaceVariant
+import com.plantia.ui.theme.ColorDarkTextMuted
+import com.plantia.ui.theme.PeligroOscuro
+import com.plantia.ui.theme.PrimarioOscuro
+import com.plantia.ui.theme.SobrePrimarioOscuro
 import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -64,9 +72,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.io.File
 
-private val Verde = Color(0xFF10B981)
-private val VerdeClaro = Color(0xFF6EE7B7)
-private val Fondo = Color(0xFF05100B)
+private val Verde = PrimarioOscuro
+private val VerdeClaro = PrimarioOscuro.copy(alpha = 0.75f)
+private val Fondo = ColorDarkBackground
 
 /** Mensajes por etapa: solo dan sensacion de avance (el servidor no informa progreso real). */
 private val ETAPAS = listOf(
@@ -137,7 +145,7 @@ fun ScanProgressOverlay(
                             .size(140.dp)
                             .scale(escala)
                             .clip(CircleShape)
-                            .background(Color(0xFF0F2A1E)),
+                            .background(ColorDarkSurfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
                         if (miniatura != null) {
@@ -180,7 +188,7 @@ fun ScanProgressOverlay(
                     Spacer(Modifier.height(6.dp))
                     Text(
                         text = detalle,
-                        color = Color(0xFF9CA3AF),
+                        color = ColorDarkTextMuted,
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center
                     )
@@ -195,7 +203,7 @@ fun ScanProgressOverlay(
                         .width(180.dp)
                         .clip(RoundedCornerShape(50)),
                     color = Verde,
-                    trackColor = Color(0xFF123524)
+                    trackColor = ColorDarkOutline
                 )
             }
         }
@@ -233,7 +241,7 @@ private fun AnilloGiratorio() {
         val tam = androidx.compose.ui.geometry.Size(lado, lado)
         // Pista tenue + arco brillante que gira.
         drawArc(
-            color = Color(0xFF123524),
+            color = ColorDarkOutline,
             startAngle = 0f, sweepAngle = 360f, useCenter = false,
             topLeft = topLeft, size = tam,
             style = Stroke(width = grosor)
@@ -267,6 +275,6 @@ private fun CheckExito() {
             .background(Verde),
         contentAlignment = Alignment.Center
     ) {
-        Icon(Icons.Filled.Check, contentDescription = "Listo", tint = Color.White, modifier = Modifier.size(84.dp))
+        Icon(Icons.Filled.Check, contentDescription = "Listo", tint = SobrePrimarioOscuro, modifier = Modifier.size(84.dp))
     }
 }

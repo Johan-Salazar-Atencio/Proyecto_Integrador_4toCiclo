@@ -11,9 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.plantia.dto.ColeccionDetalleDto;
 import com.plantia.dto.ColeccionItemDto;
 import com.plantia.models.ColeccionUsuario;
+import com.plantia.models.EscaneoHistorial;
 import com.plantia.models.PlantaCatalogo;
 import com.plantia.repositories.CatalogosPorId;
 import com.plantia.repositories.ColeccionUsuarioRepository;
+import com.plantia.repositories.EscaneoHistorialRepository;
 import com.plantia.repositories.PlantaCatalogoRepository;
 
 @Service
@@ -22,13 +24,16 @@ public class ColeccionService {
     private final ColeccionUsuarioRepository coleccionRepo;
     private final PlantaCatalogoRepository catalogoRepo;
     private final CatalogoService catalogoService;
+    private final EscaneoHistorialRepository escaneoRepo;
 
     public ColeccionService(ColeccionUsuarioRepository coleccionRepo,
                             PlantaCatalogoRepository catalogoRepo,
-                            CatalogoService catalogoService) {
+                            CatalogoService catalogoService,
+                            EscaneoHistorialRepository escaneoRepo) {
         this.coleccionRepo = coleccionRepo;
         this.catalogoRepo = catalogoRepo;
         this.catalogoService = catalogoService;
+        this.escaneoRepo = escaneoRepo;
     }
 
     @Transactional(readOnly = true)
@@ -53,8 +58,9 @@ public class ColeccionService {
         });
     }
 
+    /** Guarda la planta en la coleccion con la foto del escaneo; si ya estaba, cuenta otra vista y pone la foto mas nueva. */
     @Transactional
-    public ColeccionItemDto agregar(Integer userId, Integer idCatalogo) {
+    public ColeccionItemDto agregar(Integer userId, Integer idCatalogo, EscaneoHistorial escaneo) {
         Optional<ColeccionUsuario> existente = coleccionRepo.findByIdUsuarioAndIdCatalogo(userId, idCatalogo);
         LocalDateTime ahora = LocalDateTime.now();
 
@@ -62,6 +68,8 @@ public class ColeccionService {
             ColeccionUsuario c = existente.get();
             c.setVecesVista((c.getVecesVista() != null ? c.getVecesVista() : 1) + 1);
             c.setUltimaVez(ahora);
+            c.setIdEscaneo(escaneo.getIdEscaneo());
+            c.setFotoUrl(escaneo.getImagenFotoUrl());
             coleccionRepo.save(c);
             return map(c);
         }
@@ -69,13 +77,23 @@ public class ColeccionService {
         ColeccionUsuario c = new ColeccionUsuario();
         c.setIdUsuario(userId);
         c.setIdCatalogo(idCatalogo);
-        c.setIdEscaneo(null);
-        c.setFotoUrl(null);
+        c.setIdEscaneo(escaneo.getIdEscaneo());
+        c.setFotoUrl(escaneo.getImagenFotoUrl());
         c.setVecesVista(1);
         c.setPrimeraVez(ahora);
         c.setUltimaVez(ahora);
         coleccionRepo.save(c);
         return map(c);
+    }
+
+    /** La foto guardada; si la planta se guardo sin ella, la del escaneo mas reciente de esa especie. */
+    private String fotoDe(ColeccionUsuario c) {
+        if (c.getFotoUrl() != null || c.getIdCatalogo() == null) {
+            return c.getFotoUrl();
+        }
+        return escaneoRepo.findFirstByIdUsuarioAndIdCatalogoOrderByFechaEscaneoDesc(c.getIdUsuario(), c.getIdCatalogo())
+                .map(EscaneoHistorial::getImagenFotoUrl)
+                .orElse(null);
     }
 
     private ColeccionItemDto map(ColeccionUsuario c) {
@@ -88,7 +106,7 @@ public class ColeccionService {
                 c.getIdCatalogo(),
                 cat != null ? cat.getNombreComun() : null,
                 cat != null ? cat.getNombreCientifico() : null,
-                c.getFotoUrl(),
+                fotoDe(c),
                 c.getVecesVista() != null ? c.getVecesVista() : 1,
                 c.getPrimeraVez(),
                 c.getUltimaVez(),

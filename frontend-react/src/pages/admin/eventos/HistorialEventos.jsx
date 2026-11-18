@@ -1,45 +1,50 @@
-import { etiquetaTipo, iconoTipo } from '../../../services/admin/eventos'
+import { nombreDe } from './util'
 
-const fecha = (iso) => new Date(iso).toLocaleString('es-PE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+const fecha = (iso) => new Date(iso).toLocaleString('es-PE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 function duracion(inicio, fin) {
   const min = Math.round((new Date(fin) - new Date(inicio)) / 60000)
   const h = Math.floor(min / 60)
   const m = min % 60
-  return h >= 24 ? `${Math.round(h / 24)} d` : `${h} h${m ? ` ${m} min` : ''}`
+  return h >= 24 ? `${Math.round(h / 24)} d` : h === 0 ? `${m} min` : `${h} h${m ? ` ${m} min` : ''}`
 }
 
-const ESTADOS = { ACTIVO: ['En curso', 'est-activo'], PROGRAMADO: ['Programado', 'est-programado'], FINALIZADO: ['Finalizado', 'est-final'] }
+const ESTADOS = {
+  ACTIVO: ['En curso', 'var(--evento)'],
+  PROGRAMADO: ['Programado', 'var(--agua)'],
+  FINALIZADO: ['Finalizado', 'var(--texto-suave)'],
+}
+const COLUMNAS = 'minmax(0, 1.1fr) 84px 64px 92px auto'
 
-// Historial de eventos (Django, solo lectura) mas los simulados de esta sesion
-export default function HistorialEventos({ eventos, onVerEfecto }) {
-  if (eventos.length === 0) return <p className="historial-vacio">Aún no se ha lanzado ningún evento.</p>
-
+// Historial de eventos lanzados desde el panel
+export default function HistorialEventos({ eventos, tipos, onVerEfecto }) {
   return (
-    <div className="tabla-escaneos">
-      <table>
-        <thead>
-          <tr><th>Evento</th><th>Severidad</th><th>Inicio</th><th>Duración</th><th>Estado</th><th /></tr>
-        </thead>
-        <tbody>
+    <section className="ad-card ad-c ev-historial">
+      <h3>Historial de desastres ejecutados</h3>
+      {eventos.length === 0 ? (
+        <p className="historial-vacio">Aún no se ha lanzado ningún evento.</p>
+      ) : (
+        <div className="ev-historial-lista">
+          <div className="ad-th" style={{ '--cols': COLUMNAS }}><span>Evento</span><span>Inicio</span><span>Duración</span><span>Estado</span><span /></div>
           {eventos.map((e) => {
-            const [texto, clase] = ESTADOS[e.estado] || [e.estado, '']
+            const [texto, color] = ESTADOS[e.estado] || [e.estado, 'var(--texto-suave)']
             return (
-              <tr key={e.id_desastre}>
-                <td>
-                  <b>{iconoTipo(e.tipo_evento)} {etiquetaTipo(e.tipo_evento)}</b>
-                  <small>#EVT-{e.id_desastre} · {e.region}{e.simulado ? ' · simulado' : ''}</small>
-                </td>
-                <td><span className={`sev-chip sev-chip-${e.severidad.toLowerCase()}`}>{e.severidad}</span></td>
-                <td>{fecha(e.fecha_inicio)}</td>
-                <td>{duracion(e.fecha_inicio, e.fecha_fin)}</td>
-                <td><span className={`tabla-estado ${clase}`}>{texto}</span></td>
-                <td>{e.estado === 'FINALIZADO' && !e.simulado && <button className="historial-efecto" onClick={() => onVerEfecto(e)}>Ver efecto</button>}</td>
-              </tr>
+              <div key={e.id_desastre} className="ad-tr" style={{ '--cols': COLUMNAS }}>
+                <div>
+                  <b>{nombreDe(tipos, e.tipo_evento)}</b>
+                  <small>#EVT-{e.id_desastre} · {e.region} · {e.severidad}</small>
+                </div>
+                <small>{fecha(e.fecha_inicio)}</small>
+                <small>{duracion(e.fecha_inicio, e.fecha_fin)}</small>
+                <span className="ad-chip" style={{ '--c': color }}>{texto}</span>
+                {e.estado === 'FINALIZADO' && !e.simulado
+                  ? <button type="button" className="ad-btn ad-btn-g ad-btn-sm" onClick={() => onVerEfecto(e)}>Ver efecto</button>
+                  : <span />}
+              </div>
             )
           })}
-        </tbody>
-      </table>
-    </div>
+        </div>
+      )}
+    </section>
   )
 }

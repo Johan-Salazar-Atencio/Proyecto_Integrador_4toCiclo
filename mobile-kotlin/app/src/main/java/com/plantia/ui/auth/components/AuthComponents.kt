@@ -1,5 +1,11 @@
 package com.plantia.ui.auth.components
 
+import androidx.compose.runtime.ReadOnlyComposable
+
+import com.plantia.ui.theme.SobrePrimario
+
+import com.plantia.ui.theme.Peligro
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -69,7 +75,7 @@ internal val FondoAuth: Brush
     @Composable get() = FondoDegradado
 internal val FondoCampo: Color
     @Composable get() = CampoFondo
-internal val RojoError = Color(0xFFEF4444)
+internal val RojoError: Color @Composable @ReadOnlyComposable get() = Peligro
 internal val RojoErrorClaro: Color
     @Composable get() = RojoClaro
 
@@ -92,7 +98,7 @@ internal fun SelectorModo(modo: ModoAuth, alElegir: (ModoAuth) -> Unit) {
 @Composable
 internal fun Pestana(texto: String, activa: Boolean, alPulsar: () -> Unit, modifier: Modifier = Modifier) {
     val fondo by animateColorAsState(if (activa) GreenPrimary else Color.Transparent, label = "fondo_pestana")
-    val color by animateColorAsState(if (activa) Color.White else TextSecondary, label = "color_pestana")
+    val color by animateColorAsState(if (activa) SobrePrimario else TextSecondary, label = "color_pestana")
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
@@ -186,7 +192,7 @@ internal fun CasillaTerminos(marcada: Boolean, alCambiar: (Boolean) -> Unit, alA
         Checkbox(
             checked = marcada,
             onCheckedChange = alCambiar,
-            colors = CheckboxDefaults.colors(checkedColor = GreenPrimary, checkmarkColor = Color.White)
+            colors = CheckboxDefaults.colors(checkedColor = GreenPrimary, checkmarkColor = SobrePrimario)
         )
         Text(texto, fontSize = 14.sp, lineHeight = 20.sp, color = TextPrimary)
     }
@@ -222,13 +228,13 @@ internal fun BotonPrincipal(texto: String, habilitado: Boolean, cargando: Boolea
         shape = CircleShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = GreenPrimary,
-            contentColor = Color.White,
+            contentColor = SobrePrimario,
             disabledContainerColor = GreenPrimary.copy(alpha = 0.35f),
-            disabledContentColor = Color.White
+            disabledContentColor = SobrePrimario
         )
     ) {
         if (cargando) {
-            CircularProgressIndicator(color = Color.White, strokeWidth = 2.5.dp, modifier = Modifier.size(22.dp))
+            CircularProgressIndicator(color = SobrePrimario, strokeWidth = 2.5.dp, modifier = Modifier.size(22.dp))
         } else {
             Text(texto, fontSize = 17.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.size(8.dp))

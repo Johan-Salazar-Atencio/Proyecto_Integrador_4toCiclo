@@ -1,15 +1,19 @@
-.tienda-admin-producto { display: flex; align-items: center; gap: 12px; }
-.tienda-admin-vistas { display: flex; gap: 4px; flex-shrink: 0; }
-.tienda-admin-vistas img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; image-rendering: pixelated; }
-.mision-primario:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Tienda admin (prefijo ak-tienda / ak-escena). Lo común está en ../misiones/kit.css */
+.ak-tienda-prod { display: flex; align-items: center; gap: 12px; }
+.ak-tienda-th { display: flex; flex: none; gap: 3px; width: 46px; height: 46px; overflow: hidden; border-radius: 14px; background: var(--superficie); place-items: center; }
+.ak-tienda-th img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.ak-tienda-th span { width: 100%; text-align: center; font-weight: 800; color: var(--texto-suave); }
 
-.tienda-escenas { display: flex; flex-direction: column; gap: 12px; padding: 14px; border: 1.5px dashed var(--linea); border-radius: var(--radio); }
-.tienda-escenas legend { padding: 0 8px; color: var(--texto-suave); font-size: 0.8rem; font-weight: 800; }
-.tienda-ayuda { margin: 0; color: var(--texto-suave); font-size: 0.82rem; line-height: 1.4; }
-.tienda-escena { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.tienda-escena > b { min-width: 74px; }
-.tienda-escena-actual { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; image-rendering: pixelated; }
-.tienda-escena input[type='file'] { flex: 1 1 180px; width: auto; padding: 6px 8px; }
-.tienda-cuadros { display: flex; align-items: center; gap: 8px; }
-.tienda-cuadros > span { margin: 0; }
-.tienda-cuadros input { width: 110px; }
+.ak-tienda-img { display: flex; align-items: center; gap: 12px; }
+.ak-tienda-img img, .ak-tienda-sin { width: 74px; height: 74px; flex: none; border-radius: 20px; object-fit: cover; image-rendering: pixelated; background: var(--superficie-2); }
+.ak-tienda-sin { display: grid; place-items: center; color: var(--texto-suave); font-size: 0.7rem; font-weight: 800; }
+.ak-tienda-subir { flex: 1; display: flex; align-items: center; gap: 10px; padding: 10px; border: 2px dashed color-mix(in srgb, var(--primario) 50%, var(--linea)); border-radius: 20px; background: var(--superficie-2); color: var(--texto-suave); }
+.ak-tienda-subir b { color: var(--texto); font-size: 0.85rem; }
+.ak-tienda-subir small { display: block; color: var(--texto-suave); font-size: 0.75rem; }
+
+.ak-escenas { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 14px; border: 1.5px dashed var(--linea); border-radius: 20px; min-width: 0; }
+.ak-escenas legend { padding: 0 8px; color: var(--texto-suave); font-size: 0.75rem; font-weight: 800; }
+.ak-escena { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.ak-escena > b { min-width: 74px; }
+.ak-escena img { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; image-rendering: pixelated; }
+.ak-escena input[type='file'] { flex: 1 1 160px; min-width: 0; }

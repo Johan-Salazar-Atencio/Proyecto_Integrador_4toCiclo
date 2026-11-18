@@ -1,13 +1,24 @@
 package com.plantia.ui.profile
 
+import androidx.compose.ui.graphics.Color
+import com.plantia.ui.theme.FondoDegradado
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Notifications
 import com.plantia.data.local.Recordatorios
-import com.plantia.ui.theme.BlueInfo
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -75,11 +86,15 @@ import com.plantia.BuildConfig
 import com.plantia.data.local.ModoTema
 import com.plantia.data.model.Region
 import com.plantia.data.model.UserSummary
-import com.plantia.ui.theme.AmberAlert
-import com.plantia.ui.theme.AmberLight
-import com.plantia.ui.theme.GreenDark
-import com.plantia.ui.theme.GreenLight
-import com.plantia.ui.theme.GreenPrimary
+import com.plantia.ui.components.BarraProgreso
+import com.plantia.ui.components.tarjeta
+import com.plantia.ui.theme.DividerColor
+import com.plantia.ui.theme.Peligro
+import com.plantia.ui.theme.Primario
+import com.plantia.ui.theme.SobrePrimario
+import com.plantia.ui.theme.SuperficieElevada
+import com.plantia.ui.theme.SurfaceWhite
+import com.plantia.ui.theme.Tinte
 import com.plantia.ui.theme.RojoClaro
 import com.plantia.ui.theme.RojoTexto
 import com.plantia.ui.theme.TextPrimary
@@ -110,7 +125,6 @@ fun PerfilScreen(
     onVerHistorial: () -> Unit,
     onVerTerminos: () -> Unit,
     onEditarDatos: () -> Unit,
-    onVerEnciclopedia: () -> Unit,
     onCerrarSesion: () -> Unit,
     modifier: Modifier = Modifier,
     subiendoFoto: Boolean = false,
@@ -163,24 +177,21 @@ fun PerfilScreen(
         )
     }
 
-    Scaffold(modifier = modifier, containerColor = MaterialTheme.colorScheme.background) { padding ->
+    Scaffold(modifier = modifier.background(FondoDegradado), containerColor = Color.Transparent) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             when {
                 cargando -> Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = GreenPrimary)
+                    CircularProgressIndicator(color = Primario)
                 }
                 usuario == null -> AvisoError(error ?: "No se pudo cargar el perfil", onReintentar)
-                else -> {
-                    TarjetaUsuario(usuario, subiendoFoto, errorFoto, onCambiarFoto)
-                    FilaEstadisticas(digitales, usuario.streakDays, usuario.leaves)
-                }
+                else -> TarjetaUsuario(usuario, subiendoFoto, errorFoto, onCambiarFoto)
             }
 
             SeccionTema(modoTema, onCambiarTema)
@@ -189,17 +200,14 @@ fun PerfilScreen(
                 SeccionRegion(regiones, usuario.regionCode, cambiandoRegion, errorRegion, onCambiarRegion)
             }
 
-            Card(
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                FilaAcceso(Icons.Filled.Edit, "Editar datos", onEditarDatos)
+            Column(Modifier.fillMaxWidth().tarjeta().padding(horizontal = 14.dp, vertical = 4.dp)) {
                 FilaRecordatorios(recordar, alCambiarRecordatorio)
+                FilaAcceso(Icons.Filled.Edit, "Editar datos", onEditarDatos)
                 FilaAcceso(Icons.Filled.History, "Historial de escaneos", onVerHistorial)
-                FilaAcceso(Icons.Filled.MenuBook, "Enciclopedia de plantas", onVerEnciclopedia)
                 FilaAcceso(Icons.Filled.Description, "Términos y privacidad", onVerTerminos)
-                FilaAcceso(Icons.AutoMirrored.Filled.ExitToApp, "Cerrar sesión", { confirmarSalida = true }, peligro = true)
             }
+
+            BotonCerrarSesion { confirmarSalida = true }
 
             // Solo en versiones de depuracion: el equipo cambia a mano el servidor al que se conecta la app.
             if (BuildConfig.DEBUG) ConexionAvanzada(baseUrlActual, hostManualActual, onGuardarHost)
@@ -211,25 +219,38 @@ fun PerfilScreen(
 @Composable
 private fun FilaRecordatorios(activo: Boolean, onCambiar: (Boolean) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable { onCambiar(!activo) }.padding(horizontal = 16.dp, vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth().clickable { onCambiar(!activo) }.padding(horizontal = 2.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        horizontalArrangement = Arrangement.spacedBy(11.dp)
     ) {
-        Box(Modifier.size(38.dp).clip(CircleShape).background(GreenLight), contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Notifications, contentDescription = null, tint = GreenDark, modifier = Modifier.size(20.dp))
-        }
+        IconoDeFila(Icons.Filled.Notifications)
         Column(Modifier.weight(1f)) {
-            Text("Recordatorios", fontWeight = FontWeight.SemiBold, color = TextPrimary)
-            Text("Un aviso diario a las ${Recordatorios.HORA}:00 para cuidar tus plantas", fontSize = 12.sp, color = TextSecondary)
+            Text("Recordatorios", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
+            Text("Un aviso diario a las ${Recordatorios.HORA}:00 para cuidar tus plantas", fontSize = 11.sp, color = TextSecondary)
         }
         androidx.compose.material3.Switch(
             checked = activo,
             onCheckedChange = onCambiar,
-            colors = androidx.compose.material3.SwitchDefaults.colors(checkedTrackColor = GreenPrimary)
+            colors = androidx.compose.material3.SwitchDefaults.colors(
+                checkedTrackColor = Primario,
+                checkedThumbColor = SobrePrimario,
+                checkedBorderColor = Primario,
+                uncheckedTrackColor = SuperficieElevada,
+                uncheckedThumbColor = TextSecondary,
+                uncheckedBorderColor = DividerColor
+            )
         )
     }
 }
 
+@Composable
+private fun IconoDeFila(icono: ImageVector, peligro: Boolean = false) {
+    Box(Modifier.size(32.dp).clip(CircleShape).background(SuperficieElevada), contentAlignment = Alignment.Center) {
+        Icon(icono, contentDescription = null, tint = if (peligro) Peligro else Primario, modifier = Modifier.size(17.dp))
+    }
+}
+
+/** Tarjeta de arriba: foto con anillo de XP y boton de camara, nombre, insignia y nivel, barra de XP y hojas. */
 @Composable
 private fun TarjetaUsuario(
     usuario: UserSummary,
@@ -250,102 +271,98 @@ private fun TarjetaUsuario(
             if (imagen != null) onCambiarFoto(imagen.archivo)
         }
     }
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    val progreso by animateFloatAsState(usuario.progresoNivel, tween(600), label = "xp-perfil")
+    val colorAnillo = Primario
+    val colorPista = DividerColor
+    Column(
+        modifier = Modifier.fillMaxWidth().tarjeta().padding(start = 14.dp, end = 14.dp, top = 18.dp, bottom = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        Box(
+            Modifier.size(84.dp).clickable(onClickLabel = "Cambiar foto de perfil") {
+                if (!subiendoFoto) {
+                    selector.launch(
+                        androidx.activity.result.PickVisualMediaRequest(
+                            androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
+                        )
+                    )
+                }
+            },
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                Modifier.clickable(onClickLabel = "Cambiar foto de perfil") {
-                    if (!subiendoFoto) {
-                        selector.launch(
-                            androidx.activity.result.PickVisualMediaRequest(
-                                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
-                            )
-                        )
-                    }
-                }
-            ) {
-                Box(
-                    modifier = Modifier.size(92.dp).clip(CircleShape).background(GreenPrimary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val inicial: @Composable () -> Unit = {
-                        Text(
-                            text = usuario.name.trim().split(" ").filter { it.isNotBlank() }.take(2)
-                                .joinToString("") { it.first().uppercase() }.ifEmpty { "?" },
-                            fontSize = 40.sp,
-                            fontFamily = com.plantia.ui.theme.FuentePixel,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.surface
-                        )
-                    }
-                    if (usuario.profileImageUrl.isNullOrBlank()) inicial()
-                    else com.plantia.ui.components.FotoPerfil(usuario.profileImageUrl, "Foto de ${usuario.name}", respaldo = inicial)
-                    if (subiendoFoto) androidx.compose.material3.CircularProgressIndicator(color = MaterialTheme.colorScheme.surface, modifier = Modifier.size(36.dp))
-                }
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(3.dp)
-                        .clip(CircleShape)
-                        .background(AmberAlert),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(16.dp))
-                }
+            // Anillo de XP alrededor de la foto
+            Canvas(Modifier.fillMaxSize()) {
+                val grosor = 5.dp.toPx()
+                val tope = androidx.compose.ui.geometry.Size(size.width - grosor, size.height - grosor)
+                val origen = androidx.compose.ui.geometry.Offset(grosor / 2, grosor / 2)
+                drawArc(colorPista, 0f, 360f, false, origen, tope, style = Stroke(grosor))
+                drawArc(colorAnillo, -90f, 360f * progreso, false, origen, tope, style = Stroke(grosor, cap = StrokeCap.Round))
             }
-            if (errorFoto != null) Text(errorFoto, fontSize = 12.sp, color = RojoTexto)
+            Box(
+                modifier = Modifier.size(70.dp).clip(CircleShape).background(SuperficieElevada),
+                contentAlignment = Alignment.Center
+            ) {
+                val inicial: @Composable () -> Unit = {
+                    Text(
+                        text = usuario.name.trim().split(" ").filter { it.isNotBlank() }.take(2)
+                            .joinToString("") { it.first().uppercase() }.ifEmpty { "?" },
+                        fontSize = 26.sp,
+                        fontFamily = com.plantia.ui.theme.FuentePixel,
+                        fontWeight = FontWeight.Medium,
+                        color = TextPrimary
+                    )
+                }
+                if (usuario.profileImageUrl.isNullOrBlank()) inicial()
+                else com.plantia.ui.components.FotoPerfil(usuario.profileImageUrl, "Foto de ${usuario.name}", respaldo = inicial)
+                if (subiendoFoto) CircularProgressIndicator(color = Primario, modifier = Modifier.size(32.dp))
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(SurfaceWhite)
+                    .padding(3.dp)
+                    .clip(CircleShape)
+                    .background(Primario),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = SobrePrimario, modifier = Modifier.size(14.dp))
+            }
+        }
+        if (errorFoto != null) Text(errorFoto, fontSize = 12.sp, color = Peligro)
 
-            Text(usuario.name, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            if (usuario.email.isNotBlank()) Text(usuario.email, fontSize = 13.sp, color = TextSecondary)
-
-            Etiqueta("${usuario.badge} · Nivel ${usuario.level}", GreenLight, GreenDark)
+        Text(usuario.name, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+        if (usuario.email.isNotBlank()) Text(usuario.email, fontSize = 12.sp, color = TextSecondary)
+        Text(
+            "${usuario.badge} · Nivel ${usuario.level}",
+            fontSize = 10.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = Primario,
+            modifier = Modifier.clip(RoundedCornerShape(50)).background(Tinte).padding(horizontal = 10.dp, vertical = 3.dp)
+        )
+        Spacer(Modifier.height(2.dp))
+        BarraProgreso(progreso, Primario, pista = SuperficieElevada)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (usuario.esNivelMaximo) "Nivel máximo · ${usuario.experience} XP" else "${usuario.experience} / ${usuario.experienceToNextLevel} XP",
+                fontSize = 10.5.sp, color = TextSecondary
+            )
+            Row(
+                Modifier.clip(RoundedCornerShape(50)).background(SuperficieElevada).border(1.dp, DividerColor, RoundedCornerShape(50))
+                    .padding(horizontal = 9.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Icon(Icons.Filled.Eco, contentDescription = "Hojas", tint = Primario, modifier = Modifier.size(14.dp))
+                Text("${usuario.leaves}", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+            }
         }
     }
 }
 
-@Composable
-private fun Etiqueta(texto: String, fondo: androidx.compose.ui.graphics.Color, color: androidx.compose.ui.graphics.Color) {
-    Surface(shape = RoundedCornerShape(50), color = fondo) {
-        Text(texto, modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = color)
-    }
-}
-
-@Composable
-private fun FilaEstadisticas(plantas: Int?, dias: Int, hojas: Int) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Estadistica(plantas?.toString() ?: "–", "Plantas", GreenPrimary, Modifier.weight(1f))
-        Estadistica(dias.toString(), "Días de racha", BlueInfo, Modifier.weight(1f))
-        Estadistica(hojas.toString(), "Hojas", AmberAlert, Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun Estadistica(valor: String, etiqueta: String, borde: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.5.dp, borde.copy(alpha = 0.55f))
-    ) {
-        Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(valor, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            Text(etiqueta, fontSize = 11.sp, color = TextSecondary)
-        }
-    }
-}
-
-/** Region del usuario: decide que desastres le llegan. */
-@OptIn(ExperimentalLayoutApi::class)
+/** Region del usuario: decide que desastres le llegan. Se elige en una lista desplegable. */
 @Composable
 private fun SeccionRegion(
     regiones: List<Region>,
@@ -354,54 +371,56 @@ private fun SeccionRegion(
     error: String?,
     onCambiar: (String) -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Mi región", fontWeight = FontWeight.Bold, color = TextPrimary)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+    var abierto by remember { mutableStateOf(false) }
+    val codigo = actual.ifBlank { "GLOBAL" }
+    val nombre = regiones.firstOrNull { it.code == codigo }?.name ?: codigo
+    Column(Modifier.fillMaxWidth().tarjeta().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        TituloGrupo("Mi región")
+        Box {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(SuperficieElevada)
+                    .clickable(enabled = !cambiando) { abierto = true }
+                    .padding(horizontal = 12.dp, vertical = 11.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Text(nombre, modifier = Modifier.weight(1f), fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = TextPrimary)
+                if (cambiando) CircularProgressIndicator(color = Primario, strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
+                else Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
+            }
+            DropdownMenu(expanded = abierto, onDismissRequest = { abierto = false }) {
                 regiones.forEach { region ->
-                    val seleccionada = region.code == actual.ifBlank { "GLOBAL" }
-                    FilterChip(
-                        selected = seleccionada,
-                        onClick = { onCambiar(region.code) },
-                        enabled = !cambiando,
-                        label = { Text(region.name) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = GreenPrimary,
-                            selectedLabelColor = MaterialTheme.colorScheme.surface
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = !cambiando,
-                            selected = seleccionada,
-                            borderColor = MaterialTheme.colorScheme.outline,
-                            selectedBorderColor = GreenPrimary
-                        )
+                    DropdownMenuItem(
+                        text = { Text(if (region.code == codigo) "✓ ${region.name}" else region.name) },
+                        onClick = { abierto = false; if (region.code != codigo) onCambiar(region.code) }
                     )
                 }
             }
-            Text(
-                error ?: "Recibes las alertas de desastre de tu región.",
-                fontSize = 12.sp,
-                color = if (error != null) RojoTexto else TextSecondary
-            )
         }
+        Text(
+            error ?: "Recibes las alertas de desastre de tu región.",
+            fontSize = 11.sp,
+            color = if (error != null) Peligro else TextSecondary
+        )
     }
 }
 
 @Composable
+private fun TituloGrupo(texto: String) {
+    Text(texto.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = TextSecondary, letterSpacing = 0.5.sp)
+}
+
+@Composable
 private fun SeccionTema(actual: ModoTema, onCambiar: (ModoTema) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Apariencia", fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(start = 4.dp))
+    Column(Modifier.fillMaxWidth().tarjeta().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        TituloGrupo("Apariencia")
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .background(SuperficieElevada)
                 .padding(3.dp),
             horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
@@ -411,16 +430,16 @@ private fun SeccionTema(actual: ModoTema, onCambiar: (ModoTema) -> Unit) {
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(11.dp))
-                        .background(if (elegido) GreenPrimary else androidx.compose.ui.graphics.Color.Transparent)
+                        .background(if (elegido) Primario else Color.Transparent)
                         .clickable { onCambiar(modo) }
                         .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         modo.etiqueta,
-                        fontSize = 13.sp,
-                        fontWeight = if (elegido) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (elegido) MaterialTheme.colorScheme.surface else TextSecondary
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (elegido) SobrePrimario else TextSecondary
                     )
                 }
             }
@@ -429,24 +448,44 @@ private fun SeccionTema(actual: ModoTema, onCambiar: (ModoTema) -> Unit) {
 }
 
 @Composable
-private fun FilaAcceso(icono: ImageVector, texto: String, onClick: () -> Unit, peligro: Boolean = false) {
-    val color = if (peligro) RojoTexto else TextPrimary
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Box(Modifier.size(38.dp).clip(CircleShape).background(if (peligro) RojoClaro else GreenLight), contentAlignment = Alignment.Center) {
-            Icon(icono, contentDescription = null, tint = if (peligro) RojoTexto else GreenDark, modifier = Modifier.size(20.dp))
+private fun FilaAcceso(icono: ImageVector, texto: String, onClick: () -> Unit) {
+    Column {
+        HorizontalDivider(color = DividerColor)
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 2.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(11.dp)
+        ) {
+            IconoDeFila(icono)
+            Text(texto, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
         }
-        Text(texto, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, color = color)
-        if (!peligro) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = TextSecondary)
+    }
+}
+
+/** Cerrar sesion: boton de contorno en color de peligro. */
+@Composable
+private fun BotonCerrarSesion(onClick: () -> Unit) {
+    val forma = RoundedCornerShape(18.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(forma)
+            .border(1.5.dp, Peligro.copy(alpha = 0.55f), forma)
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = Peligro, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text("Cerrar sesión", fontWeight = FontWeight.ExtraBold, color = Peligro)
     }
 }
 
 @Composable
 private fun AvisoError(mensaje: String, onReintentar: () -> Unit) {
-    Surface(shape = RoundedCornerShape(14.dp), color = RojoClaro) {
+    Surface(shape = RoundedCornerShape(18.dp), color = RojoClaro) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(mensaje, modifier = Modifier.weight(1f), color = RojoTexto, fontSize = 14.sp)
             TextButton(onClick = onReintentar) { Text("Reintentar", color = RojoTexto, fontWeight = FontWeight.Bold) }
@@ -461,14 +500,14 @@ private fun ConexionAvanzada(baseUrlActual: String?, hostManualActual: String, o
     var hostManual by remember(hostManualActual) { mutableStateOf(hostManualActual) }
 
     Card(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+        border = BorderStroke(1.dp, DividerColor)
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth().clickable { abierto = !abierto }, verticalAlignment = Alignment.CenterVertically) {
                 Text("Desarrollo: conexión al servidor", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = TextPrimary)
-                Text(if (abierto) "Ocultar" else "Mostrar", color = GreenDark, fontSize = 13.sp)
+                Text(if (abierto) "Ocultar" else "Mostrar", color = Primario, fontSize = 13.sp)
             }
             if (abierto) {
                 Text("En uso: ${baseUrlActual ?: "sin conexión"}", fontSize = 13.sp, color = TextSecondary)
@@ -483,11 +522,11 @@ private fun ConexionAvanzada(baseUrlActual: String?, hostManualActual: String, o
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
                         onClick = { onGuardarHost(hostManual) },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primario, contentColor = SobrePrimario),
                         modifier = Modifier.weight(1f)
                     ) { Text("Guardar") }
-                    OutlinedButton(onClick = { onGuardarHost(null); hostManual = "" }, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f)) {
+                    OutlinedButton(onClick = { onGuardarHost(null); hostManual = "" }, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f)) {
                         Text("Automático")
                     }
                 }

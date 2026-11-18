@@ -7,12 +7,13 @@ import { cambiarRegion, listarRegiones, subirFoto } from '../../../services/usua
 import { useSesion } from '../../../store/Sesion'
 import { guardarRecordatorio, guardarTema, HORA_RECORDATORIO, leerTema, recordatorioActivo, TEMAS } from '../../../store/preferencias'
 import { iniciales } from '../home/components/TarjetaUsuario'
+import Icono from '../tienda/Icono'
 import './perfil.css'
 
 const TEXTO_TEMA = { SISTEMA: 'Sistema', CLARO: 'Claro', OSCURO: 'Oscuro' }
 
 // Perfil (propuesta E): foto con boton de camara, nombre y rango, tres estadisticas, apariencia, region y la lista
-// con editar datos, recordatorios, historial, enciclopedia, terminos y cierre de sesion.
+// con editar datos, recordatorios, historial, terminos y cierre de sesion. En pantallas anchas va en dos columnas.
 export default function Perfil() {
   const { usuario: sesion, cerrar } = useSesion()
   const irA = useNavigate()
@@ -89,87 +90,102 @@ export default function Perfil() {
   const { datos } = estado
   const nombre = datos?.name || sesion?.nombre || 'Jardinero'
   const foto = urlImagen(datos?.profileImageUrl)
+  const desde = datos?.experienceFromLevel || 0
+  const tramo = Math.max((datos?.experienceToNextLevel ?? 0) - desde, 0)
+  const porcentaje = datos && tramo > 0 ? Math.min(100, Math.max(0, Math.round(((datos.experience - desde) / tramo) * 100))) : datos ? 100 : 0
 
   return (
     <div className="perfil">
-      <section className="perfil-cabecera tarjeta aparece">
-        <div className="perfil-foto">
-          <span className="perfil-avatar">
-            {foto && <img src={foto} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} />}
-            <b>{iniciales(nombre)}</b>
-            {subiendo && <span className="home-giro perfil-subiendo" aria-label="Subiendo" />}
-          </span>
-          <button className="perfil-camara" onClick={() => selector.current?.click()} aria-label="Cambiar foto de perfil" disabled={subiendo}>📷</button>
-          <input ref={selector} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={cambiarFoto} />
-        </div>
-        <h2>{nombre}</h2>
-        {(datos?.email || sesion?.email) && <p>{datos?.email || sesion?.email}</p>}
-        {datos && <span className="perfil-nivel">{datos.badge || 'Jardinero'} · Nivel {datos.level}</span>}
-
-        {estado.cargando && <span className="home-giro" aria-label="Cargando" />}
-        {estado.error && !estado.cargando && (
-          <div className="home-error" role="alert">
-            <span>{estado.error}</span>
-            <button onClick={cargar}>Reintentar</button>
+      <h2 className="perfil-titulo">Perfil</h2>
+      <div className="perfil-columnas">
+        <section className="perfil-cabecera aparece">
+          <div className="perfil-foto">
+            <span className="perfil-anillo" style={{ '--p': `${porcentaje}%` }}>
+              <span className="perfil-avatar">
+                {foto && <img src={foto} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} />}
+                <b>{iniciales(nombre)}</b>
+                {subiendo && <span className="home-giro perfil-subiendo" aria-label="Subiendo" />}
+              </span>
+            </span>
+            <button className="perfil-camara" onClick={() => selector.current?.click()} aria-label="Cambiar foto de perfil" disabled={subiendo}><Icono n="cam" tam={16} /></button>
+            <input ref={selector} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={cambiarFoto} />
           </div>
-        )}
-      </section>
+          <h3>{nombre}</h3>
+          {(datos?.email || sesion?.email) && <p>{datos?.email || sesion?.email}</p>}
+          {datos && <span className="perfil-nivel">{datos.badge || 'Jardinero'} · Nivel {datos.level}</span>}
 
-      {datos && (
-        <div className="perfil-datos aparece" style={{ animationDelay: '0.05s' }}>
-          <Dato valor={estado.plantas ?? '–'} texto="Plantas" color="var(--verde)" />
-          <Dato valor={datos.streakDays} texto="Días de racha" color="var(--azul)" />
-          <Dato valor={datos.leaves} texto="Hojas" color="var(--ambar)" />
-        </div>
-      )}
+          {datos && (
+            <>
+              <div className="perfil-barra" role="progressbar" aria-valuenow={porcentaje} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${porcentaje}%` }} /></div>
+              <small className="perfil-xp"><span>{datos.experience} / {datos.experienceToNextLevel} XP para el nivel {datos.level + 1}</span><span>{porcentaje} %</span></small>
+              <span className="perfil-hojas"><Icono n="leaf" tam={18} />{datos.leaves} hojas</span>
+              <div className="perfil-datos">
+                <Dato valor={estado.plantas ?? '–'} texto="Plantas" />
+                <Dato valor={datos.streakDays} texto="Días de racha" />
+              </div>
+            </>
+          )}
 
-      <section className="perfil-seccion aparece" style={{ animationDelay: '0.08s' }}>
-        <small>Apariencia</small>
-        <div className="perfil-segmentos" role="radiogroup" aria-label="Apariencia">
-          {TEMAS.map((t) => (
-            <button key={t} role="radio" aria-checked={tema === t} className={tema === t ? 'activa' : ''} onClick={() => elegirTema(t)}>{TEXTO_TEMA[t]}</button>
-          ))}
-        </div>
-      </section>
-
-      {datos && estado.regiones.length > 0 && (
-        <section className="tarjeta perfil-region aparece" style={{ animationDelay: '0.1s' }}>
-          <h3>Mi región</h3>
-          <div className="perfil-chips">
-            {estado.regiones.map((r) => (
-              <button key={r.code} className={r.code === (datos.regionCode || 'GLOBAL') ? 'activa' : ''} onClick={() => elegirRegion(r.code)}>{r.name}</button>
-            ))}
-          </div>
-          <small>Recibes las alertas de desastre de tu región.</small>
+          {estado.cargando && <span className="home-giro" aria-label="Cargando" />}
+          {estado.error && !estado.cargando && (
+            <div className="home-error" role="alert">
+              <span>{estado.error}</span>
+              <button onClick={cargar}>Reintentar</button>
+            </div>
+          )}
         </section>
-      )}
 
-      <nav className="perfil-enlaces aparece" style={{ animationDelay: '0.12s' }}>
-        <Link to={RUTAS.EDITAR_DATOS} className="tarjeta"><span>✏️</span> Editar datos <i>›</i></Link>
-        <button className="tarjeta perfil-recordatorio" onClick={alternarRecordatorio} role="switch" aria-checked={recordar}>
-          <span>🔔</span>
-          <div>
-            <b>Recordatorios</b>
-            <small>Un aviso diario a las {HORA_RECORDATORIO}:00 para cuidar tus plantas (con la web abierta)</small>
-          </div>
-          <i className={`perfil-interruptor ${recordar ? 'activo' : ''}`} aria-hidden="true" />
-        </button>
-        <Link to={RUTAS.HISTORIAL} className="tarjeta"><span>🕘</span> Historial de escaneos <i>›</i></Link>
-        <Link to={RUTAS.CATALOGO} className="tarjeta"><span>📖</span> Enciclopedia <i>›</i></Link>
-        <Link to={RUTAS.TERMINOS} className="tarjeta"><span>📄</span> Términos y privacidad <i>›</i></Link>
-        <button className="tarjeta perfil-salir" onClick={() => { cerrar(); irA(RUTAS.WELCOME, { replace: true }) }}>
-          <span>🚪</span> Cerrar sesión
-        </button>
-      </nav>
+        <div className="perfil-grupos aparece" style={{ animationDelay: '0.05s' }}>
+          <section className="perfil-grupo">
+            <h4>Apariencia</h4>
+            <div className="perfil-segmentos" role="radiogroup" aria-label="Apariencia">
+              {TEMAS.map((t) => (
+                <button key={t} role="radio" aria-checked={tema === t} className={tema === t ? 'activa' : ''} onClick={() => elegirTema(t)}>{TEXTO_TEMA[t]}</button>
+              ))}
+            </div>
+          </section>
+
+          {datos && estado.regiones.length > 0 && (
+            <section className="perfil-grupo perfil-region">
+              <h4>Mi región</h4>
+              <label className="perfil-select">
+                <select value={datos.regionCode || 'GLOBAL'} onChange={(e) => elegirRegion(e.target.value)} aria-label="Mi región">
+                  {estado.regiones.map((r) => <option key={r.code} value={r.code}>{r.name}</option>)}
+                </select>
+                <Icono n="down" />
+              </label>
+              <small>Recibes las alertas de desastre de tu región.</small>
+            </section>
+          )}
+
+          <nav className="perfil-grupo perfil-lista">
+            <button className="perfil-fila perfil-recordatorio" onClick={alternarRecordatorio} role="switch" aria-checked={recordar}>
+              <span className="perfil-ico"><Icono n="bell" /></span>
+              <div>
+                <b>Recordatorios</b>
+                <small>Un aviso diario a las {HORA_RECORDATORIO}:00 (con la web abierta)</small>
+              </div>
+              <i className={`perfil-interruptor ${recordar ? 'activo' : ''}`} aria-hidden="true" />
+            </button>
+            <Link to={RUTAS.EDITAR_DATOS} className="perfil-fila"><span className="perfil-ico"><Icono n="edit" /></span><b>Editar datos</b><Icono n="r" className="perfil-flecha" /></Link>
+            <Link to={RUTAS.HISTORIAL} className="perfil-fila"><span className="perfil-ico"><Icono n="clock" /></span><b>Historial de escaneos</b><Icono n="r" className="perfil-flecha" /></Link>
+            <Link to={RUTAS.TERMINOS} className="perfil-fila"><span className="perfil-ico"><Icono n="doc" /></span><b>Términos y privacidad</b><Icono n="r" className="perfil-flecha" /></Link>
+          </nav>
+
+          <button className="perfil-salir" onClick={() => { cerrar(); irA(RUTAS.WELCOME, { replace: true }) }}>
+            <Icono n="out" tam={20} />Cerrar sesión
+          </button>
+        </div>
+      </div>
 
       {aviso && <div className="jardin-aviso" role="status">{aviso}</div>}
     </div>
   )
 }
 
-function Dato({ valor, texto, color }) {
+function Dato({ valor, texto }) {
   return (
-    <div className="perfil-dato" style={{ '--color': color }}>
+    <div className="perfil-dato">
       <b>{valor}</b>
       <small>{texto}</small>
     </div>

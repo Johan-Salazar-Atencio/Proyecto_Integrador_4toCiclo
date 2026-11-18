@@ -94,8 +94,8 @@ class ContratoMovilTest {
 
     @Test
     void recentScan() throws Exception {
-        assertThat(claves(new RecentScanDto("1", "Monstera", "Confianza 92%", 92, "#10B981")))
-                .containsExactlyInAnyOrder("id", "plantName", "confidence", "confianza", "statusColor");
+        assertThat(claves(new RecentScanDto("1", "Monstera", "Confianza 92%", 92, "#10B981", "/files/a.jpg")))
+                .containsExactlyInAnyOrder("id", "plantName", "confidence", "confianza", "statusColor", "fotoUrl");
     }
 
     @Test

@@ -7,5 +7,7 @@ data class RecentScan(
     val id: String,
     val plantName: String,
     val confidence: String,
-    val statusColor: Color = Color(0xFF10B981)
+    val statusColor: Color = Color(0xFF10B981),
+    /** Foto tomada o subida en el escaneo; null si el servidor no la tiene. */
+    val fotoUrl: String? = null
 )

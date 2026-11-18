@@ -1,5 +1,15 @@
 package com.plantia.ui.detail
 
+import com.plantia.ui.theme.DividerColor
+
+import androidx.compose.foundation.BorderStroke
+
+import androidx.compose.runtime.ReadOnlyComposable
+
+import com.plantia.ui.theme.SobrePrimario
+
+import com.plantia.ui.theme.Peligro
+
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -80,7 +90,7 @@ import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
 
-private val RojoCalor = Color(0xFFEF4444)
+private val RojoCalor: Color @Composable @ReadOnlyComposable get() = Peligro
 private val RojoCalorLight: Color
     @Composable get() = RojoClaro
 
@@ -114,7 +124,7 @@ internal fun Cabecera(resultado: ScanResultDto, fallida: Boolean) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, DividerColor)
     ) {
         Box(
             modifier = Modifier
@@ -206,8 +216,8 @@ private fun EtiquetaPrecision(texto: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Icon(Icons.Filled.Verified, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-        Text(texto, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Icon(Icons.Filled.Verified, contentDescription = null, tint = SobrePrimario, modifier = Modifier.size(16.dp))
+        Text(texto, color = SobrePrimario, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -278,9 +288,9 @@ private fun ItemCuidado(cuidado: CuidadoSeccionDto) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { expandido = !expandido },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = BorderStroke(1.dp, DividerColor)
     ) {
         Column(
             modifier = Modifier
@@ -333,8 +343,9 @@ private fun DiagnosticoBotanico(texto: String?) {
     val largo = (texto?.length ?: 0) > 160
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = if (hayProblemas) AmberLight else GreenLight)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = if (hayProblemas) AmberLight else GreenLight),
+        border = BorderStroke(1.dp, DividerColor)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -373,8 +384,9 @@ private fun DiagnosticoBotanico(texto: String?) {
 private fun FalloIdentificacion() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = RojoCalorLight)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = RojoCalorLight),
+        border = BorderStroke(1.dp, DividerColor)
     ) {
         Column(
             modifier = Modifier
@@ -398,7 +410,7 @@ private fun FalloIdentificacion() {
 /** Con la identificacion fallida no hay nada que guardar ni digitalizar: solo reintentar. */
 @Composable
 internal fun BarraReintento(onReintentar: () -> Unit) {
-    Surface(color = SurfaceWhite, shadowElevation = 8.dp) {
+    Surface(color = SurfaceWhite, border = BorderStroke(1.dp, DividerColor)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -411,7 +423,7 @@ internal fun BarraReintento(onReintentar: () -> Unit) {
                 onClick = onReintentar,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
             ) {
                 Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))
@@ -428,7 +440,7 @@ internal fun BarraAcciones(
     onDigitalize: () -> Unit,
     onSave: () -> Unit
 ) {
-    Surface(color = SurfaceWhite, shadowElevation = 8.dp) {
+    Surface(color = SurfaceWhite, border = BorderStroke(1.dp, DividerColor)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -445,7 +457,7 @@ internal fun BarraAcciones(
                     onClick = onDigitalize,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
                 ) {
                     Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.size(8.dp))
@@ -468,7 +480,7 @@ internal fun BarraAcciones(
                 enabled = puedeGuardar,
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
             ) {
                 Icon(Icons.Filled.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))

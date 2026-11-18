@@ -133,9 +133,26 @@ class GardenViewModel(
         }
     }
 
-    /** Abono de la tienda a la venta (con su precio), o null si no esta disponible. */
-    var abono: TiendaItem? by mutableStateOf(null)
+    /** Abonos de la tienda a la venta (medio dia, 1 dia, 3 dias), del mas barato al mas caro; vacio si no hay. */
+    var abonos: List<TiendaItem> by mutableStateOf(emptyList())
         private set
+
+    /** Hojas del usuario segun la ultima consulta de la tienda; null si todavia no se sabe. */
+    var hojas: Int? by mutableStateOf(null)
+        private set
+
+    /** La hoja de abonos esta abierta. */
+    var eligiendoAbono: Boolean by mutableStateOf(false)
+        private set
+
+    fun abrirAbonos() {
+        eligiendoAbono = true
+        cargarAbono()
+    }
+
+    fun cerrarAbonos() {
+        eligiendoAbono = false
+    }
 
     var uiState: GardenUiState by mutableStateOf(GardenUiState.Loading)
         private set
@@ -157,7 +174,10 @@ class GardenViewModel(
     private fun cargarAbono() {
         val repo = tienda ?: return
         viewModelScope.launch {
-            abono = (repo.cargar() as? TiendaResultado.Con)?.tienda?.abono
+            (repo.cargar() as? TiendaResultado.Con)?.tienda?.let {
+                abonos = it.abonos
+                hojas = it.monedas
+            }
         }
     }
 
@@ -201,22 +221,46 @@ class GardenViewModel(
         }
     }
 
-    /** Compra un abono y lo usa en la planta del jardin; el servidor valida monedas, nivel y el tope diario. */
-    fun usarAbono(alTerminar: (String) -> Unit) {
+    /** Compra el abono elegido y lo usa en la planta del jardin; el servidor valida hojas, nivel y el tope diario. */
+    fun usarAbono(abono: TiendaItem, alTerminar: (String) -> Unit) {
         val repo = tienda ?: return
         val actual = (uiState as? GardenUiState.Success)?.planta ?: return
         val id = actual.id ?: return
         if (cuidando) return
         cuidando = true
         viewModelScope.launch {
-            when (val r = repo.usarAbono(id)) {
+            when (val r = repo.usarAbono(id, abono.id)) {
                 is AbonoResultado.Con -> {
                     uiState = GardenUiState.Success(r.planta)
-                    alTerminar("Abono aplicado: ${r.planta.name} ganó un día 🌿")
+                    eligiendoAbono = false
+                    alTerminar("${abono.nombre} aplicado: ${r.planta.name} ${crecio(actual, r.planta)} 🌿")
+                    cargarAbono()
                 }
                 is AbonoResultado.Fallo -> alTerminar(r.mensaje)
             }
             cuidando = false
+        }
+    }
+
+    /** "ganó 3 días", "ganó un día" o "ganó medio día" segun lo que cambio al abonar. */
+    private fun crecio(antes: PlantSummary, despues: PlantSummary): String = when (val dias = despues.diasCuidados - antes.diasCuidados) {
+        0 -> "ganó medio día"
+        1 -> "ganó un día"
+        else -> "ganó $dias días"
+    }
+
+    /** Cambia el apodo de la planta del jardin; vacio vuelve al nombre de la especie. */
+    fun renombrar(apodo: String, alTerminar: (String) -> Unit) {
+        val actual = (uiState as? GardenUiState.Success)?.planta ?: return
+        val id = actual.id ?: return
+        viewModelScope.launch {
+            when (val r = garden.renombrar(id, apodo.trim())) {
+                is PlantaResultado.Con -> {
+                    uiState = GardenUiState.Success(r.planta)
+                    alTerminar(if (apodo.isBlank()) "Vuelve a llamarse ${r.planta.name}" else "Ahora se llama ${r.planta.name}")
+                }
+                is PlantaResultado.Fallo -> alTerminar(r.mensaje)
+            }
         }
     }
 

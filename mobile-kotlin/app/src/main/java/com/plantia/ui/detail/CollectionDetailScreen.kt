@@ -1,5 +1,6 @@
 package com.plantia.ui.detail
 
+import com.plantia.ui.theme.SobrePrimario
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,7 +62,7 @@ fun CollectionDetailScreen(
             Button(
                 onClick = { viewModel.cargarDeColeccion(coleccionId) },
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
             ) { Text("Reintentar") }
             Spacer(Modifier.height(8.dp))
             Button(

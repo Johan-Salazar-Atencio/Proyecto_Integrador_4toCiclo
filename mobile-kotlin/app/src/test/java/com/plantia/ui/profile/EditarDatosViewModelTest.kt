@@ -1,12 +1,8 @@
 package com.plantia.ui.profile
 
 import com.plantia.data.local.Recordatorios
-import com.plantia.data.repository.PlantaResultado
-import com.plantia.data.repository.PlantasResultado
-import com.plantia.fakes.FakeGardenRepository
 import com.plantia.fakes.FakeUsuarioRepository
 import com.plantia.fakes.MainDispatcherRule
-import com.plantia.fakes.planta
 import com.plantia.ui.profile.viewmodel.EditarDatosViewModel
 import java.util.Calendar
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,7 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** Editar datos: el nombre del usuario y el de cada planta se guardan en el servidor. */
+/** Editar datos: el nombre del usuario se guarda en el servidor y el correo solo se muestra. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class EditarDatosViewModelTest {
 
@@ -24,18 +20,15 @@ class EditarDatosViewModelTest {
     val main = MainDispatcherRule()
 
     private val usuarios = FakeUsuarioRepository()
-    private val garden = FakeGardenRepository()
 
-    private fun viewModel() = EditarDatosViewModel(usuarios, garden)
+    private fun viewModel() = EditarDatosViewModel(usuarios)
 
     @Test
-    fun al_abrir_carga_el_nombre_y_las_plantas() {
-        garden.lista = PlantasResultado.Con(listOf(planta(id = 1), planta(id = 2)))
-
+    fun al_abrir_carga_el_nombre_y_el_correo() {
         val vm = viewModel()
 
         assertEquals(usuarios.perfil?.name, vm.nombreGuardado)
-        assertEquals(2, vm.plantas.size)
+        assertEquals(usuarios.perfil?.email.orEmpty(), vm.correo)
     }
 
     @Test
@@ -57,17 +50,6 @@ class EditarDatosViewModelTest {
 
         assertTrue(usuarios.nombres.isEmpty())
         assertNotNull(vm.aviso)
-    }
-
-    @Test
-    fun guardar_el_nombre_de_una_planta_la_actualiza_en_la_lista() {
-        garden.lista = PlantasResultado.Con(listOf(planta(id = 1)))
-        garden.alRenombrar = PlantaResultado.Con(planta(id = 1).copy(name = "Rosita"))
-        val vm = viewModel()
-
-        vm.guardarPlanta(vm.plantas.single(), "Rosita")
-
-        assertEquals("Rosita", vm.plantas.single().name)
     }
 
     @Test

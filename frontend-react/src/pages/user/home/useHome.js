@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { obtenerEventoActivo, obtenerMisionDiaria, obtenerPlantaActiva, obtenerUsuario } from '../../../services/home'
+import { obtenerEventoActivo, obtenerMisiones, obtenerPlantaActiva, obtenerUsuario } from '../../../services/home'
 import { cuidarPlanta, listarPlantasDigitales, seleccionarPlanta } from '../../../services/jardin'
 import { ACCIONES, mensajeCuidado } from '../jardin/acciones'
 
@@ -7,18 +7,18 @@ const MS_AVISO = 2500
 
 // Carga los datos del inicio por separado: si uno falla, los demas se muestran igual
 export default function useHome() {
-  const [estado, setEstado] = useState({ cargando: true, usuario: null, alerta: null, planta: null, plantas: [], mision: null, error: '' })
+  const [estado, setEstado] = useState({ cargando: true, usuario: null, alerta: null, planta: null, plantas: [], misiones: [], error: '' })
   const [aviso, setAviso] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const temporizador = useRef(null)
 
   const cargar = useCallback(async () => {
     setEstado((e) => ({ ...e, cargando: true, error: '' }))
-    const [usuario, alerta, planta, mision, plantas] = await Promise.allSettled([
-      obtenerUsuario(), obtenerEventoActivo(), obtenerPlantaActiva(), obtenerMisionDiaria(), listarPlantasDigitales(),
+    const [usuario, alerta, planta, misiones, plantas] = await Promise.allSettled([
+      obtenerUsuario(), obtenerEventoActivo(), obtenerPlantaActiva(), obtenerMisiones(), listarPlantasDigitales(),
     ])
     const valor = (r) => (r.status === 'fulfilled' ? r.value : null)
-    const fallo = [usuario, alerta, planta, mision, plantas].some((r) => r.status === 'rejected')
+    const fallo = [usuario, alerta, planta, misiones, plantas].some((r) => r.status === 'rejected')
     setEstado({
       cargando: false,
       usuario: valor(usuario),
@@ -26,7 +26,8 @@ export default function useHome() {
       planta: valor(planta),
       // Las plantas del baul estan congeladas: no se pasan con las flechas
       plantas: (valor(plantas) || []).filter((p) => !p.enBaul),
-      mision: valor(mision),
+      // Todas las misiones de hoy (la del evento primero); el inicio muestra tres y el resto va en la ventana
+      misiones: [...(valor(misiones) || [])].sort((a, b) => (b.kind === 'EVENT') - (a.kind === 'EVENT')),
       error: fallo ? 'No se pudo cargar todo desde el servidor.' : '',
     })
   }, [])
@@ -40,21 +41,26 @@ export default function useHome() {
     temporizador.current = setTimeout(() => setAviso(''), MS_AVISO)
   }
 
-  // Pasa a la planta anterior (-1) o siguiente (+1) y la deja como la del jardin
-  const mover = async (paso) => {
-    const { plantas, planta } = estado
-    if (ocupado || plantas.length < 2) return
-    const actual = Math.max(0, plantas.findIndex((p) => p.id === planta?.id))
-    const siguiente = plantas[(actual + paso + plantas.length) % plantas.length]
+  // Deja una planta como la del jardin
+  const seleccionar = async (destino) => {
+    if (ocupado || !destino || destino.id === estado.planta?.id) return
     setOcupado(true)
     try {
-      const nueva = await seleccionarPlanta(siguiente.id)
+      const nueva = await seleccionarPlanta(destino.id)
       setEstado((e) => ({ ...e, planta: nueva }))
     } catch (err) {
       avisar(err.message || 'No se pudo cambiar de planta.')
     } finally {
       setOcupado(false)
     }
+  }
+
+  // Pasa a la planta anterior (-1) o siguiente (+1)
+  const mover = (paso) => {
+    const { plantas, planta } = estado
+    if (plantas.length < 2) return
+    const actual = Math.max(0, plantas.findIndex((p) => p.id === planta?.id))
+    return seleccionar(plantas[(actual + paso + plantas.length) % plantas.length])
   }
 
   // Riega, da luz o abona a la planta que se ve y avisa el resultado
@@ -74,5 +80,5 @@ export default function useHome() {
     }
   }
 
-  return { ...estado, aviso, ocupado, mover, cuidar, recargar: cargar }
+  return { ...estado, aviso, ocupado, mover, seleccionar, cuidar, recargar: cargar }
 }

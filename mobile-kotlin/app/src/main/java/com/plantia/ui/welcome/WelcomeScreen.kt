@@ -1,5 +1,8 @@
 package com.plantia.ui.welcome
 
+import com.plantia.ui.theme.SobrePrimario
+import com.plantia.ui.theme.DividerColor
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -253,7 +256,7 @@ private fun Contenido(visible: Boolean, onCrearCuenta: () -> Unit, onIniciarSesi
                     .height(56.dp)
                     .escalaAlPresionar(interaccion),
                 shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White),
+                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
             ) {
                 Text("Crear mi Invernadero", fontSize = 17.sp, fontWeight = FontWeight.Bold)
@@ -284,7 +287,7 @@ private fun Etiqueta(icono: ImageVector, texto: String, modifier: Modifier = Mod
         modifier = modifier,
         shape = CircleShape,
         color = SurfaceWhite.copy(alpha = 0.92f),
-        border = BorderStroke(1.dp, Color(0x1F10B981)),
+        border = BorderStroke(1.dp, DividerColor),
         shadowElevation = 1.dp
     ) {
         Row(

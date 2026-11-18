@@ -1,18 +1,30 @@
 import { useCallback, useEffect, useState } from 'react'
 import { urlImagen } from '../../../services/home'
-import { MOMENTOS } from '../../../services/tienda'
 import {
   agregarFondo, cambiarEstadoProducto, editarProducto, listarProductos,
 } from '../../../services/admin/tienda'
-import FormularioProducto from './FormularioProducto'
-import '../misiones/misiones.css'
+import FormularioProducto, { TIPOS_PRODUCTO } from './FormularioProducto'
+import { Aviso, BotonIcono, Chip, Icono, Interruptor, PENDIENTE } from '../misiones/kit'
 import './tienda-admin.css'
 
-const TEXTO_TIPO = { ABONO: '🌿 Abono', FONDO: '🖼️ Fondo', MACETA: '🪴 Maceta' }
+const COLOR_TIPO = { MACETA: 'var(--luz)', INVERNADERO: 'var(--primario)', FONDO: 'var(--agua)', ABONO: 'var(--abono)' }
+const FILTROS = [['TODOS', 'Todos'], ['MACETA', 'Macetas'], ['INVERNADERO', 'Invernaderos'], ['FONDO', 'Fondos'], ['ABONO', 'Abono']]
+const COLUMNAS = 'minmax(0, 1.4fr) 104px 62px 62px 44px 36px'
+const textoTipo = (v) => TIPOS_PRODUCTO.find((t) => t.valor === v)?.texto.toUpperCase() || v
+
+function Vista({ p }) {
+  const imagen = p.variantes?.[0]?.vista || p.vista
+  return (
+    <span className="ak-tienda-th">
+      {imagen ? <img src={urlImagen(imagen)} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} /> : <span>{p.nombre.charAt(0)}</span>}
+    </span>
+  )
+}
 
 export default function TiendaAdmin() {
   const [estado, setEstado] = useState({ cargando: true, items: [], error: '' })
-  const [formulario, setFormulario] = useState(null) // null = oculto, {} = agregar fondo, producto = editar
+  const [panel, setPanel] = useState(null) // null = cerrado, {} = nuevo, producto = editar
+  const [filtro, setFiltro] = useState('TODOS')
   const [error, setError] = useState('')
 
   const cargar = useCallback(async () => {
@@ -27,9 +39,9 @@ export default function TiendaAdmin() {
   useEffect(() => { cargar() }, [cargar])
 
   const guardar = async (datos) => {
-    if (formulario?.id_item) await editarProducto(formulario.id_item, datos)
+    if (panel?.id_item) await editarProducto(panel.id_item, datos)
     else await agregarFondo(datos)
-    setFormulario(null)
+    setPanel(null)
     await cargar()
   }
 
@@ -44,72 +56,70 @@ export default function TiendaAdmin() {
   }
 
   const { cargando, items, error: errorCarga } = estado
-  if (cargando) return <div className="home-cargando"><span className="home-giro" aria-label="Cargando" /></div>
+  if (cargando) return <div className="ak-cargando"><span className="home-giro" aria-label="Cargando" /></div>
 
-  const activos = items.filter((i) => i.activo).length
+  const visibles = items.filter((i) => filtro === 'TODOS' || i.tipo === filtro)
+  const venta = visibles.filter((i) => i.activo)
+  const apagados = visibles.filter((i) => !i.activo)
+
+  const fila = (p) => (
+    <div key={p.id_item} className={`ak-tr ${panel?.id_item === p.id_item ? 'ak-tr-sel' : ''} ${p.activo ? '' : 'ak-apagada'}`} style={{ '--cols': COLUMNAS, '--ancho': '620px' }}>
+      <div className="ak-tienda-prod">
+        <Vista p={p} />
+        <span><b>{p.nombre}</b>{p.variantes?.length > 0 && <small>{p.variantes.length} de 3 escenas</small>}</span>
+      </div>
+      <Chip color={COLOR_TIPO[p.tipo]}>{textoTipo(p.tipo)}</Chip>
+      <span className="ak-hojas"><Icono nombre="leaf" tam={15} />{p.precio_monedas}</span>
+      <span>Nivel {p.nivel_requerido}</span>
+      <Interruptor
+        activo={p.activo} onChange={() => alternar(p)} etiqueta={`${p.nombre}: a la venta`}
+        disabled={p.tipo === 'MACETA' && !p.activo} titulo={p.tipo === 'MACETA' && !p.activo ? 'Las macetas aún no están disponibles' : undefined}
+      />
+      <span className="ak-ra">
+        <BotonIcono icono="edit" etiqueta={`Editar ${p.nombre}`} onClick={() => setPanel(p)} />
+      </span>
+    </div>
+  )
 
   return (
-    <div className="misiones">
-      {errorCarga && (
-        <div className="home-error" role="alert"><span>{errorCarga}</span><button onClick={cargar}>Reintentar</button></div>
-      )}
-      {error && <div className="home-error" role="alert"><span>{error}</span></div>}
+    <div className="ak-pagina">
+      <div className="ak-cab">
+        <div><h2 className="ak-h2">Tienda</h2><p>Crea y edita macetas, invernaderos, fondos y abonos que los usuarios compran con hojas.</p></div>
+        <button className="ak-btn" onClick={() => setPanel({})}><Icono nombre="plus" tam={18} />Nuevo producto</button>
+      </div>
+      <Aviso error={errorCarga} onReintentar={cargar} />
+      <Aviso error={error} />
 
-      <section className="cat-resumen aparece">
-        <span className="cat-dato">A la venta <b>{activos}</b></span>
-        <span className="cat-dato">Desactivados <b>{items.length - activos}</b></span>
-        <button className="mision-primario" onClick={() => setFormulario({})}>+ Agregar fondo</button>
-      </section>
+      <div className="ak-chips" role="group" aria-label="Filtrar por tipo">
+        {FILTROS.map(([valor, texto]) => (
+          <button key={valor} className={filtro === valor ? 'on' : ''} aria-pressed={filtro === valor} onClick={() => setFiltro(valor)}>{texto}</button>
+        ))}
+      </div>
 
-      {formulario && (
-        <FormularioProducto
-          key={formulario.id_item || 'nuevo'}
-          producto={formulario.id_item ? formulario : null}
-          onGuardar={guardar}
-          onCancelar={() => setFormulario(null)}
-        />
-      )}
-
-      <section className="tarjeta aparece" style={{ animationDelay: '0.06s' }}>
-        {items.length === 0 ? (
-          <p className="historial-vacio">La tienda está vacía.</p>
-        ) : (
-          <div className="tabla-escaneos">
-            <table className="cat-tabla">
-              <thead><tr><th>Producto</th><th>Precio</th><th>Nivel</th><th>Estado</th><th /></tr></thead>
-              <tbody>
-                {items.map((p) => (
-                  <tr key={p.id_item} className={p.activo ? '' : 'mision-apagada'}>
-                    <td className="tienda-admin-producto">
-                      {p.variantes?.length > 0 ? (
-                        <span className="tienda-admin-vistas">
-                          {p.variantes.map((v) => (
-                            <img key={v.momento} src={urlImagen(v.vista)} alt={`Escena de ${MOMENTOS[v.momento]?.texto || v.momento}`} title={MOMENTOS[v.momento]?.texto} onError={(e) => { e.currentTarget.style.display = 'none' }} />
-                          ))}
-                        </span>
-                      ) : null}
-                      <span>
-                        <b>{p.nombre}</b>
-                        <small className="mision-detalle">
-                          {TEXTO_TIPO[p.tipo] || p.tipo}
-                          {p.variantes?.length > 0 && ` · ${p.variantes.length} de 3 escenas`}
-                        </small>
-                      </span>
-                    </td>
-                    <td>{p.precio_monedas} 🍃</td>
-                    <td>{p.nivel_requerido}</td>
-                    <td>{p.activo ? 'A la venta' : 'Desactivado'}</td>
-                    <td className="mision-botones">
-                      <button onClick={() => setFormulario(p)}>Editar</button>
-                      {p.tipo !== 'MACETA' && <button onClick={() => alternar(p)}>{p.activo ? 'Desactivar' : 'Activar'}</button>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className={`ak-cols ${panel ? 'ak-con-panel' : ''}`}>
+        <section className="ak-card">
+          <h3>A la venta <span>· {venta.length}</span></h3>
+          <div className="ak-lista">
+            <div className="ak-th" style={{ '--cols': COLUMNAS, '--ancho': '620px' }}>
+              <span>Producto</span><span>Tipo</span><span>Precio</span><span>Nivel</span><span>Venta</span><span />
+            </div>
+            {venta.length === 0 ? <p className="ak-vacio">No hay productos a la venta.</p> : venta.map(fila)}
           </div>
+          <h3>Desactivados <span>· {apagados.length}</span></h3>
+          <div className="ak-lista">
+            {apagados.length === 0 ? <p className="ak-vacio">No hay productos desactivados.</p> : apagados.map(fila)}
+          </div>
+        </section>
+
+        {panel && (
+          <FormularioProducto
+            key={panel.id_item || 'nuevo'}
+            producto={panel.id_item ? panel : null}
+            onGuardar={guardar}
+            onCancelar={() => setPanel(null)}
+          />
         )}
-      </section>
+      </div>
     </div>
   )
 }

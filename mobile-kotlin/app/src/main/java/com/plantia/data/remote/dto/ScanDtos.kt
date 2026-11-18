@@ -26,5 +26,7 @@ data class RecentScanDto(
     val id: String = "",
     val plantName: String = "",
     val confidence: String = "",
-    val statusColor: String = "#10B981"
+    val statusColor: String = "#10B981",
+    /** La foto que se tomo o subio en ese escaneo (ruta del servidor). */
+    val fotoUrl: String? = null
 )

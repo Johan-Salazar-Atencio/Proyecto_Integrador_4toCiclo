@@ -1,5 +1,11 @@
 package com.plantia.ui.home
 
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
+import com.plantia.ui.theme.BackgroundLight
+import com.plantia.ui.misiones.DestinoMision
+import com.plantia.ui.misiones.destinoDeMision
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,11 +47,13 @@ import com.plantia.ui.escena.EscenaViewModel
 import com.plantia.ui.home.components.EventoCard
 import com.plantia.ui.home.components.MisionesResumenCard
 import com.plantia.ui.home.components.PlantSummaryCard
+import com.plantia.ui.home.components.SinEventoCard
+import com.plantia.ui.home.components.SinPlantasCard
 import com.plantia.ui.home.components.UserHeaderCard
 import com.plantia.ui.home.viewmodel.HomeViewModel
 import com.plantia.ui.theme.AmberAlert
 import com.plantia.ui.theme.AmberLight
-import com.plantia.ui.theme.GreenPrimary
+import com.plantia.ui.theme.Primario
 import com.plantia.ui.theme.RojoClaro
 import com.plantia.ui.theme.RojoTexto
 import com.plantia.ui.theme.TextPrimary
@@ -55,7 +63,8 @@ import com.plantia.ui.theme.TextPrimary
 fun HomeScreen(
     onNavigateToGarden: () -> Unit = {},
     onNavigateToTienda: () -> Unit = {},
-    onNavigateToMisiones: () -> Unit = {}
+    onNavigateToMisiones: () -> Unit = {},
+    onScan: () -> Unit = {}
 ) {
     val homeViewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
     val escenaViewModel: EscenaViewModel = viewModel(factory = EscenaViewModel.Factory)
@@ -74,15 +83,16 @@ fun HomeScreen(
     AvisoToast(homeViewModel.aviso, homeViewModel::avisoMostrado)
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = BackgroundLight
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(0.dp))
 
             if (state.cargando) {
                 Box(
@@ -91,15 +101,15 @@ fun HomeScreen(
                         .height(220.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = GreenPrimary)
+                    CircularProgressIndicator(color = Primario)
                 }
             } else {
                 state.error?.let { mensaje ->
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        shape = RoundedCornerShape(12.dp),
+                            .padding(horizontal = 12.dp),
+                        shape = RoundedCornerShape(18.dp),
                         color = RojoClaro
                     ) {
                         Row(
@@ -124,11 +134,15 @@ fun HomeScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
                 state.usuario?.let { usuario ->
                     UserHeaderCard(user = usuario, onHojas = onNavigateToTienda)
+                }
+
+                // Sin plantas el Inicio no queda vacio: invita a escanear la primera
+                if (state.planta == null && state.error == null) {
+                    SinPlantasCard(onScan = onScan)
                 }
 
                 state.planta?.let { planta ->
@@ -144,12 +158,24 @@ fun HomeScreen(
                 }
 
                 // El evento activo con su imagen y cuenta regresiva; tocarlo lleva a Misiones, donde se previene
-                state.alerta?.let { alerta ->
-                    EventoCard(alerta = alerta, onClick = onNavigateToMisiones)
+                // Sin evento se ve un aviso tranquilo con consejos que van pasando
+                if (state.alerta != null) {
+                    EventoCard(alerta = state.alerta, onClick = onNavigateToMisiones)
+                } else if (state.error == null) {
+                    SinEventoCard()
                 }
 
                 if (state.misiones.isNotEmpty()) {
-                    MisionesResumenCard(misiones = state.misiones, onClick = onNavigateToMisiones)
+                    MisionesResumenCard(
+                        misiones = state.misiones,
+                        onIr = { mision ->
+                            when (destinoDeMision(mision)) {
+                                DestinoMision.ESCANEAR -> onScan()
+                                DestinoMision.PLANTAS_VIRTUALES -> onNavigateToGarden()
+                                null -> onNavigateToMisiones()
+                            }
+                        }
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))

@@ -1,13 +1,47 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  cambiarEstadoMision, crearMision, editarMision, iconoTipoMision, listarMisiones, textoTipoMision,
+  cambiarEstadoMision, crearMision, editarMision, listarMisiones, textoTipoMision,
 } from '../../../services/admin/misiones'
 import FormularioMision from './FormularioMision'
+import { Aviso, BotonIcono, Chip, Icono, Interruptor, PENDIENTE } from './kit'
 import './misiones.css'
+
+const COLOR_TIPO = {
+  RIEGO: 'var(--agua)', ESCANEO: 'var(--primario)', DIGITALIZAR: 'var(--primario)', REFUGIO: 'var(--evento)',
+  SOL: 'var(--luz)', ABONO: 'var(--abono)', CUIDADO: 'var(--primario)', COLECCION: 'var(--abono)',
+}
+const COLUMNAS = 'minmax(0, 1.5fr) 120px 50px 60px 56px 44px 36px'
+
+function FilaMision({ m, seleccionada, onEditar, onAlternar }) {
+  return (
+    <div className={`ak-tr ${seleccionada ? 'ak-tr-sel' : ''} ${m.activa ? '' : 'ak-apagada'}`} style={{ '--cols': COLUMNAS, '--ancho': '640px' }}>
+      <div>
+        <b>{m.titulo}</b>
+        {m.descripcion && <small>{m.descripcion}</small>}
+      </div>
+      <Chip color={COLOR_TIPO[m.tipo]}>{textoTipoMision(m.tipo)}</Chip>
+      <span>{m.meta}</span>
+      <span className="ak-hojas"><Icono nombre="leaf" tam={15} />{m.recompensa_monedas}</span>
+      <span>{m.recompensa_xp} XP</span>
+      <Interruptor activo={m.activa} onChange={() => onAlternar(m)} etiqueta={`${m.titulo}: activa`} />
+      <span className="ak-ra">
+        <BotonIcono icono="edit" etiqueta={`Editar ${m.titulo}`} onClick={() => onEditar(m)} />
+      </span>
+    </div>
+  )
+}
+
+function Cabecera() {
+  return (
+    <div className="ak-th" style={{ '--cols': COLUMNAS, '--ancho': '640px' }}>
+      <span>Misión</span><span>Tipo</span><span>Meta</span><span>Hojas</span><span>XP</span><span>Activa</span><span />
+    </div>
+  )
+}
 
 export default function Misiones() {
   const [estado, setEstado] = useState({ cargando: true, misiones: [], error: '' })
-  const [formulario, setFormulario] = useState(null) // null = oculto, {} = nueva, mision = editar
+  const [panel, setPanel] = useState(null) // null = cerrado, {} = nueva, mision = editar
   const [error, setError] = useState('')
 
   const cargar = useCallback(async () => {
@@ -21,9 +55,9 @@ export default function Misiones() {
   useEffect(() => { cargar() }, [cargar])
 
   const guardar = async (datos) => {
-    if (formulario?.id_mision) await editarMision(formulario.id_mision, datos)
+    if (panel?.id_mision) await editarMision(panel.id_mision, datos)
     else await crearMision(datos)
-    setFormulario(null)
+    setPanel(null)
     await cargar()
   }
 
@@ -38,61 +72,43 @@ export default function Misiones() {
   }
 
   const { cargando, misiones, error: errorCarga } = estado
-  if (cargando) return <div className="home-cargando"><span className="home-giro" aria-label="Cargando" /></div>
+  if (cargando) return <div className="ak-cargando"><span className="home-giro" aria-label="Cargando" /></div>
 
-  const activas = misiones.filter((m) => m.activa).length
+  const activas = misiones.filter((m) => m.activa)
+  const apagadas = misiones.filter((m) => !m.activa)
+  const fila = (m) => <FilaMision key={m.id_mision} m={m} seleccionada={panel?.id_mision === m.id_mision} onEditar={setPanel} onAlternar={alternar} />
 
   return (
-    <div className="misiones">
-      {errorCarga && (
-        <div className="home-error" role="alert"><span>{errorCarga}</span><button onClick={cargar}>Reintentar</button></div>
-      )}
-      {error && <div className="home-error" role="alert"><span>{error}</span></div>}
+    <div className="ak-pagina">
+      <div className="ak-cab">
+        <div><h2 className="ak-h2">Misiones diarias</h2><p>Crea, edita o desactiva las misiones que ven los usuarios cada día.</p></div>
+        <button className="ak-btn" onClick={() => setPanel({})}><Icono nombre="plus" tam={18} />Nueva misión</button>
+      </div>
+      <Aviso error={errorCarga} onReintentar={cargar} />
+      <Aviso error={error} />
 
-      <section className="cat-resumen aparece">
-        <span className="cat-dato">Activas <b>{activas}</b></span>
-        <span className="cat-dato">Desactivadas <b>{misiones.length - activas}</b></span>
-        <button className="mision-primario" onClick={() => setFormulario({})}>+ Nueva misión</button>
-      </section>
-
-      {formulario && (
-        <FormularioMision
-          key={formulario.id_mision || 'nueva'}
-          mision={formulario.id_mision ? formulario : null}
-          onGuardar={guardar}
-          onCancelar={() => setFormulario(null)}
-        />
-      )}
-
-      <section className="tarjeta aparece" style={{ animationDelay: '0.06s' }}>
-        {misiones.length === 0 ? (
-          <p className="historial-vacio">Aún no hay misiones. Crea la primera.</p>
-        ) : (
-          <div className="tabla-escaneos">
-            <table className="cat-tabla">
-              <thead><tr><th>Misión</th><th>Meta</th><th>Recompensa</th><th>Estado</th><th /></tr></thead>
-              <tbody>
-                {misiones.map((m) => (
-                  <tr key={m.id_mision} className={m.activa ? '' : 'mision-apagada'}>
-                    <td>
-                      <b>{iconoTipoMision(m.tipo)} {m.titulo}</b>
-                      {m.predeterminada && <span className="mision-etiqueta">Predeterminada</span>}
-                      <small className="mision-detalle">{textoTipoMision(m.tipo)}{m.descripcion ? ` · ${m.descripcion}` : ''}</small>
-                    </td>
-                    <td>{m.meta}</td>
-                    <td>{m.recompensa_xp} XP · {m.recompensa_monedas} 🍃</td>
-                    <td>{m.activa ? 'Activa' : 'Desactivada'}</td>
-                    <td className="mision-botones">
-                      <button onClick={() => setFormulario(m)}>Editar</button>
-                      <button onClick={() => alternar(m)}>{m.activa ? 'Desactivar' : 'Activar'}</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className={`ak-cols ${panel ? 'ak-con-panel' : ''}`}>
+        <section className="ak-card">
+          <h3>Activas <span>· {activas.length}</span></h3>
+          <div className="ak-lista">
+            <Cabecera />
+            {activas.length === 0 ? <p className="ak-vacio">No hay misiones activas.</p> : activas.map(fila)}
           </div>
+          <h3>Desactivadas <span>· {apagadas.length}</span></h3>
+          <div className="ak-lista">
+            {apagadas.length === 0 ? <p className="ak-vacio">No hay misiones desactivadas.</p> : apagadas.map(fila)}
+          </div>
+        </section>
+
+        {panel && (
+          <FormularioMision
+            key={panel.id_mision || 'nueva'}
+            mision={panel.id_mision ? panel : null}
+            onGuardar={guardar}
+            onCancelar={() => setPanel(null)}
+          />
         )}
-      </section>
+      </div>
     </div>
   )
 }

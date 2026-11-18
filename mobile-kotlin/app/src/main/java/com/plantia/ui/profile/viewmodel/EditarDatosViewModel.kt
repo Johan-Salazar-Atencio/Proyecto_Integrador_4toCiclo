@@ -7,25 +7,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.plantia.data.model.PlantSummary
-import com.plantia.data.repository.GardenRepository
-import com.plantia.data.repository.PlantaResultado
-import com.plantia.data.repository.PlantasResultado
 import com.plantia.data.repository.UsuarioRepository
 import com.plantia.di.AppContainer
 import kotlinx.coroutines.launch
 
-/** Editar datos: el nombre del usuario y el nombre (apodo) de cada una de sus plantas. */
+/** Editar datos: el usuario cambia su nombre; el correo solo se muestra. El apodo de las plantas se cambia en cada planta. */
 class EditarDatosViewModel(
-    private val usuarios: UsuarioRepository,
-    private val garden: GardenRepository
+    private val usuarios: UsuarioRepository
 ) : ViewModel() {
 
     /** Nombre guardado del usuario (null mientras carga). */
     var nombreGuardado: String? by mutableStateOf(null)
         private set
 
-    var plantas: List<PlantSummary> by mutableStateOf(emptyList())
+    /** Correo de la cuenta: solo lectura. */
+    var correo: String by mutableStateOf("")
         private set
 
     var cargando: Boolean by mutableStateOf(true)
@@ -46,8 +42,9 @@ class EditarDatosViewModel(
     private fun cargar() {
         viewModelScope.launch {
             cargando = true
-            nombreGuardado = runCatching { usuarios.perfil() }.getOrNull()?.name
-            plantas = (garden.listar() as? PlantasResultado.Con)?.plantas.orEmpty()
+            val perfil = runCatching { usuarios.perfil() }.getOrNull()
+            nombreGuardado = perfil?.name
+            correo = perfil?.email.orEmpty()
             cargando = false
         }
     }
@@ -69,23 +66,9 @@ class EditarDatosViewModel(
         }
     }
 
-    /** Cambia el apodo de una planta; vacio vuelve a su nombre comun. */
-    fun guardarPlanta(planta: PlantSummary, nuevo: String) {
-        val id = planta.id ?: return
-        viewModelScope.launch {
-            when (val r = garden.renombrar(id, nuevo.trim())) {
-                is PlantaResultado.Con -> {
-                    plantas = plantas.map { if (it.id == id) r.planta else it }
-                    aviso = "Nombre de ${r.planta.name} guardado"
-                }
-                is PlantaResultado.Fallo -> aviso = "No se pudo guardar: ${r.mensaje}"
-            }
-        }
-    }
-
     companion object {
         val Factory = viewModelFactory {
-            initializer { EditarDatosViewModel(AppContainer.usuario, AppContainer.garden) }
+            initializer { EditarDatosViewModel(AppContainer.usuario) }
         }
     }
 }

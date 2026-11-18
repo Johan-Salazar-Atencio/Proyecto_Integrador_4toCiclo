@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { TIPOS_MISION } from '../../../services/admin/misiones'
+import { Alternador, Campo, Icono, PENDIENTE } from './kit'
 
-const VACIA = { titulo: '', descripcion: '', tipo: 'RIEGO', meta: 1, recompensa_xp: 10, recompensa_monedas: 10, orden: 0 }
+const VACIA = { titulo: '', descripcion: '', tipo: 'RIEGO', meta: 1, recompensa_xp: 10, recompensa_monedas: 10, orden: 0, activa: true }
 
-// Alta y edicion de una mision. `mision` null = crear.
+// Panel "Editar misión" (o "Nueva misión" si `mision` es null)
 export default function FormularioMision({ mision, onGuardar, onCancelar }) {
   const [datos, setDatos] = useState(mision ? { ...VACIA, ...mision, descripcion: mision.descripcion || '' } : VACIA)
   const [guardando, setGuardando] = useState(false)
@@ -23,8 +24,9 @@ export default function FormularioMision({ mision, onGuardar, onCancelar }) {
         tipo: datos.tipo,
         meta: datos.meta,
         recompensa_xp: datos.recompensa_xp,
-        recompensa_monedas: datos.recompensa_monedas,
+        recompensa_monedas: datos.recompensa_monedas, // el backend lo llama "monedas"; en pantalla son "hojas"
         orden: datos.orden,
+        activa: datos.activa,
       })
     } catch (err) {
       setError(err.message)
@@ -33,29 +35,36 @@ export default function FormularioMision({ mision, onGuardar, onCancelar }) {
   }
 
   return (
-    <form className="tarjeta formulario mision-form aparece" onSubmit={enviar}>
-      <h2>{mision ? 'Editar misión' : 'Nueva misión'}</h2>
-      <label><span>Título</span>
-        <input value={datos.titulo} maxLength={100} required onChange={(e) => cambiar('titulo', e.target.value)} />
-      </label>
-      <label><span>Descripción</span>
-        <textarea rows={2} value={datos.descripcion} onChange={(e) => cambiar('descripcion', e.target.value)} />
-      </label>
-      <label><span>Qué debe hacer el usuario</span>
-        <select value={datos.tipo} onChange={(e) => cambiar('tipo', e.target.value)}>
-          {TIPOS_MISION.map((t) => <option key={t.valor} value={t.valor}>{t.icono} {t.texto}</option>)}
-        </select>
-      </label>
-      <div className="mision-numeros">
-        <label><span>Meta (veces)</span><input type="number" min={1} required value={datos.meta} onChange={numero('meta')} /></label>
-        <label><span>XP</span><input type="number" min={0} required value={datos.recompensa_xp} onChange={numero('recompensa_xp')} /></label>
-        <label><span>Monedas</span><input type="number" min={0} required value={datos.recompensa_monedas} onChange={numero('recompensa_monedas')} /></label>
-        <label><span>Orden</span><input type="number" min={0} required value={datos.orden} onChange={numero('orden')} /></label>
+    <form className="ak-card ak-panel" onSubmit={enviar}>
+      <div className="ak-panel-cab">
+        <h3>{mision ? 'Editar misión' : 'Nueva misión'}</h3>
+        <button type="button" className="ak-ib" aria-label="Cerrar panel" onClick={onCancelar}><Icono nombre="x" /></button>
       </div>
-      {error && <p className="home-error" role="alert">{error}</p>}
-      <div className="mision-acciones">
-        <button type="button" className="mision-secundario" onClick={onCancelar} disabled={guardando}>Cancelar</button>
-        <button type="submit" className="mision-primario" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</button>
+      <Campo etiqueta="Título">
+        <input value={datos.titulo} maxLength={100} required onChange={(e) => cambiar('titulo', e.target.value)} />
+      </Campo>
+      <Campo etiqueta="Qué debe hacer el usuario">
+        <select value={datos.tipo} onChange={(e) => cambiar('tipo', e.target.value)}>
+          {TIPOS_MISION.map((t) => <option key={t.valor} value={t.valor}>{t.texto}</option>)}
+        </select>
+      </Campo>
+      <Campo etiqueta="Descripción">
+        <textarea rows={2} value={datos.descripcion} onChange={(e) => cambiar('descripcion', e.target.value)} />
+      </Campo>
+      <div className="ak-dos">
+        <Campo etiqueta="Meta (veces)"><input type="number" min={1} required value={datos.meta} onChange={numero('meta')} /></Campo>
+        <Campo etiqueta="Orden"><input type="number" min={0} required value={datos.orden} onChange={numero('orden')} /></Campo>
+      </div>
+      <div className="ak-dos">
+        <Campo etiqueta="Recompensa (hojas)"><input type="number" min={0} required value={datos.recompensa_monedas} onChange={numero('recompensa_monedas')} /></Campo>
+        <Campo etiqueta="Recompensa (XP)"><input type="number" min={0} required value={datos.recompensa_xp} onChange={numero('recompensa_xp')} /></Campo>
+      </div>
+      <Alternador titulo="Activa" detalle="Los usuarios la ven hoy" activo={datos.activa} onChange={(v) => cambiar('activa', v)} />
+      <Alternador titulo="Solo durante un evento" detalle="Se muestra con la etiqueta EVENTO" activo={false} onChange={() => {}} disabled tituloBoton={PENDIENTE} />
+      {error && <p className="ak-error" role="alert">{error}</p>}
+      <div className="ak-pie">
+        <button type="button" className="ak-btn ak-btn-g" onClick={onCancelar} disabled={guardando}>Cancelar</button>
+        <button type="submit" className="ak-btn" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</button>
       </div>
     </form>
   )

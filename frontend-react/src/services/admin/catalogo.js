@@ -15,6 +15,7 @@ const normalizar = (p) => ({
   tempMin: p.temperatura_min_c ?? p.temperaturaMinC,
   tempMax: p.temperatura_max_c ?? p.temperaturaMaxC,
   toxica: Boolean(p.es_toxica_mascotas ?? p.esToxicaMascotas),
+  imagen: p.sprite_base_url ?? p.spriteBaseUrl ?? '',
   publicada: p.publicada ?? true,
 })
 
@@ -28,6 +29,7 @@ const aDjango = (campos) => {
   if (campos.tempMin !== undefined) out.temperatura_min_c = campos.tempMin
   if (campos.tempMax !== undefined) out.temperatura_max_c = campos.tempMax
   if (campos.toxica !== undefined) out.es_toxica_mascotas = campos.toxica
+  if (campos.imagen !== undefined) out.sprite_base_url = campos.imagen
   if (campos.publicada !== undefined) out.publicada = campos.publicada
   return out
 }

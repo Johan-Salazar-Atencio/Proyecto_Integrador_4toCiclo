@@ -1,5 +1,13 @@
 package com.plantia.ui.scan.components
 
+import com.plantia.ui.theme.ColorDarkBackground
+import com.plantia.ui.theme.ColorDarkOutline
+import com.plantia.ui.theme.ColorDarkSurface
+import com.plantia.ui.theme.ColorDarkSurfaceVariant
+import com.plantia.ui.theme.ColorDarkTextMuted
+import com.plantia.ui.theme.PeligroOscuro
+import com.plantia.ui.theme.PrimarioOscuro
+import com.plantia.ui.theme.SobrePrimarioOscuro
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -41,8 +49,8 @@ import com.plantia.data.remote.dto.ScanResultDto
 import com.plantia.ui.scan.viewmodel.ScanUiState
 import java.io.File
 
-private val Verde = Color(0xFF10B981)
-private val FondoTarjeta = Color(0xFF111827)
+private val Verde = PrimarioOscuro
+private val FondoTarjeta = ColorDarkSurface
 
 @Composable
 fun PlantResultCard(
@@ -179,7 +187,7 @@ private fun ErrorContent(message: String) {
     ) {
         Text(
             "No se pudo escanear",
-            color = Color(0xFFF87171),
+            color = PeligroOscuro,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold
         )

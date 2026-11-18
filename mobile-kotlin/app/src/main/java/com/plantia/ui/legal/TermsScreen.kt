@@ -1,5 +1,6 @@
 package com.plantia.ui.legal
 
+import com.plantia.ui.theme.SobrePrimario
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -112,7 +113,7 @@ fun TermsScreen(onBack: () -> Unit = {}) {
                         onClick = onBack,
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+                        colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
                     ) {
                         Text("Entendido", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }

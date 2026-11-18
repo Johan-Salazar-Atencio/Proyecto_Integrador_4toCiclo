@@ -38,7 +38,7 @@ internal class FakeTiendaRepository : TiendaRepository {
         compras += idItem
         return respuesta
     }
-    override suspend fun usarAbono(idPlanta: Int): AbonoResultado {
+    override suspend fun usarAbono(idPlanta: Int, idItem: Int?): AbonoResultado {
         usosDeAbono += idPlanta
         return abono
     }
@@ -99,7 +99,7 @@ class TiendaViewModelTest {
     fun el_abono_se_usa_en_la_planta_del_jardin() {
         val vm = TiendaViewModel(repo, garden)
 
-        vm.usarAbono()
+        vm.usarAbono(item(1, TiendaItem.ABONO, 30))
 
         assertEquals(listOf(1), repo.usosDeAbono)
         assertTrue(vm.aviso!!.startsWith("¡Abono aplicado!"))
@@ -110,7 +110,7 @@ class TiendaViewModelTest {
         garden.activa = PlantaActivaResultado.SinPlanta
         val vm = TiendaViewModel(repo, garden)
 
-        vm.usarAbono()
+        vm.usarAbono(item(1, TiendaItem.ABONO, 30))
 
         assertTrue(repo.usosDeAbono.isEmpty())
         assertEquals("Primero digitaliza una planta para abonarla", vm.aviso)
@@ -121,7 +121,7 @@ class TiendaViewModelTest {
         repo.abono = AbonoResultado.Fallo("Ya usaste un abono con esta planta hoy")
         val vm = TiendaViewModel(repo, garden)
 
-        vm.usarAbono()
+        vm.usarAbono(item(1, TiendaItem.ABONO, 30))
 
         assertEquals("Ya usaste un abono con esta planta hoy", vm.aviso)
     }

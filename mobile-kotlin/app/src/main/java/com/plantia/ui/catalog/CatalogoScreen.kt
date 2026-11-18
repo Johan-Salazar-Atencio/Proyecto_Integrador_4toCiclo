@@ -1,5 +1,11 @@
 package com.plantia.ui.catalog
 
+import com.plantia.ui.theme.DividerColor
+
+import androidx.compose.foundation.BorderStroke
+
+import com.plantia.ui.theme.Peligro
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -165,9 +171,9 @@ fun CatalogoScreen(
 @Composable
 private fun CatalogoCard(item: CatalogoItem, onClick: () -> Unit) {
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(24.dp),
         color = SurfaceWhite,
-        shadowElevation = 1.dp,
+        border = BorderStroke(1.dp, DividerColor),
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
@@ -215,7 +221,7 @@ private fun CatalogoCard(item: CatalogoItem, onClick: () -> Unit) {
                 Icon(
                     imageVector = Icons.Default.Pets,
                     contentDescription = "Toxica para mascotas",
-                    tint = Color(0xFFDC2626),
+                    tint = Peligro,
                     modifier = Modifier.size(20.dp)
                 )
             }

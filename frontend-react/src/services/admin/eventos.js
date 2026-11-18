@@ -5,6 +5,9 @@ import { cabecerasAdmin } from './auth'
 // Escritura: POST /django/api/admin/eventos/  (crea ACTIVO)
 //            PATCH /django/api/admin/eventos/{id}/  { estado: "FINALIZADO" }
 
+// Las paginas lo emiten en window cuando lanzan o cancelan un desastre, para refrescar la insignia del menu
+export const AVISO_EVENTOS = 'plantia:eventos'
+
 export const TIPOS = [
   { valor: 'HUAYCO', icono: '🌊', texto: 'Huayco / Lodazal', mensaje: '¡Alerta de huayco! Se pronostican lluvias torrenciales. Resguarda tus plantas en el interior inmediatamente.' },
   { valor: 'HELADA', icono: '❄️', texto: 'Helada nocturna', mensaje: 'Helada esta noche: acerca tus plantas a una ventana protegida y evita el riego al atardecer.' },

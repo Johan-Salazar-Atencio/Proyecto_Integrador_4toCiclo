@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 const ANCHO = 640
 const ALTO = 220
-const MARGEN = { izq: 8, der: 8, arriba: 16, abajo: 26 }
+const MARGEN = { izq: 34, der: 8, arriba: 16, abajo: 26 }
 
 // Grafico de lineas con area (SVG, sin librerias): usuarios nuevos y escaneos por dia
 export default function Grafico({ datos }) {
@@ -30,31 +30,34 @@ export default function Grafico({ datos }) {
   return (
     <div className="grafico">
       <div className="grafico-leyenda">
-        <span><i style={{ background: 'var(--verde)' }} /> Usuarios nuevos</span>
-        <span><i style={{ background: 'var(--azul)' }} /> Escaneos IA</span>
+        <span><i style={{ background: 'var(--primario)' }} /> Usuarios nuevos</span>
+        <span><i style={{ background: 'var(--agua)' }} /> Escaneos IA</span>
       </div>
 
       <div className="grafico-caja">
         <svg viewBox={`0 0 ${ANCHO} ${ALTO}`} onMouseMove={mover} onMouseLeave={() => setActivo(null)} role="img" aria-label="Actividad de usuarios y escaneos de los últimos días">
           <defs>
             <linearGradient id="relleno-verde" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#22c55e" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+              <stop offset="0%" style={{ stopColor: 'var(--primario)', stopOpacity: 0.22 }} />
+              <stop offset="100%" style={{ stopColor: 'var(--primario)', stopOpacity: 0 }} />
             </linearGradient>
             <linearGradient id="relleno-azul" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.28" />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+              <stop offset="0%" style={{ stopColor: 'var(--agua)', stopOpacity: 0.25 }} />
+              <stop offset="100%" style={{ stopColor: 'var(--agua)', stopOpacity: 0 }} />
             </linearGradient>
           </defs>
 
-          {[0.25, 0.5, 0.75, 1].map((p) => (
-            <line key={p} x1={MARGEN.izq} x2={ANCHO - MARGEN.der} y1={MARGEN.arriba + alto * (1 - p)} y2={MARGEN.arriba + alto * (1 - p)} className="grafico-guia" />
+          {[0, 0.25, 0.5, 0.75, 1].map((p) => (
+            <g key={p}>
+              <line x1={MARGEN.izq} x2={ANCHO - MARGEN.der} y1={MARGEN.arriba + alto * (1 - p)} y2={MARGEN.arriba + alto * (1 - p)} className="grafico-guia" />
+              <text x={MARGEN.izq - 8} y={MARGEN.arriba + alto * (1 - p) + 4} textAnchor="end" className="grafico-eje">{Math.round(maximo * p)}</text>
+            </g>
           ))}
 
           <path d={area('usuarios')} fill="url(#relleno-verde)" />
           <path d={area('escaneos')} fill="url(#relleno-azul)" />
-          <path d={linea('usuarios')} className="grafico-linea" stroke="#22c55e" pathLength="1" />
-          <path d={linea('escaneos')} className="grafico-linea" stroke="#3b82f6" pathLength="1" />
+          <path d={linea('usuarios')} className="grafico-linea" stroke="var(--primario)" pathLength="1" />
+          <path d={linea('escaneos')} className="grafico-linea" stroke="var(--agua)" pathLength="1" />
 
           {[0, Math.floor(datos.length / 2), datos.length - 1].map((i) => (
             <text key={i} x={x(i)} y={ALTO - 6} textAnchor={i === 0 ? 'start' : i === datos.length - 1 ? 'end' : 'middle'} className="grafico-eje">{etiqueta(datos[i].fecha)}</text>
@@ -63,8 +66,8 @@ export default function Grafico({ datos }) {
           {punto && (
             <>
               <line x1={x(activo)} x2={x(activo)} y1={MARGEN.arriba} y2={MARGEN.arriba + alto} className="grafico-cursor" />
-              <circle cx={x(activo)} cy={y(punto.usuarios)} r="5" fill="#22c55e" className="grafico-punto" />
-              <circle cx={x(activo)} cy={y(punto.escaneos)} r="5" fill="#3b82f6" className="grafico-punto" />
+              <circle cx={x(activo)} cy={y(punto.usuarios)} r="5" fill="var(--primario)" className="grafico-punto" />
+              <circle cx={x(activo)} cy={y(punto.escaneos)} r="5" fill="var(--agua)" className="grafico-punto" />
             </>
           )}
         </svg>
@@ -72,8 +75,8 @@ export default function Grafico({ datos }) {
         {punto && (
           <div className="grafico-dato" style={{ left: `${(x(activo) / ANCHO) * 100}%` }}>
             <b>{etiqueta(punto.fecha)}</b>
-            <span><i style={{ background: 'var(--verde)' }} /> {punto.usuarios.toLocaleString('es-PE')} usuarios nuevos</span>
-            <span><i style={{ background: 'var(--azul)' }} /> {punto.escaneos.toLocaleString('es-PE')} escaneos</span>
+            <span><i style={{ background: 'var(--primario)' }} /> {punto.usuarios.toLocaleString('es-PE')} usuarios nuevos</span>
+            <span><i style={{ background: 'var(--agua)' }} /> {punto.escaneos.toLocaleString('es-PE')} escaneos</span>
           </div>
         )}
       </div>

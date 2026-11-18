@@ -1,26 +1,31 @@
-.catalogo { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.catalogo { display: flex; flex-direction: column; gap: 16px; max-width: 1200px; margin: 0 auto; }
 
 .catalogo-filtros { display: flex; flex-wrap: wrap; gap: 10px; }
-.catalogo-filtros input { flex: 1; min-width: 200px; height: 46px; padding: 0 16px; background: var(--superficie); border: 1.5px solid var(--linea); border-radius: 999px; color: var(--texto); outline: 0; transition: border-color var(--transicion), box-shadow var(--transicion); }
-.catalogo-filtros input:focus { border-color: var(--verde); box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
-.catalogo-toxicas { height: 46px; padding: 0 18px; background: var(--superficie); border: 1.5px solid var(--linea); border-radius: 999px; color: var(--texto-suave); font-weight: 700; cursor: pointer; transition: background var(--transicion), color var(--transicion), border-color var(--transicion); }
-.catalogo-toxicas.activa { background: var(--ambar-claro); border-color: var(--ambar); color: var(--ambar); }
+.catalogo-buscar { display: flex; align-items: center; flex: 1; gap: 8px; min-width: 200px; height: 46px; padding: 0 16px; background: var(--superficie); border: 1px solid var(--linea); border-radius: 999px; color: var(--texto-suave); transition: border-color var(--transicion), box-shadow var(--transicion); }
+.catalogo-buscar:focus-within { border-color: var(--primario); box-shadow: 0 0 0 3px var(--tinte); }
+.catalogo-buscar input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--texto); font-weight: 600; }
+.catalogo-toxicas { display: inline-flex; align-items: center; gap: 6px; height: 46px; padding: 0 18px; background: var(--superficie); border: 1px solid var(--linea); border-radius: 999px; color: var(--texto-suave); font-weight: 800; cursor: pointer; transition: background var(--transicion), color var(--transicion), border-color var(--transicion); }
+.catalogo-toxicas.activa { background: var(--ambar-claro); border-color: var(--luz); color: color-mix(in srgb, var(--luz) 65%, var(--texto)); }
+.catalogo-toxicas:focus-visible, .catalogo-item:focus-visible { outline: 3px solid var(--primario); outline-offset: 2px; }
 
-@media (max-width: 480px) {
-  .catalogo { padding: 0 4px; }
-  .catalogo-filtros input { min-width: 120px; height: 42px; }
-  .catalogo-toxicas { height: 42px; padding: 0 12px; font-size: 0.85rem; }
-  .catalogo-item { padding: 10px 12px; gap: 10px; }
-  .catalogo-icono { width: 40px; height: 40px; font-size: 1.25rem; }
-}
+.catalogo-cuenta { color: var(--texto-suave); font-weight: 700; font-size: 0.9rem; }
+.catalogo-lista { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 700px) { .catalogo-lista { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px) { .catalogo-lista { grid-template-columns: repeat(3, 1fr); } }
 
-.catalogo-cuenta { color: var(--texto-suave); font-weight: 600; font-size: 0.9rem; }
-.catalogo-lista { display: flex; flex-direction: column; gap: 10px; }
-
-.catalogo-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; color: var(--texto); transition: transform var(--transicion), box-shadow var(--transicion); }
-.catalogo-item:hover { transform: translateY(-2px); }
-.catalogo-icono { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; background: var(--verde-claro); border-radius: 14px; font-size: 1.5rem; }
+.catalogo-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); box-shadow: var(--sombra); color: var(--texto); transition: transform var(--transicion), border-color var(--transicion); }
+.catalogo-item:hover { transform: translateY(-2px); border-color: var(--primario); }
+.catalogo-item > div { min-width: 0; }
+.catalogo-item b { font-weight: 800; }
+.catalogo-icono { display: grid; place-items: center; width: 52px; height: 52px; flex-shrink: 0; background: var(--tinte); color: var(--primario); border-radius: 16px; }
 .catalogo-item small { display: block; color: var(--texto-suave); font-style: italic; }
 .catalogo-datos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.catalogo-datos span { padding: 2px 10px; background: var(--fondo); border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
-.catalogo-datos .chip-alerta { background: var(--ambar-claro); color: var(--ambar); }
+.catalogo-datos span { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: var(--superficie-2); border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+.catalogo-datos .chip-alerta { background: var(--ambar-claro); color: color-mix(in srgb, var(--luz) 65%, var(--texto)); }
+
+@media (max-width: 480px) {
+  .catalogo-buscar, .catalogo-toxicas { height: 42px; }
+  .catalogo-toxicas { padding: 0 12px; font-size: 0.85rem; }
+  .catalogo-item { padding: 10px 12px; gap: 10px; }
+  .catalogo-icono { width: 44px; height: 44px; }
+}

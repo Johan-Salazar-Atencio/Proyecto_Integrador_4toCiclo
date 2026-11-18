@@ -1,5 +1,7 @@
 package com.plantia.ui.garden.components
 
+import com.plantia.ui.theme.SobrePrimario
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -66,12 +68,13 @@ fun EfectoProteccion(disparador: Int, modifier: Modifier = Modifier) {
     }
     val p = progreso.value
     if (p >= 1f) return
+    val colorEscudo = GreenPrimary
     Box(modifier, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val radio = size.maxDimension * 0.75f * p
             val alfa = 1f - p
-            drawCircle(GreenPrimary.copy(alpha = 0.14f * alfa), radius = radio)
-            drawCircle(GreenPrimary.copy(alpha = 0.6f * alfa), radius = radio, style = Stroke(width = 6.dp.toPx()))
+            drawCircle(colorEscudo.copy(alpha = 0.14f * alfa), radius = radio)
+            drawCircle(colorEscudo.copy(alpha = 0.6f * alfa), radius = radio, style = Stroke(width = 6.dp.toPx()))
         }
         Box(
             modifier = Modifier
@@ -86,7 +89,7 @@ fun EfectoProteccion(disparador: Int, modifier: Modifier = Modifier) {
                 .background(GreenPrimary),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Filled.Shield, contentDescription = "Evento prevenido", tint = Color.White, modifier = Modifier.size(44.dp))
+            Icon(Icons.Filled.Shield, contentDescription = "Evento prevenido", tint = SobrePrimario, modifier = Modifier.size(44.dp))
         }
     }
 }

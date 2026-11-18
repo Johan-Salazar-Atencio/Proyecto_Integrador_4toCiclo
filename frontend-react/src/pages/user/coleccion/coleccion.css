@@ -1,57 +1,66 @@
+/* Mi colección: tarjetas de 24px con borde fino, filas --superficie-2, chips redondeados y botones --primario */
 .coleccion { display: flex; flex-direction: column; gap: 20px; }
 
 .coleccion-cabecera { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
-.coleccion-cabecera h2 { font-size: 1.4rem; }
-.coleccion-cabecera p { color: var(--texto-suave); font-weight: 600; }
+.coleccion-cabecera h2 { font-size: 1.6rem; font-weight: 800; }
+.coleccion-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; width: 100%; }
+@media (min-width: 640px) { .coleccion-controles { width: auto; } }
 
-.coleccion-pestanas { display: inline-flex; padding: 4px; background: var(--superficie); border-radius: 999px; box-shadow: var(--sombra); }
-.coleccion-pestanas button { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: var(--texto-suave); font-weight: 700; cursor: pointer; transition: background var(--transicion), color var(--transicion); }
-.coleccion-pestanas button b { padding: 1px 8px; background: var(--fondo); border-radius: 999px; font-size: 0.75rem; }
-.coleccion-pestanas button.activa { background: var(--verde); color: #fff; }
-.coleccion-pestanas button.activa b { background: rgba(255, 255, 255, 0.25); }
+.coleccion-pestanas { display: inline-grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--superficie); border: 1px solid var(--linea); border-radius: 18px; }
+.coleccion-pestanas button { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 130px; height: 40px; padding: 0 16px; border: 0; border-radius: 14px; background: transparent; color: var(--texto-suave); font-weight: 800; cursor: pointer; transition: background var(--transicion), color var(--transicion); }
+.coleccion-pestanas button b { padding: 1px 8px; background: var(--superficie-2); border-radius: 999px; font-size: 0.75rem; }
+.coleccion-pestanas button.activa { background: var(--primario); color: var(--sobre-primario); }
+.coleccion-pestanas button.activa b { background: rgba(255, 255, 255, 0.22); color: inherit; }
+.coleccion-pestanas button:focus-visible { outline: 3px solid var(--primario); outline-offset: 2px; }
 
-.coleccion-grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+.coleccion-buscar { display: flex; align-items: center; flex: 1; gap: 8px; min-width: 200px; max-width: 300px; padding: 0 16px; height: 46px; background: var(--superficie); border: 1px solid var(--linea); border-radius: 999px; color: var(--texto-suave); }
+.coleccion-buscar:focus-within { border-color: var(--primario); box-shadow: 0 0 0 3px var(--tinte); }
+.coleccion-buscar input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--texto); font-weight: 600; }
+.coleccion-buscar button { display: grid; place-items: center; border: 0; background: transparent; color: var(--texto-suave); cursor: pointer; }
 
-.planta-card { display: flex; flex-direction: column; padding: 0; overflow: hidden; text-align: left; background: var(--superficie); border: 0; border-radius: var(--radio); box-shadow: var(--sombra); color: var(--texto); font: inherit; cursor: pointer; transition: transform var(--transicion), box-shadow var(--transicion); }
-.planta-card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(31, 41, 55, 0.14); }
+/* Lista de escaneos (virtualizada): filas de alto fijo */
+.coleccion-virtual { height: min(640px, 68vh); }
+.planta-card { display: flex; align-items: center; gap: 14px; height: 98px; padding: 10px 16px 10px 10px; overflow: hidden; text-align: left; background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); box-shadow: var(--sombra); color: var(--texto); font: inherit; cursor: pointer; transition: transform var(--transicion), border-color var(--transicion); }
+.planta-card:hover { transform: translateY(-2px); border-color: var(--primario); }
+.planta-card:focus-visible { outline: 3px solid var(--primario); outline-offset: 2px; }
 
-.planta-card-foto { position: relative; display: grid; place-items: center; aspect-ratio: 1; background: var(--verde-claro); font-size: 3rem; }
+.planta-card-foto { position: relative; display: grid; place-items: center; flex: none; width: 76px; height: 76px; overflow: hidden; background: var(--tinte); color: var(--primario); border-radius: 18px; }
 .planta-card-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.planta-card-datos { display: flex; flex-direction: column; gap: 2px; padding: 12px; }
-.planta-card-datos small { color: var(--texto-suave); font-style: italic; }
+.planta-card-datos { display: flex; flex-direction: column; flex: 1; gap: 2px; min-width: 0; }
+.planta-card-datos b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; }
+.planta-card-datos small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texto-suave); font-style: italic; }
 .planta-card-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.planta-card-chips span { padding: 2px 8px; background: var(--azul-claro); border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
-.planta-card-chips .chip-alerta { background: var(--ambar-claro); color: var(--ambar); }
-.planta-card-chips .chip-activo { background: var(--verde); color: #fff; }
+.planta-card-chips span { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; background: var(--tinte); color: var(--primario); border-radius: 999px; font-size: 0.72rem; font-weight: 800; }
+.planta-card-chips .chip-alerta { background: var(--ambar-claro); color: color-mix(in srgb, var(--luz) 65%, var(--texto)); }
+.planta-card-chips .chip-activo { background: var(--primario); color: var(--sobre-primario); }
 
-.planta-card-mas { align-items: center; justify-content: center; gap: 8px; min-height: 200px; padding: 16px; text-align: center; background: transparent; border: 2px dashed var(--verde); box-shadow: none; color: var(--verde-oscuro); }
-.planta-card-mas span { font-size: 2rem; }
-
+/* Estados vacios (tambien los usan Jardin, Misiones y Tienda) */
 .coleccion-vacio { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 48px 16px; text-align: center; color: var(--texto-suave); }
 .coleccion-vacio > span { font-size: 3.4rem; }
-.coleccion-vacio h2 { color: var(--texto); }
+.coleccion-vacio > .coleccion-vacio-icono { display: grid; place-items: center; width: 84px; height: 84px; margin-bottom: 4px; background: var(--tinte); color: var(--primario); border-radius: 50%; }
+.coleccion-vacio h2 { color: var(--texto); font-weight: 800; }
 .coleccion-vacio .boton { margin-top: 8px; text-decoration: none; }
+.coleccion-vacio .boton-principal { background: var(--primario); background-image: none; color: var(--sobre-primario); box-shadow: none; }
 
-/* Segmentos: Virtuales · N / Escaneos · N */
-.coleccion-segmentos { display: flex; width: 100%; max-width: 460px; margin-inline: auto; border-radius: 14px; background: color-mix(in srgb, var(--linea) 50%, var(--superficie)); box-shadow: none; }
-.coleccion-segmentos button { flex: 1; justify-content: center; border-radius: 11px; }
-
-/* Coleccion virtual: invernadero en pixel art */
-.virtual { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 460px; margin-inline: auto; }
+/* Invernadero (pixel art): una columna en angosto; en ancho, escena grande + columna lateral */
+.virtual { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 460px; margin-inline: auto; }
+.virtual-ancho { display: grid; grid-template-columns: 1.7fr 1fr; align-items: start; gap: 18px; max-width: none; margin-inline: 0; }
 .virtual-barra { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .virtual-tema { position: relative; }
-.virtual-chip { padding: 8px 14px; border: 0; border-radius: 999px; background: var(--superficie); box-shadow: var(--sombra); color: var(--verde-oscuro); font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
-.virtual-menu { position: absolute; left: 0; top: calc(100% + 6px); z-index: 8; display: flex; flex-direction: column; gap: 2px; min-width: 240px; padding: 8px; background: var(--superficie); border: 1.5px solid var(--verde); border-radius: 16px; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2); }
-.virtual-menu small { padding: 2px 8px 6px; color: var(--texto-suave); }
-.virtual-menu button, .virtual-menu-mas { padding: 9px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--texto); font: inherit; text-align: left; cursor: pointer; }
-.virtual-menu button:hover { background: var(--verde-claro); }
-.virtual-menu-activo { background: var(--verde-claro) !important; font-weight: 700; }
-.virtual-menu-mas { margin-top: 4px; border-top: 1px solid var(--linea); border-radius: 0; color: var(--verde-oscuro); font-size: 0.85rem; }
-.virtual-busqueda { display: flex; align-items: center; flex: 1; gap: 6px; max-width: 260px; }
-.virtual-busqueda input { flex: 1; min-width: 0; padding: 8px 14px; border: 1.5px solid var(--linea); border-radius: 999px; background: var(--superficie); color: var(--texto); font: inherit; }
-.virtual-busqueda button { border: 0; background: transparent; color: var(--texto-suave); cursor: pointer; font-size: 1rem; }
+.virtual-chip { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border: 1px solid var(--linea); border-radius: 999px; background: var(--superficie); color: var(--primario); font-size: 0.85rem; font-weight: 800; cursor: pointer; }
+.virtual-menu { position: absolute; left: 0; top: calc(100% + 6px); z-index: 8; display: flex; flex-direction: column; gap: 6px; min-width: 260px; padding: 12px; background: var(--superficie); border: 1px solid var(--linea); border-radius: 20px; box-shadow: 0 12px 28px var(--velo); }
+.virtual-sub { color: var(--texto-suave); font-size: 0.8rem; line-height: 1.4; }
 
-.virtual-marco { position: relative; overflow: hidden; border-radius: 20px; box-shadow: var(--sombra); }
+.virtual-tema-fila { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 16px; background: var(--superficie-2); color: var(--texto); font-weight: 700; text-align: left; cursor: pointer; }
+.virtual-tema-fila.activo { outline: 2px solid var(--primario); }
+.virtual-tema-marca { display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%; color: var(--primario); }
+.virtual-tema-fila.activo .virtual-tema-marca { background: var(--tinte); }
+.virtual-tema-nombre { display: flex; flex-direction: column; }
+.virtual-tema-nombre small { color: var(--texto-suave); font-weight: 500; }
+.virtual-menu-mas { display: block; padding: 10px 14px; border: 1.5px solid var(--primario); border-radius: 14px; color: var(--primario); font-size: 0.85rem; font-weight: 800; text-align: center; text-decoration: none; }
+.virtual-menu-mas:hover { background: var(--tinte); }
+
+.virtual-marco { position: relative; overflow: hidden; border: 1px solid var(--linea); border-radius: 26px; box-shadow: var(--sombra); }
 .virtual-pager { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .virtual-pager::-webkit-scrollbar { display: none; }
 .virtual-pagina { flex: 0 0 100%; scroll-snap-align: start; }
@@ -59,31 +68,46 @@
 .virtual-hueco { position: absolute; }
 .estante-planta { position: relative; width: 100%; height: 100%; }
 .estante-boton { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: pointer; touch-action: manipulation; }
+.estante-boton:focus-visible { outline: 3px solid var(--lima); outline-offset: 2px; border-radius: 8px; }
 .estante-dibujo { position: absolute; inset: 0; width: 100%; height: 100%; }
 .estante-maceta { position: absolute; left: 18%; bottom: 0; width: 64%; }
 .estante-marca { position: absolute; left: 0; top: 0; font-size: 0.9rem; pointer-events: none; }
-.estante-menu { position: absolute; right: -2px; top: -2px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.85); color: #1f2937; font-size: 0.95rem; line-height: 1; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; }
+.estante-menu { position: absolute; right: -2px; top: -2px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: var(--barra); color: var(--texto); font-size: 0.95rem; line-height: 1; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; }
 .estante-planta:hover .estante-menu, .estante-menu:focus-visible { opacity: 1; }
 @media (hover: none) { .estante-menu { display: none; } }
 .virtual-mas { position: absolute; border-radius: 12px; }
-.virtual-mas:hover { background: rgba(255, 255, 255, 0.18); }
-.virtual-sin-resultados { position: absolute; left: 50%; top: 45%; transform: translateX(-50%); padding: 10px 14px; background: color-mix(in srgb, var(--superficie) 92%, transparent); border-radius: 12px; font-size: 0.9rem; text-align: center; }
-.virtual-flecha { position: absolute; top: 40%; z-index: 3; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.88); box-shadow: var(--sombra); color: #1f2937; font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.virtual-mas:hover { background: var(--nube); }
+.virtual-sin-resultados { position: absolute; left: 50%; top: 45%; transform: translateX(-50%); padding: 10px 14px; background: color-mix(in srgb, var(--superficie) 92%, transparent); border-radius: 14px; font-size: 0.9rem; text-align: center; }
+.virtual-flecha { position: absolute; top: 40%; z-index: 3; width: 36px; height: 36px; border: 1px solid var(--linea); border-radius: 50%; background: var(--barra); box-shadow: var(--sombra); color: var(--texto); font-size: 1.3rem; line-height: 1; cursor: pointer; }
 .virtual-flecha-izq { left: 8px; }
 .virtual-flecha-der { right: 8px; }
 .virtual-puntos { position: absolute; left: 0; right: 0; bottom: 10px; z-index: 3; display: flex; justify-content: center; gap: 5px; }
-.virtual-puntos button { width: 6px; height: 6px; padding: 0; border: 0; border-radius: 999px; background: #fff; opacity: 0.55; cursor: pointer; transition: width 0.2s ease; }
-.virtual-puntos .activo { width: 16px; opacity: 1; }
-.virtual-pie { text-align: center; color: var(--texto-suave); font-size: 0.8rem; }
+.virtual-puntos button { width: 6px; height: 6px; padding: 0; border: 0; border-radius: 999px; background: var(--barra); opacity: 0.6; cursor: pointer; transition: width 0.2s ease; }
+.virtual-puntos .activo { width: 16px; opacity: 1; background: var(--lima); }
+.virtual-pie { text-align: center; color: var(--texto-suave); font-size: 0.8rem; font-weight: 600; }
 
-.virtual-baul { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 360px; padding: 16px; background: var(--superficie); }
-.virtual-baul p { color: var(--texto-suave); font-size: 0.85rem; }
-.virtual-baul-vacio { margin: auto; }
-.virtual-baul-fila { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; background: var(--verde-claro); border-radius: 14px; }
-.virtual-baul-fila div { display: flex; flex-direction: column; min-width: 0; }
+/* Columna lateral (pantallas anchas) */
+.virtual-lateral { display: flex; flex-direction: column; gap: 14px; }
+.virtual-tarjeta { display: flex; flex-direction: column; gap: 10px; padding: 18px; background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); box-shadow: var(--sombra); }
+.virtual-tarjeta h3 { font-size: 1.05rem; font-weight: 800; }
+.virtual-tarjeta-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.virtual-dots { display: flex; gap: 5px; }
+.virtual-dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 999px; background: var(--linea); cursor: pointer; transition: width 0.2s ease; }
+.virtual-dots .on { width: 22px; background: var(--primario); }
+
+/* Baul */
+.virtual-baul { display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 360px; padding: 18px; background: var(--superficie); }
+.virtual-baul h2 { font-size: 1.1rem; font-weight: 800; }
+.virtual-baul p, .virtual-baul-vacio { color: var(--texto-suave); font-size: 0.85rem; }
+.virtual-baul-vacio { padding: 12px 0; text-align: center; }
+.virtual-baul-fila { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--superficie-2); border-radius: 16px; }
+.virtual-baul-icono { display: grid; place-items: center; flex: none; width: 40px; height: 40px; background: var(--tinte); color: var(--primario); border-radius: 12px; }
+.virtual-baul-fila div { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .virtual-baul-fila small { color: var(--texto-suave); font-style: italic; }
-.virtual-baul-fila .boton { min-height: 38px; padding: 0 16px; }
+.virtual-sacar { padding: 8px 16px; border: 0; border-radius: 14px; background: var(--primario); color: var(--sobre-primario); font-size: 0.8rem; font-weight: 800; cursor: pointer; }
+.virtual-sacar:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.virtual-acciones button { padding: 12px 8px; border: 0; border-radius: 12px; background: transparent; color: var(--texto); font: inherit; font-size: 1rem; text-align: left; cursor: pointer; }
-.virtual-acciones button:hover { background: var(--verde-claro); }
-.virtual-apodo { padding: 10px 12px; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--fondo); color: var(--texto); font: inherit; }
+/* Acciones de una planta y apodo (dialogos) */
+.virtual-acciones button { display: flex; align-items: center; gap: 10px; padding: 12px; border: 0; border-radius: 14px; background: transparent; color: var(--texto); font-size: 1rem; font-weight: 600; text-align: left; cursor: pointer; }
+.virtual-acciones button:hover { background: var(--tinte); }
+.virtual-apodo { padding: 10px 14px; border: 1px solid var(--linea); border-radius: var(--radio-chico); background: var(--superficie-2); color: var(--texto); }

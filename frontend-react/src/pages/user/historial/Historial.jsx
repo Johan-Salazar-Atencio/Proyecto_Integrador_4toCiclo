@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RUTAS } from '../../../routes/rutas'
 import { escaneosRecientes } from '../../../services/historial'
+import Icono from '../coleccion/Iconos'
 import './historial.css'
 
 // Escaneos recientes del usuario (GET /escaneos/recientes)
@@ -33,20 +34,27 @@ export default function Historial() {
   if (estado.escaneos.length === 0) {
     return (
       <div className="coleccion-vacio aparece">
-        <span>🕘</span>
+        <span className="coleccion-vacio-icono"><Icono nombre="clock" tam={34} /></span>
         <h2>Aún no has escaneado plantas</h2>
-        <Link to={RUTAS.ESCANEAR} className="boton boton-principal">📷 Escanear</Link>
+        <p>Cuando identifiques una planta, aparecerá aquí.</p>
+        <Link to={RUTAS.ESCANEAR} className="boton boton-principal"><Icono nombre="cam" /> Escanear</Link>
       </div>
     )
   }
 
   return (
     <div className="historial">
-      <Link to={RUTAS.PERFIL} className="historial-volver">← Perfil</Link>
+      <header className="historial-cabecera">
+        <div>
+          <h2>Historial de escaneos</h2>
+          <p>{estado.escaneos.length} reciente{estado.escaneos.length === 1 ? '' : 's'}</p>
+        </div>
+        <Link to={RUTAS.PERFIL} className="historial-volver">← Perfil</Link>
+      </header>
       <ul className="historial-lista">
         {estado.escaneos.map((e, i) => (
-          <li key={e.id} className="tarjeta aparece" style={{ animationDelay: `${i * 0.04}s` }}>
-            <span className="historial-punto" style={{ background: e.statusColor || 'var(--verde)' }} />
+          <li key={e.id} className="aparece" style={{ animationDelay: `${Math.min(i, 10) * 0.04}s` }}>
+            <span className="historial-icono" style={e.statusColor ? { color: e.statusColor } : undefined}><Icono nombre="leaf" tam={22} /></span>
             <b>{e.plantName}</b>
             <span className="historial-confianza">{e.confidence}</span>
           </li>

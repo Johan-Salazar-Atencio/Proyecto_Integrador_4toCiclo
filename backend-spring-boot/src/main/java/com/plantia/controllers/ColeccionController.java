@@ -71,7 +71,7 @@ public class ColeccionController {
         if (escaneo.getIdCatalogo() == null) {
             return ResponseEntity.badRequest().build();
         }
-        ColeccionItemDto creado = coleccionService.agregar(userId, escaneo.getIdCatalogo());
+        ColeccionItemDto creado = coleccionService.agregar(userId, escaneo.getIdCatalogo(), escaneo);
         return ResponseEntity.ok(creado);
     }
 }

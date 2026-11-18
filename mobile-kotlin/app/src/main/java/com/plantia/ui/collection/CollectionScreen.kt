@@ -1,5 +1,7 @@
 package com.plantia.ui.collection
 
+import com.plantia.ui.theme.FondoDegradado
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -67,11 +69,10 @@ import com.plantia.ui.collection.viewmodel.CollectionUiState
 import com.plantia.ui.collection.viewmodel.CollectionViewModel
 import com.plantia.ui.collection.virtual.ColeccionVirtual
 import com.plantia.ui.components.AvisoToast
-import com.plantia.ui.theme.BackgroundLight
-import com.plantia.ui.theme.GreenDark
-import com.plantia.ui.theme.GreenPrimary
+import com.plantia.ui.components.tarjeta
+import com.plantia.ui.theme.Primario
+import com.plantia.ui.theme.SobrePrimario
 import com.plantia.ui.theme.MobilekotlinTheme
-import com.plantia.ui.theme.SurfaceWhite
 import com.plantia.ui.theme.TextPrimary
 import com.plantia.ui.theme.TextSecondary
 import com.plantia.util.IconosOscurosEnBarraDeEstado
@@ -92,11 +93,13 @@ fun CollectionScreen(
 ) {
     IconosOscurosEnBarraDeEstado()
 
-    var pestana by rememberSaveable { mutableIntStateOf(PESTANA_DIGITALES) }
+    // Lo primero que se revisa son los escaneos; solo las misiones abren directo las plantas virtuales
+    var pestana by rememberSaveable { mutableIntStateOf(if (abrirDigitales) PESTANA_DIGITALES else PESTANA_ESCANEADAS) }
     AvisoToast(viewModel.aviso, viewModel::avisoMostrado)
 
     Scaffold(
-        containerColor = BackgroundLight,
+        containerColor = Color.Transparent,
+        modifier = Modifier.background(FondoDegradado),
         // Los margenes del sistema se aplican a mano: la barra superior maneja la barra de estado
         // y la lista deja espacio abajo para la barra de navegacion sin cortar las tarjetas.
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
@@ -104,7 +107,7 @@ fun CollectionScreen(
         Box(modifier = Modifier.fillMaxSize().padding(padding).statusBarsPadding()) {
             when (val estado = viewModel.uiState) {
                 CollectionUiState.Loading -> CircularProgressIndicator(
-                    color = GreenPrimary,
+                    color = Primario,
                     modifier = Modifier.align(Alignment.Center)
                 )
                 is CollectionUiState.Error -> EstadoMensaje(
@@ -228,40 +231,26 @@ private fun Cabecera(
     nDigitales: Int,
     pestana: Int,
     onPestana: (Int) -> Unit,
-    /** En la coleccion virtual el espacio es del invernadero: el contador de descubiertas se omite. */
-    mostrarContador: Boolean = true
+    /** En la coleccion virtual el buscador va junto al invernadero; aqui solo se muestra el titulo. */
+    @Suppress("UNUSED_PARAMETER") mostrarContador: Boolean = true
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Contador abierto: la base de datos es dinamica, no hay un tope de especies.
-        if (mostrarContador) Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Plantas descubiertas",
-                    fontSize = 15.sp,
-                    color = TextSecondary,
-                    modifier = Modifier.weight(1f)
-                )
-                Text("$nEscaneadas / ∞", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = GreenDark)
-            }
-        }
+        Text(
+            "Mi colección",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = TextPrimary,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
         Row(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(3.dp),
-            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                .tarjeta(RoundedCornerShape(18.dp))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Pestana("Virtuales · $nDigitales", pestana == PESTANA_DIGITALES, { onPestana(PESTANA_DIGITALES) }, Modifier.weight(1f))
-            Pestana("Escaneos · $nEscaneadas", pestana == PESTANA_ESCANEADAS, { onPestana(PESTANA_ESCANEADAS) }, Modifier.weight(1f))
+            Pestana("Escaneos", pestana == PESTANA_ESCANEADAS, { onPestana(PESTANA_ESCANEADAS) }, Modifier.weight(1f))
+            Pestana("Invernadero", pestana == PESTANA_DIGITALES, { onPestana(PESTANA_DIGITALES) }, Modifier.weight(1f))
         }
     }
 }
@@ -270,8 +259,8 @@ private fun Cabecera(
 private fun Pestana(texto: String, seleccionada: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(11.dp))
-            .background(if (seleccionada) GreenPrimary else Color.Transparent)
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (seleccionada) Primario else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(vertical = 9.dp),
         contentAlignment = Alignment.Center
@@ -279,8 +268,8 @@ private fun Pestana(texto: String, seleccionada: Boolean, onClick: () -> Unit, m
         Text(
             texto,
             fontSize = 13.sp,
-            fontWeight = if (seleccionada) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (seleccionada) Color.White else TextSecondary
+            fontWeight = FontWeight.ExtraBold,
+            color = if (seleccionada) SobrePrimario else TextSecondary
         )
     }
 }
@@ -308,7 +297,7 @@ private fun EstadoMensaje(
         Button(
             onClick = onBoton,
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = Color.White)
+            colors = ButtonDefaults.buttonColors(containerColor = Primario, contentColor = SobrePrimario)
         ) {
             Text(boton)
         }

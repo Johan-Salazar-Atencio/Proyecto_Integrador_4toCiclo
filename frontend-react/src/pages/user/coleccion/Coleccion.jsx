@@ -6,10 +6,12 @@ import { listarColeccion } from '../../../services/coleccion'
 import { urlImagen } from '../../../services/home'
 import { listarPlantasDigitales, seleccionarPlanta } from '../../../services/jardin'
 import ColeccionVirtual from './ColeccionVirtual'
+import Icono from './Iconos'
 import './coleccion.css'
 
 export default function Coleccion() {
   const [pestana, setPestana] = useState('virtuales')
+  const [consulta, setConsulta] = useState('')
   const [aviso, setAviso] = useState('')
   const [escaneadas, setEscaneadas] = useState([])
   const [digitales, setDigitales] = useState([])
@@ -49,13 +51,17 @@ export default function Coleccion() {
     setTimeout(() => setAviso(''), 2500)
   }
 
-  const lista = pestana === 'escaneadas' ? escaneadas : digitales
+  const buscada = consulta.trim().toLowerCase()
+  const escaneadasVistas = buscada
+    ? escaneadas.filter((p) => `${p.nombreComun} ${p.nombreCientifico}`.toLowerCase().includes(buscada))
+    : escaneadas
+  const lista = pestana === 'escaneadas' ? escaneadasVistas : digitales
 
   // Virtualizacion de la lista de escaneadas (web). Antes se renderizaban
   // todos los items con .map(); ahora solo los visibles + buffer.
   const parentRef = useRef(null)
   const rowVirtualizer = useVirtualizer({
-    count: pestana === 'escaneadas' ? escaneadas.length : 0,
+    count: pestana === 'escaneadas' ? escaneadasVistas.length : 0,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 110,
     overscan: 4,
@@ -64,11 +70,19 @@ export default function Coleccion() {
   return (
     <div className="coleccion">
       <header className="coleccion-cabecera aparece">
-        <div className="coleccion-pestanas coleccion-segmentos" role="tablist">
-          <button role="tab" aria-selected={pestana === 'virtuales'} className={pestana === 'virtuales' ? 'activa' : ''}
-            onClick={() => setPestana('virtuales')}>Virtuales · {digitales.length}</button>
-          <button role="tab" aria-selected={pestana === 'escaneadas'} className={pestana === 'escaneadas' ? 'activa' : ''}
-            onClick={() => setPestana('escaneadas')}>Escaneos · {escaneadas.length}</button>
+        <h2>Mi colección</h2>
+        <div className="coleccion-controles">
+          <div className="coleccion-pestanas" role="tablist">
+            <button role="tab" aria-selected={pestana === 'escaneadas'} className={pestana === 'escaneadas' ? 'activa' : ''}
+              onClick={() => setPestana('escaneadas')}>Escaneos <b>{escaneadas.length}</b></button>
+            <button role="tab" aria-selected={pestana === 'virtuales'} className={pestana === 'virtuales' ? 'activa' : ''}
+              onClick={() => setPestana('virtuales')}>Invernadero <b>{digitales.length}</b></button>
+          </div>
+          <label className="coleccion-buscar">
+            <Icono nombre="search" tam={18} />
+            <input value={consulta} onChange={(e) => setConsulta(e.target.value)} placeholder="Buscar planta" aria-label="Buscar planta" />
+            {consulta && <button type="button" onClick={() => setConsulta('')} aria-label="Limpiar búsqueda"><Icono nombre="close" tam={16} /></button>}
+          </label>
         </div>
       </header>
 
@@ -84,26 +98,26 @@ export default function Coleccion() {
       {!cargando && !error && (
         pestana === 'escaneadas' && lista.length === 0 ? (
           <div className="coleccion-vacio aparece">
-            <span>🌱</span>
-            <h2>Aún no tienes plantas</h2>
-            <p>{pestana === 'escaneadas' ? 'Escanea tu primera planta para empezar tu colección.' : 'Digitaliza una planta escaneada para cuidarla en tu jardín.'}</p>
-            <Link to={RUTAS.ESCANEAR} className="boton boton-principal">📷 Escanear</Link>
+            <span className="coleccion-vacio-icono"><Icono nombre={buscada ? 'search' : 'cam'} tam={34} /></span>
+            <h2>{buscada ? 'Ninguna planta coincide' : 'Aún no tienes plantas'}</h2>
+            <p>{buscada ? 'Prueba con otro nombre.' : 'Escanea tu primera planta para empezar tu colección.'}</p>
+            {!buscada && <Link to={RUTAS.ESCANEAR} className="boton boton-principal"><Icono nombre="cam" /> Escanear</Link>}
           </div>
         ) : (
           pestana === 'escaneadas' ? (
             <div
               ref={parentRef}
               className="coleccion-virtual"
-              style={{ height: 520, overflow: 'auto' }}
+              style={{ overflow: 'auto' }}
             >
               <div style={{ height: rowVirtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
                 {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                  const p = escaneadas[virtualItem.index]
+                  const p = escaneadasVistas[virtualItem.index]
                   return (
                     <Link
                       key={p.id}
                       to={`${RUTAS.COLECCION}/${p.id}`}
-                      className="planta-card aparece"
+                      className="planta-card"
                       style={{
                         position: 'absolute',
                         top: 0,
@@ -118,7 +132,7 @@ export default function Coleccion() {
                         <small>{p.nombreCientifico}</small>
                         <div className="planta-card-chips">
                           {p.vecesVista > 1 && <span>×{p.vecesVista}</span>}
-                          {p.esToxicaMascotas && <span className="chip-alerta">⚠️ Tóxica</span>}
+                          {p.esToxicaMascotas && <span className="chip-alerta"><Icono nombre="warn" tam={12} /> Tóxica</span>}
                         </div>
                       </div>
                     </Link>
@@ -127,7 +141,7 @@ export default function Coleccion() {
               </div>
             </div>
           ) : (
-            <ColeccionVirtual digitales={digitales} onCambio={actualizarPlanta} onAbrir={abrirDigital} onAviso={avisar} />
+            <ColeccionVirtual digitales={digitales} consulta={consulta} onCambio={actualizarPlanta} onAbrir={abrirDigital} onAviso={avisar} />
           )
         )
       )}
@@ -139,7 +153,7 @@ export default function Coleccion() {
 function Foto({ url, nombre }) {
   return (
     <div className="planta-card-foto">
-      <span>🪴</span>
+      <Icono nombre="leaf" tam={28} />
       {url && <img src={url} alt={nombre} loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none' }} />}
     </div>
   )

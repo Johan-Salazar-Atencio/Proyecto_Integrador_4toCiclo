@@ -14,7 +14,10 @@ import com.plantia.repositories.ItemTiendaRepository;
 import com.plantia.repositories.PlantaUsuarioRepository;
 import com.plantia.repositories.UsuarioRepository;
 
-/** Compra y uso del abono de la tienda: cuesta monedas y suma un dia de crecimiento (maximo uno al dia por planta). */
+/**
+ * Compra y uso de un abono de la tienda: cuesta monedas y suma medio dia, uno o tres dias de crecimiento segun el
+ * abono (maximo un abono al dia por planta). Sin elegir abono se usa el mas barato.
+ */
 @Service
 public class AbonoService {
 
@@ -32,11 +35,11 @@ public class AbonoService {
     }
 
     @Transactional
-    public void abonar(Integer userId, Integer idPlantaUsuario) {
-        abonar(userId, idPlantaUsuario, LocalDate.now());
+    public void abonar(Integer userId, Integer idPlantaUsuario, Integer idItem) {
+        abonar(userId, idPlantaUsuario, idItem, LocalDate.now());
     }
 
-    void abonar(Integer userId, Integer idPlantaUsuario, LocalDate hoy) {
+    void abonar(Integer userId, Integer idPlantaUsuario, Integer idItem, LocalDate hoy) {
         PlantaUsuario p = plantaRepo.findById(idPlantaUsuario)
                 .filter(x -> userId.equals(x.getIdUsuario()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Planta no encontrada"));
@@ -51,8 +54,11 @@ public class AbonoService {
         if (hoy.equals(p.getUltimoDiaAbonoTienda())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya usaste un abono con esta planta hoy");
         }
-        ItemTienda abono = itemRepo.findFirstByTipoAndActivoTrueOrderByPrecioMonedasAsc("ABONO")
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "La tienda no tiene abono"));
+        ItemTienda abono = (idItem == null
+                ? itemRepo.findFirstByTipoAndActivoTrueOrderByPrecioMonedasAsc("ABONO")
+                : itemRepo.findById(idItem)
+                        .filter(i -> "ABONO".equals(i.getTipo()) && Boolean.TRUE.equals(i.getActivo())))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ese abono no esta en la tienda"));
         Usuario u = usuarioRepo.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         int precio = valor(abono.getPrecioMonedas());
@@ -61,7 +67,7 @@ public class AbonoService {
         }
         u.setMonedas(valor(u.getMonedas()) - precio);
         p.setUltimoDiaAbonoTienda(hoy);
-        PlantasService.sumarDia(p, total);
+        PlantasService.sumarMediosDias(p, valor(abono.getMediosDias()), total);
         usuarioRepo.save(u);
         plantaRepo.save(p);
     }

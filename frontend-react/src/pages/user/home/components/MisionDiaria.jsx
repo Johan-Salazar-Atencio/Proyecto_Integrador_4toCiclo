@@ -1,23 +1,31 @@
-import { Link } from 'react-router-dom'
-import { RUTAS } from '../../../../routes/rutas'
+import { useState } from 'react'
+import Icono from '../../../../components/Icono'
+import MisionFila from '../../misiones/MisionFila'
+import ModalMisiones from './ModalMisiones'
 
-// Mision del dia (GET /misiones/diaria; no aparece si no hay misiones activas). Tocarla abre todas las misiones.
-export default function MisionDiaria({ mision, hayEvento = false }) {
-  const porcentaje = Math.round(Math.min(1, Math.max(0, mision.progress)) * 100)
+const EN_INICIO = 3
+
+// Misiones de hoy (GET /misiones): tres filas y "Ver todas" abre la ventana con todas
+export default function MisionDiaria({ misiones }) {
+  const [abierto, setAbierto] = useState(false)
+  if (!misiones.length) return null
+  const hechas = misiones.filter((m) => m.isCompleted).length
 
   return (
-    <Link to={RUTAS.MISIONES} className="tarjeta mision mision-enlace aparece" style={{ animationDelay: '0.2s' }}>
-      <div className="mision-cabecera">
-        <h2>🎯 Misión del día</h2>
-        {hayEvento && <span className="mision-evento-etiqueta">Evento</span>}
-        {mision.isCompleted && <span className="mision-lista">¡Completada!</span>}
+    <section className="tarjeta ms aparece" style={{ animationDelay: '0.2s' }}>
+      <div className="ms-cabecera">
+        <div>
+          <h2>Misión del día</h2>
+          <small>{hechas} de {misiones.length} completadas</small>
+        </div>
+        <button className="boton-linea" onClick={() => setAbierto(true)} aria-haspopup="dialog">
+          Ver todas <Icono nombre="r" tam={16} />
+        </button>
       </div>
-      <p>{mision.title}</p>
-      <div className="barra"><div className="barra-relleno" style={{ width: `${porcentaje}%` }} /></div>
-      <div className="mision-pie">
-        <small>{mision.currentCount} / {mision.targetCount}</small>
-        {mision.reward && <small>Recompensa: {mision.reward}</small>}
+      <div className="ms-lista">
+        {misiones.slice(0, EN_INICIO).map((m) => <MisionFila key={m.id} mision={m} />)}
       </div>
-    </Link>
+      {abierto && <ModalMisiones misiones={misiones} onCerrar={() => setAbierto(false)} />}
+    </section>
   )
 }

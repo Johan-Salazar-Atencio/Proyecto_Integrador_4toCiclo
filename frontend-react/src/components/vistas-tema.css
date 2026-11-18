@@ -1,4 +1,4 @@
 .vistas-tema { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0; }
 .vistas-tema figure { margin: 0; text-align: center; }
-.vistas-tema img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 10px; image-rendering: pixelated; background: var(--fondo); }
+.vistas-tema img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 14px; image-rendering: pixelated; background: var(--superficie-2); }
 .vistas-tema figcaption { margin-top: 2px; color: var(--texto-suave); font-size: 0.7rem; font-weight: 700; }

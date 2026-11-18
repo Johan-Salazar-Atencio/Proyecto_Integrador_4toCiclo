@@ -2,51 +2,36 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RUTAS } from '../../../routes/rutas'
 import { obtenerMisiones } from '../../../services/home'
+import Icono from '../../../components/Icono'
 import useRestante, { formatoCuenta } from '../useRestante'
+import MisionFila from './MisionFila'
+import '../home/home.css'
 import './misiones.css'
 
-// A donde lleva una mision: el escaner o las plantas virtuales (donde se cuida y se previene)
-const IR_A_ESCANEAR = ['ESCANEO', 'DIGITALIZAR', 'COLECCION']
-const destino = (m) => (m.kind === 'EVENT' || !IR_A_ESCANEAR.includes(m.type) ? RUTAS.COLECCION : RUTAS.ESCANEAR)
-
+// Mision del evento activo: tarjeta destacada con la cuenta regresiva del evento
 function MisionEvento({ mision }) {
   const restante = useRestante(mision.endsInSeconds)
+  const porcentaje = Math.round(Math.min(1, Math.max(0, mision.progress || 0)) * 100)
   return (
     <section className="tarjeta mision-evento aparece">
       <div className="mision-evento-cabecera">
-        <b>⚠️ EVENTO ACTIVO</b>
+        <b><Icono nombre="alert" tam={16} /> EVENTO ACTIVO</b>
         {restante != null && <b>Termina en {formatoCuenta(restante)}</b>}
       </div>
       <h2>{mision.title}</h2>
-      <div className="barra"><div className="barra-relleno" style={{ width: `${Math.round(mision.progress * 100)}%` }} /></div>
+      <div className="barra" role="progressbar" aria-valuenow={porcentaje} aria-valuemin={0} aria-valuemax={100}>
+        <div className="barra-relleno" style={{ width: `${porcentaje}%` }} />
+      </div>
       <p>{mision.currentCount} de {mision.targetCount} plantas protegidas · {mision.reward}</p>
       {!mision.isCompleted && <small>Entra a cada planta virtual y toca «Prevenir evento».</small>}
       {mision.isCompleted
-        ? <span className="mision-evento-lista">🛡️ Evento prevenido</span>
-        : <Link to={RUTAS.COLECCION} className="mision-evento-boton">🛡️ Ir a mis plantas</Link>}
+        ? <span className="mision-evento-lista">Evento prevenido</span>
+        : <Link to={RUTAS.COLECCION} className="mision-evento-boton">Ir a mis plantas</Link>}
     </section>
   )
 }
 
-function MisionNormal({ mision }) {
-  const porcentaje = Math.round(Math.min(1, Math.max(0, mision.progress)) * 100)
-  return (
-    <section className="tarjeta mision aparece">
-      <div className="mision-cabecera">
-        <h2>🎯 {mision.title}</h2>
-        {mision.isCompleted && <span className="mision-lista">¡Completada!</span>}
-      </div>
-      <div className="barra"><div className="barra-relleno" style={{ width: `${porcentaje}%` }} /></div>
-      <div className="mision-pie">
-        <small>{mision.currentCount} / {mision.targetCount}</small>
-        {mision.reward && <small>Recompensa: {mision.reward}</small>}
-      </div>
-      {!mision.isCompleted && <Link to={destino(mision)} className="mision-ir">Ir →</Link>}
-    </section>
-  )
-}
-
-// Todas las misiones de hoy (GET /misiones); la del evento activo va primero y en rojo
+// Todas las misiones de hoy (GET /misiones); la del evento activo va primero y destacada
 export default function MisionesUsuario() {
   const [estado, setEstado] = useState({ cargando: true, misiones: [], error: '' })
   const cargar = () => {
@@ -70,12 +55,22 @@ export default function MisionesUsuario() {
 
   const evento = estado.misiones.filter((m) => m.kind === 'EVENT')
   const diarias = estado.misiones.filter((m) => m.kind !== 'EVENT')
+  const hechas = diarias.filter((m) => m.isCompleted).length
   return (
     <div className="misiones-usuario">
       {evento.map((m) => <MisionEvento key={m.id} mision={m} />)}
-      <h2 className="misiones-titulo">Misiones de hoy</h2>
-      {diarias.length === 0 && <p className="misiones-vacio">Hoy no hay misiones diarias.</p>}
-      {diarias.map((m) => <MisionNormal key={m.id} mision={m} />)}
+      <section className="tarjeta ms aparece">
+        <div className="ms-cabecera">
+          <div>
+            <h2>Misiones de hoy</h2>
+            {diarias.length > 0 && <small>{hechas} de {diarias.length} completadas</small>}
+          </div>
+        </div>
+        {diarias.length === 0 && <p className="misiones-vacio">Hoy no hay misiones diarias.</p>}
+        <div className="ms-lista">
+          {diarias.map((m) => <MisionFila key={m.id} mision={m} />)}
+        </div>
+      </section>
     </div>
   )
 }

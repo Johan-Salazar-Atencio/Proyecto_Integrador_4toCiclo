@@ -134,7 +134,8 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             HomeScreen(
                 onNavigateToGarden = { navController.navigate(Routes.VIRTUAL_GARDEN) },
                 onNavigateToTienda = { navController.navigate(Routes.TIENDA) },
-                onNavigateToMisiones = { navController.navigate(Routes.MISIONES) }
+                onNavigateToMisiones = { navController.navigate(Routes.MISIONES) },
+                onScan = { navController.navigate(Routes.SCAN) }
             )
         }
 
@@ -297,7 +298,6 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onVerHistorial = { navController.navigate(Routes.HISTORIAL) },
                 onVerTerminos = { navController.navigate(Routes.TERMINOS) },
                 onEditarDatos = { navController.navigate(Routes.EDITAR_DATOS) },
-                onVerEnciclopedia = { navController.navigate(Routes.CATALOGO) },
                 onCerrarSesion = {
                     perfilViewModel.cerrarSesion()
                     navController.navigate(Routes.WELCOME) { popUpTo(Routes.HOME) { inclusive = true } }

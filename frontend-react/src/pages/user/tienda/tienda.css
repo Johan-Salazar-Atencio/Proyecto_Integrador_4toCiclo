@@ -1,70 +1,61 @@
-.tienda { display: flex; flex-direction: column; gap: 18px; max-width: 960px; margin: 0 auto; }
+.tienda { display: flex; flex-direction: column; gap: 14px; max-width: 1180px; margin: 0 auto; }
+.icono { flex: none; }
 
-.tienda-cartera { display: flex; justify-content: space-between; gap: 12px; padding: 14px 18px; background: var(--superficie); border-radius: var(--radio); box-shadow: var(--sombra); font-weight: 600; }
-.tienda-cartera b { font-size: 1.15rem; }
-
-.tienda-pestanas { display: flex; gap: 8px; }
-.tienda-pestanas button { flex: 1; padding: 10px 14px; background: var(--superficie); border: 1.5px solid var(--linea); border-radius: 999px; color: var(--texto); font: inherit; font-weight: 800; cursor: pointer; transition: background var(--transicion); }
-.tienda-pestanas button.activa { background: var(--verde); border-color: var(--verde); color: #fff; }
-
-.tienda-grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
-.tienda-item { display: flex; flex-direction: column; gap: 12px; padding: 14px; }
-.tienda-equipado { box-shadow: 0 0 0 3px var(--verde), var(--sombra); }
-.tienda-vista { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 14px; image-rendering: pixelated; background: var(--fondo); }
-.tienda-icono-grande { display: grid; place-items: center; aspect-ratio: 16 / 9; background: var(--verde-claro); border-radius: 14px; font-size: 3rem; }
-.tienda-datos { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.tienda-datos small { color: var(--texto-suave); line-height: 1.35; }
-.tienda-momento { width: fit-content; padding: 2px 10px; background: var(--azul-claro); border-radius: 999px; font-size: 0.75rem; font-weight: 800; }
-.tienda-nota { grid-column: 1 / -1; color: var(--texto-suave); font-size: 0.85rem; }
-.tienda-item .boton { width: 100%; }
-.tienda-item .boton:disabled { opacity: 0.55; cursor: not-allowed; }
-.tienda-uso { width: fit-content; padding: 2px 10px; background: var(--verde); color: #fff; border-radius: 999px; font-size: 0.75rem; font-weight: 800; }
-.tienda-item .boton { white-space: normal; }
-.tienda-tengo { display: block; text-align: center; text-decoration: none; }
-
-/* Titulo con las hojas y pestanas en un solo control */
+/* Titulo con la pildora de hojas y las categorias como chips */
 .tienda-titulo { display: flex; justify-content: space-between; align-items: center; }
-.tienda-titulo h2 { font-size: 1.5rem; }
-.tienda-hojas { padding: 6px 14px; background: var(--superficie); border-radius: 999px; box-shadow: var(--sombra); color: var(--ambar); }
-.tienda-segmentos { display: flex; gap: 3px; padding: 3px; border-radius: 14px; background: color-mix(in srgb, var(--linea) 50%, var(--superficie)); }
-.tienda-segmentos button { flex: 1; padding: 9px 0; border: 0; border-radius: 11px; background: transparent; color: var(--texto-suave); font: inherit; font-size: 0.9rem; cursor: pointer; transition: background var(--transicion); }
-.tienda-segmentos button.activa { background: var(--verde); color: #fff; font-weight: 700; }
-.tienda-subtitulo { font-size: 1rem; }
+.tienda-titulo h2 { font-size: 1.6rem; font-weight: 800; }
+.tienda-hojas { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: var(--superficie-2); border: 1px solid var(--linea); border-radius: 999px; font-weight: 800; white-space: nowrap; }
+.tienda-hojas .icono { color: var(--primario); }
 
-/* Macetas en dos columnas */
-.tienda-macetas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-width: 520px; }
-.tienda-maceta { display: flex; flex-direction: column; gap: 8px; padding: 8px; background: var(--superficie); border: 1.5px solid color-mix(in srgb, var(--color) 70%, transparent); border-radius: 16px; box-shadow: 0 4px 14px color-mix(in srgb, var(--color) 25%, transparent); }
-.tienda-maceta-vista { display: grid; place-items: center; height: 84px; background: color-mix(in srgb, var(--color, var(--verde)) 20%, var(--superficie)); border-radius: 11px; }
-.tienda-maceta-vista svg { width: 66px; }
-.tienda-maceta-datos { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 0 2px; font-size: 0.85rem; }
-.chip-tuya, .chip-precio, .chip-bloqueado { padding: 2px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
-.chip-tuya { background: var(--verde-claro); color: var(--verde-oscuro); }
-.chip-precio { background: var(--ambar-claro); color: var(--ambar); }
-.chip-bloqueado { background: var(--verde-claro); color: var(--texto-suave); }
-.tienda-maceta .boton { width: 100%; min-height: 34px; padding: 0; font-size: 0.8rem; }
+.tienda-segmentos { display: flex; flex-wrap: wrap; gap: 8px; }
+.tienda-segmentos button { padding: 10px 18px; border: 1px solid var(--linea); border-radius: 999px; background: var(--superficie); color: var(--texto-suave); font: inherit; font-weight: 800; cursor: pointer; transition: background var(--transicion), color var(--transicion); }
+.tienda-segmentos button.activa { background: var(--primario); border-color: var(--primario); color: var(--sobre-primario); }
+.tienda-nota { color: var(--texto-suave); }
+.tienda-nota a { color: var(--primario); font-weight: 800; }
 
-/* Invernaderos: vista previa vertical a la izquierda */
-.tienda-invernaderos { display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
-.tienda-invernadero { display: flex; gap: 10px; padding: 8px; background: var(--superficie); border-radius: 16px; box-shadow: var(--sombra); }
-.tienda-invernadero-mio { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--verde) 60%, transparent), var(--sombra); }
-.tienda-invernadero-vista { width: 62px; flex-shrink: 0; align-self: flex-start; border-radius: 9px; }
-.tienda-invernadero-datos { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; flex: 1; min-width: 0; }
-.tienda-invernadero-datos small { color: var(--texto-suave); line-height: 1.35; font-size: 0.78rem; }
-.tienda-invernadero-compra { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 2px; }
-.tienda-invernadero-compra .boton { min-height: 32px; padding: 0 16px; font-size: 0.8rem; }
+/* Cuadricula: 4 columnas en pantallas anchas, 2 en angostas */
+.tienda-grilla { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+@media (min-width: 900px) { .tienda-grilla { grid-template-columns: repeat(4, 1fr); gap: 16px; } }
+
+.tienda-prod { display: flex; flex-direction: column; gap: 8px; padding: 10px 10px 14px; background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); box-shadow: var(--sombra); }
+.tienda-prod > b { padding: 0 4px; font-size: 1rem; font-weight: 800; }
+.tienda-prod > p { flex: 1; padding: 0 4px; min-height: 34px; color: var(--texto-suave); font-size: 0.8rem; line-height: 1.35; }
+.tienda-pista { padding: 0 4px; color: var(--texto-suave); }
+
+/* Vista previa */
+.tienda-pv, .tienda-maceta-vista { display: grid; place-items: center; height: 104px; overflow: hidden; border-radius: 20px; background: color-mix(in srgb, var(--color, var(--primario)) 22%, var(--superficie-2)); }
+.tienda-pv svg { width: 78px; }
+.tienda-pv-alta { height: 150px; background: var(--cielo); }
+.tienda-invernadero-vista { width: 70px; border-radius: 9px; }
+.tienda-pv-fondo { height: 150px; background: var(--superficie-2); }
+.tienda-pv-fondo svg { width: auto; }
+.tienda-pv-abono { background: var(--tinte); color: var(--primario); }
+.tienda-pv-abono svg { width: 44px; }
+
+/* Etiqueta y botones del producto */
+.chip-tuya { align-self: flex-start; margin-left: 4px; padding: 3px 10px; background: var(--tinte); color: var(--primario); border-radius: 999px; font-size: 0.72rem; font-weight: 800; }
+.tienda-btn { display: flex; justify-content: center; align-items: center; gap: 6px; min-height: 40px; padding: 10px 8px; border: 0; border-radius: 15px; background: var(--primario); color: var(--sobre-primario); font: inherit; font-size: 0.82rem; font-weight: 800; text-align: center; text-decoration: none; cursor: pointer; transition: filter var(--transicion), transform var(--transicion); }
+.tienda-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.tienda-btn:active:not(:disabled) { transform: scale(0.97); }
+.tienda-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.tienda-btn-borde { background: transparent; color: var(--primario); border: 1.5px solid var(--primario); }
+.tienda-btn-bloq { background: var(--superficie-2); color: var(--texto-suave); opacity: 1 !important; }
 
 /* Hoja para aplicar la maceta */
-.maceta-hoja { max-width: 420px; }
+.maceta-hoja { max-width: 420px; background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); }
 .maceta-hoja-titulo { display: flex; align-items: center; gap: 10px; }
 .maceta-hoja-titulo h2 { font-size: 1.05rem; }
-.maceta-hoja-vista { width: 56px; height: 40px; flex-shrink: 0; }
+.maceta-hoja-vista { width: 56px; height: 44px; flex-shrink: 0; border-radius: 12px; }
 .maceta-hoja-vista svg { width: 34px; }
 .maceta-hoja-buscar { display: flex; gap: 8px; }
-.maceta-hoja-buscar input { flex: 1; min-width: 0; padding: 8px 12px; border: 1px solid var(--linea); border-radius: 10px; background: var(--fondo); color: var(--texto); font: inherit; }
-.maceta-hoja-buscar button { padding: 0 12px; border: 0; border-radius: 999px; background: var(--verde-claro); color: var(--verde-oscuro); font: inherit; font-weight: 700; cursor: pointer; }
+.maceta-hoja-buscar input { flex: 1; min-width: 0; padding: 10px 14px; border: 1px solid var(--linea); border-radius: 14px; background: var(--superficie-2); color: var(--texto); font: inherit; }
+.maceta-hoja-buscar button { padding: 0 14px; border: 0; border-radius: 999px; background: var(--tinte); color: var(--primario); font: inherit; font-weight: 800; cursor: pointer; }
 .maceta-hoja-lista { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
-.maceta-hoja-fila { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--linea); border-radius: 12px; cursor: pointer; }
-.maceta-hoja-fila.elegida { border-color: var(--verde); background: var(--verde-claro); }
-.maceta-hoja-fila span { flex: 1; }
+.maceta-hoja-fila { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--superficie-2); border: 1px solid transparent; border-radius: 14px; cursor: pointer; }
+.maceta-hoja-fila input { accent-color: var(--primario); }
+.maceta-hoja-fila.elegida { border-color: var(--primario); background: var(--tinte); }
+.maceta-hoja-fila span { flex: 1; font-weight: 700; }
 .maceta-hoja-fila small { color: var(--texto-suave); }
 .maceta-hoja-fila i { width: 12px; height: 12px; border-radius: 50%; }
+.maceta-hoja .layout-dialogo-botones .boton { background: var(--primario); color: var(--sobre-primario); background-image: none; box-shadow: none; }
+.maceta-hoja .layout-dialogo-botones .boton-suave { background: var(--superficie-2); color: var(--texto); }

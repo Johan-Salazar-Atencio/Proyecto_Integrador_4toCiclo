@@ -1,10 +1,10 @@
 .welcome {
   min-height: 100vh;
   padding: 24px;
-  background: var(--degradado);
+  background: var(--fondo);
 }
 
-.welcome-marca { max-width: 960px; margin: 0 auto; font-size: 1.3rem; font-weight: 800; color: var(--verde-oscuro); }
+.welcome-marca { max-width: 960px; margin: 0 auto; font-size: 1.3rem; font-weight: 800; color: var(--texto); letter-spacing: -0.5px; }
 
 .welcome-centro {
   max-width: 520px;
@@ -21,6 +21,7 @@
   right: -90px;
   padding: 8px 14px;
   background: var(--superficie);
+  border: 1px solid var(--linea);
   border-radius: 999px;
   box-shadow: var(--sombra);
   font-size: 0.9rem;
@@ -35,11 +36,11 @@
 }
 
 .welcome h1 { margin-top: 8px; font-size: clamp(2.2rem, 6vw, 3rem); line-height: 1.1; }
-.welcome h1 span { color: var(--verde); }
+.welcome h1 span { color: var(--primario); }
 .welcome-centro > p { margin-top: 12px; color: var(--texto-suave); line-height: 1.5; }
 
 .welcome-etiquetas { display: flex; justify-content: center; gap: 8px; margin: 22px 0; padding: 0; list-style: none; flex-wrap: wrap; }
-.welcome-etiquetas li { padding: 8px 14px; background: var(--superficie); border-radius: 999px; box-shadow: var(--sombra); font-size: 0.9rem; font-weight: 600; }
+.welcome-etiquetas li { padding: 8px 14px; background: var(--superficie); border: 1px solid var(--linea); border-radius: 999px; box-shadow: var(--sombra); font-size: 0.9rem; font-weight: 700; }
 
 .welcome-acciones p { margin-top: 16px; color: var(--texto-suave); }
 
@@ -54,3 +55,7 @@
 @media (prefers-reduced-motion: reduce) {
   .welcome-globo { animation: none; }
 }
+
+.welcome .boton-principal { background: var(--primario); background-image: none; color: var(--sobre-primario); box-shadow: none; border-radius: 18px; font-weight: 800; }
+.welcome .boton-suave { background: var(--superficie-2); color: var(--texto); }
+.welcome a:not(.boton) { color: var(--primario); font-weight: 700; }
