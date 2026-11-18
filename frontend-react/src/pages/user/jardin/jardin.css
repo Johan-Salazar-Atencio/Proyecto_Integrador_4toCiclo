@@ -13,9 +13,9 @@
   border-radius: 28px;
   box-shadow: var(--sombra);
 }
-/* La planta (32x32) va al doble de tamano que un pixel de la escena: 64 de 96 de ancho, con su
-   primera fila de tierra (27 de 32) sobre la tierra del fondo (fila 75): top = (75 - 54) / 96 */
-.jardin-planta { position: absolute; left: 16.667%; top: 21.875%; width: 66.667%; aspect-ratio: 1 / 1; transform-origin: 50% 84%; }
+/* La planta (64x64) va a la misma escala que un pixel de la escena: 64 de 96 de ancho, con su
+   fila de tierra (47 de 64) sobre la tierra del fondo (fila 75): top = (75 - 47) / 96 */
+.jardin-planta { position: absolute; left: 16.667%; top: 29.167%; width: 66.667%; aspect-ratio: 1 / 1; }
 .jardin-planta .planta-pixel { width: 100%; height: 100%; }
 .jardin-marco-marchita { background: linear-gradient(180deg, var(--ambar-claro) 0%, var(--rojo-claro) 100%); }
 
@@ -28,14 +28,6 @@
 
 .jardin-titulo { display: flex; align-items: center; gap: 12px; }
 .jardin-foto { width: 56px; height: 56px; flex-shrink: 0; object-fit: cover; border-radius: 14px; box-shadow: var(--sombra); }
-.jardin-salta { animation: salta 0.6s ease; }
-
-@keyframes salta {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.12) translateY(-10px); }
-  60% { transform: scale(0.97); }
-  100% { transform: scale(1); }
-}
 
 /* Datos */
 .jardin-panel h2 { font-size: 1.4rem; }
@@ -77,10 +69,6 @@
 @media (min-width: 861px) {
   .jardin { grid-template-columns: 1fr 1fr; align-items: start; }
   .jardin-aviso { left: calc(50% + 115px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .jardin-salta { animation: none; }
 }
 
 /* El contenido del marco va por encima de la escena */

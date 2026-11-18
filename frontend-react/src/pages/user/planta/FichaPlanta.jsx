@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Boton from '../../../components/Boton'
 import { RUTAS } from '../../../routes/rutas'
 import { agregarColeccion } from '../../../services/coleccion'
@@ -17,6 +17,7 @@ export default function FichaPlanta({ resultado, mostrarGuardar = true, mostrarA
   const irA = useNavigate()
   const [guardando, setGuardando] = useState(false)
   const [errorGuardar, setErrorGuardar] = useState('')
+  const [largo, setLargo] = useState(false)
 
   const fallida = identificacionFallida(resultado)
   const cuidados = tarjetasCuidado(resultado)
@@ -31,7 +32,8 @@ export default function FichaPlanta({ resultado, mostrarGuardar = true, mostrarA
     setErrorGuardar('')
     try {
       await digitalizarPlanta(resultado)
-      irA(RUTAS.JARDIN)
+      // El jardin recibe la planta con la secuencia de digitalizacion
+      irA(RUTAS.JARDIN, { state: { digitalizada: true } })
     } catch (e) {
       setErrorGuardar(e?.message || 'No se pudo digitalizar la planta.')
       setGuardando(false)

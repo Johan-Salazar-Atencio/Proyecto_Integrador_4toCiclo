@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { RUTAS } from '../../../routes/rutas'
 import { obtenerEventoActivo, urlImagen } from '../../../services/home'
 import { cuidarPlanta, golpeVisto, obtenerPlantaJardin, prevenirPlanta, revivirPlanta } from '../../../services/jardin'
 import { comprarAbono, obtenerTienda } from '../../../services/tienda'
+import Digitalizacion from '../../../components/Digitalizacion'
 import PlantaPixel from '../../../components/PlantaPixel'
 import EscenaPixel from '../../../components/EscenaPixel'
 import FondosPlanta from '../../../components/FondosPlanta'
@@ -47,7 +48,7 @@ function Recuperacion({ segundos }) {
 export default function Jardin() {
   const [estado, setEstado] = useState({ cargando: true, planta: null, error: '' })
   const [aviso, setAviso] = useState('')
-  const [salto, setSalto] = useState(0)
+  const [efecto, setEfecto] = useState(null)
   const [cuidando, setCuidando] = useState(false)
   const [fondosAbierto, setFondosAbierto] = useState(false)
   const [claveEscena, setClaveEscena] = useState(0) // cambia al poner otro fondo: la escena se vuelve a armar
@@ -55,6 +56,10 @@ export default function Jardin() {
   const [evento, setEvento] = useState(null) // evento activo (o null): con el aparece "Prevenir evento"
   const [golpe, setGolpe] = useState(null) // tipo de evento que arraso con la planta, mientras se muestra
   const [escudo, setEscudo] = useState(0) // sube cada vez que se previene: dispara el escudo
+  // Se llega desde "Digitalizar": antes de la planta se ve como la foto se vuelve semilla
+  const lugar = useLocation()
+  const irA = useNavigate()
+  const [llegando, setLlegando] = useState(Boolean(lugar.state?.digitalizada))
   const temporizador = useRef(null)
 
   // Planta del jardin guardada en el servidor (GET /plantas/activa, 204 = sin planta)
@@ -103,8 +108,16 @@ export default function Jardin() {
     temporizador.current = setTimeout(() => setAviso(''), MS_AVISO)
   }
 
+  const alDigitalizar = () => {
+    setLlegando(false)
+    setEfecto({ tipo: 'CRECER', id: Date.now() })
+    avisar(`¡${estado.planta.name} ya vive en tu jardín! 🌱`)
+    // Sin esto, recargar la pagina repetiria la secuencia
+    irA(lugar.pathname, { replace: true, state: null })
+  }
+
   const cuidar = async (accion) => {
-    if (cuidando) return
+    if (cuidando || llegando) return
     const previa = estado.planta
     const antes = etapaDe(previa)
     setCuidando(true)
@@ -112,7 +125,7 @@ export default function Jardin() {
       const planta = await cuidarPlanta(previa.id, accion)
       const despues = etapaDe(planta)
       setEstado((e) => ({ ...e, planta }))
-      setSalto((s) => s + 1)
+      setEfecto({ tipo: accion, id: Date.now() })
       if (antes.marchita && !despues.marchita) {
         avisar(`¡${planta.name} se recuperó! 🌱`)
       } else if (despues.indice > antes.indice && !despues.marchita) {
@@ -150,6 +163,7 @@ export default function Jardin() {
     try {
       const planta = await revivirPlanta(estado.planta.id)
       setEstado((e) => ({ ...e, planta }))
+      setEfecto({ tipo: 'CRECER', id: Date.now() })
       avisar(`¡${planta.name} revivió! 🌱`)
     } catch (err) {
       avisar(err.estado === 402 ? 'No te alcanzan las hojas para revivirla.' : err.message || 'No se pudo revivir la planta.')
@@ -167,7 +181,7 @@ export default function Jardin() {
       const antes = etapaDe(estado.planta)
       const despues = etapaDe(planta)
       setEstado((e) => ({ ...e, planta }))
-      setSalto((s) => s + 1)
+      setEfecto({ tipo: 'ABONAR', id: Date.now() })
       avisar(despues.indice > antes.indice
         ? `¡${planta.name} creció! Ahora es: ${despues.nombre} 🎉`
         : `${abono.nombre} aplicado: ${planta.name} ${diasGanados(estado.planta, planta)} 🌿`)
@@ -212,8 +226,10 @@ export default function Jardin() {
     <div className="jardin">
       <section className={`jardin-marco aparece ${marchita ? 'jardin-marco-marchita' : ''}`}>
         <EscenaPixel key={`escena-${claveEscena}`} />
-        <div key={`planta-${salto}`} className={`jardin-planta ${salto ? 'jardin-salta' : ''}`}>
-          <PlantaPixel etapa={etapa.indice} apariencia={planta.apariencia} maceta={planta.macetaCodigo} titulo={`${planta.name}: ${etapa.nombre}`} />
+        <div className="jardin-planta">
+          {llegando
+            ? <Digitalizacion foto={foto} apariencia={planta.apariencia} maceta={planta.macetaCodigo} alTerminar={alDigitalizar} />
+            : <PlantaPixel etapa={etapa.indice} apariencia={planta.apariencia} maceta={planta.macetaCodigo} efecto={efecto} titulo={`${planta.name}: ${etapa.nombre}`} />}
         </div>
         {escudo > 0 && <span key={`escudo-${escudo}`} className="jardin-escudo" aria-hidden="true">🛡️</span>}
         {golpe && <div className="jardin-golpe" role="alert">{textoDelGolpe(golpe)}</div>}
@@ -274,7 +290,7 @@ export default function Jardin() {
             {planta.enRecuperacion && <Recuperacion segundos={planta.recuperacionSegundos} />}
             <div className="jardin-acciones aparece" style={{ animationDelay: '0.2s' }}>
               {Object.entries(ACCIONES).map(([clave, a]) => (
-                <button key={clave} className="jardin-accion" onClick={() => cuidar(clave)} disabled={cuidando}>
+                <button key={clave} className="jardin-accion" onClick={() => cuidar(clave)} disabled={cuidando || llegando}>
                   <span>{a.icono}</span>
                   <b>{a.texto}</b>
                   <small>{a.pista}</small>
