@@ -26,6 +26,13 @@ const MS_GOLPE = 3500
 const TEXTO_GOLPE = { HUAYCO: 'El huayco', HELADA: 'La helada', OLA_DE_CALOR: 'La ola de calor', PLAGA: 'La plaga' }
 const textoDelGolpe = (tipo) => `¡${TEXTO_GOLPE[tipo] || 'El evento'} arrasó con tu planta!`
 
+// "ganó medio día", "ganó un día" o "ganó 3 días" segun lo que subio diasCuidados (igual que en el movil)
+function diasGanados(antes, despues) {
+  const dias = (despues.diasCuidados || 0) - (antes.diasCuidados || 0)
+  if (dias <= 0) return 'ganó medio día'
+  return dias === 1 ? 'ganó un día' : `ganó ${dias} días`
+}
+
 // Cuenta regresiva de la recuperacion: solo el abono salva a la planta golpeada antes de que se acabe el tiempo
 function Recuperacion({ segundos }) {
   const restante = useRestante(segundos)
@@ -44,7 +51,7 @@ export default function Jardin() {
   const [cuidando, setCuidando] = useState(false)
   const [fondosAbierto, setFondosAbierto] = useState(false)
   const [claveEscena, setClaveEscena] = useState(0) // cambia al poner otro fondo: la escena se vuelve a armar
-  const [abono, setAbono] = useState(null) // abono de la tienda (precio), si esta a la venta
+  const [abonos, setAbonos] = useState([]) // abonos de la tienda (medio dia, 1 y 3 dias), del mas barato al mas caro
   const [evento, setEvento] = useState(null) // evento activo (o null): con el aparece "Prevenir evento"
   const [golpe, setGolpe] = useState(null) // tipo de evento que arraso con la planta, mientras se muestra
   const [escudo, setEscudo] = useState(0) // sube cada vez que se previene: dispara el escudo
@@ -62,7 +69,9 @@ export default function Jardin() {
 
   useEffect(() => { cargar() }, [cargar])
   useEffect(() => {
-    obtenerTienda().then((t) => setAbono(t.items.find((i) => i.tipo === 'ABONO') || null)).catch(() => setAbono(null))
+    obtenerTienda()
+      .then((t) => setAbonos(t.items.filter((i) => i.tipo === 'ABONO').sort((a, b) => a.precio - b.precio)))
+      .catch(() => setAbonos([]))
   }, [])
   useEffect(() => () => clearTimeout(temporizador.current), [])
 
@@ -149,17 +158,19 @@ export default function Jardin() {
     }
   }
 
-  // Abono de la tienda: cuesta monedas y suma un dia de crecimiento (maximo uno al dia por planta)
-  const abonarConTienda = async () => {
+  // Abono de la tienda: cuesta monedas y suma medio dia, 1 o 3 dias de crecimiento (maximo uno al dia por planta)
+  const abonarConTienda = async (abono) => {
     if (cuidando) return
     setCuidando(true)
     try {
-      const planta = await comprarAbono(estado.planta.id)
+      const planta = await comprarAbono(estado.planta.id, abono.id)
       const antes = etapaDe(estado.planta)
       const despues = etapaDe(planta)
       setEstado((e) => ({ ...e, planta }))
       setSalto((s) => s + 1)
-      avisar(despues.indice > antes.indice ? `¡${planta.name} creció! Ahora es: ${despues.nombre} 🎉` : `Abono aplicado: ${planta.name} ganó un día 🌿`)
+      avisar(despues.indice > antes.indice
+        ? `¡${planta.name} creció! Ahora es: ${despues.nombre} 🎉`
+        : `${abono.nombre} aplicado: ${planta.name} ${diasGanados(estado.planta, planta)} 🌿`)
     } catch (err) {
       avisar(err.message || 'No se pudo usar el abono.')
     } finally {
@@ -279,12 +290,23 @@ export default function Jardin() {
                 {planta.refugiada ? '🛡️ Evento prevenido' : `🛡️ Prevenir evento${evento?.eventName ? `: ${evento.eventName}` : ''}`}
               </button>
             )}
-            {abono && (
-              <button className="jardin-abono aparece" onClick={abonarConTienda} disabled={cuidando} style={{ animationDelay: '0.26s' }}>
-                <span>🌿</span>
-                <b>{abono.nombre}: +1 día de crecimiento</b>
-                <small>{abono.precio} 🍃 · máximo 1 al día</small>
-              </button>
+            {abonos.length > 0 && (
+              <div className="jardin-abonos aparece" style={{ animationDelay: '0.26s' }}>
+                <p className="jardin-abonos-titulo">🌿 Abonos · máximo 1 al día</p>
+                {abonos.map((abono) => (
+                  <button
+                    key={abono.id}
+                    className="jardin-abono"
+                    onClick={() => abonarConTienda(abono)}
+                    disabled={cuidando || abono.bloqueado}
+                    title={abono.bloqueado ? `Se desbloquea en el nivel ${abono.nivelRequerido}` : undefined}
+                  >
+                    <b>{abono.nombre}</b>
+                    <span className="jardin-abono-desc">{abono.descripcion}</span>
+                    <small>{abono.bloqueado ? `🔒 Nivel ${abono.nivelRequerido}` : `${abono.precio} 🍃`}</small>
+                  </button>
+                ))}
+              </div>
             )}
           </>
         )}

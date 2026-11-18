@@ -5,7 +5,7 @@ import { olvidarArte } from './arte'
 //   GET  /tienda                -> { monedas, nivel, items: [{ id, nombre, tipo, descripcion, precio, nivelRequerido,
 //                                   previewUrl, variantes: [{ momento, vistaUrl }], comprado, bloqueado }] }
 //   POST /tienda/{id}/comprar     compra un tema de fondo (402 sin monedas, 409 si ya lo tiene o falta nivel)
-//   POST /plantas/{id}/abono-tienda  compra y usa un abono: +1 dia de crecimiento (maximo 1 al dia por planta)
+//   POST /plantas/{id}/abono-tienda  compra y usa un abono { idItem }: medio dia, 1 o 3 dias de crecimiento (maximo 1 al dia por planta)
 //
 // Los fondos son temas con una escena de dia, otra de tarde y otra de noche. Se ponen a una planta desde el jardin:
 //   GET /plantas/{id}/fondos      -> [{ id, nombre, descripcion, predeterminado, enUso, variantes }]
@@ -15,7 +15,8 @@ export const obtenerTienda = () => llamar('/tienda')
 
 export const comprarItem = (id) => llamar(`/tienda/${id}/comprar`, { metodo: 'POST' })
 
-export const comprarAbono = (idPlanta) => llamar(`/plantas/${idPlanta}/abono-tienda`, { metodo: 'POST' })
+export const comprarAbono = (idPlanta, idItem) =>
+  llamar(`/plantas/${idPlanta}/abono-tienda`, { metodo: 'POST', cuerpo: idItem ? { idItem } : undefined })
 
 export const listarFondosPlanta = (idPlanta) => llamar(`/plantas/${idPlanta}/fondos`)
 

@@ -61,10 +61,13 @@
 .jardin-fondos-boton:hover { transform: scale(1.08); }
 
 /* Abono de la tienda */
-.jardin-abono { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px; border: 2px dashed var(--primario); border-radius: var(--radio); background: var(--tinte); color: var(--texto); font: inherit; cursor: pointer; }
-.jardin-abono span { font-size: 1.5rem; }
-.jardin-abono small { color: var(--primario); font-weight: 800; }
+.jardin-abonos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.jardin-abonos-titulo { grid-column: 1 / -1; margin: 0; font-weight: 800; color: var(--texto); }
+.jardin-abono { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; border: 2px dashed var(--primario); border-radius: var(--radio); background: var(--tinte); color: var(--texto); font: inherit; text-align: center; cursor: pointer; }
+.jardin-abono-desc { font-size: 0.75rem; line-height: 1.3; opacity: 0.8; }
+.jardin-abono small { margin-top: auto; color: var(--primario); font-weight: 800; }
 .jardin-abono:disabled { opacity: 0.6; cursor: wait; }
+@media (max-width: 480px) { .jardin-abonos { grid-template-columns: 1fr; } }
 .jardin-tienda-enlace { align-self: center; color: var(--primario); font-weight: 800; }
 
 /* Aviso */
