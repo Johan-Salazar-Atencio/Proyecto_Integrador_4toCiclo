@@ -6,6 +6,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +33,7 @@ import com.plantia.repositories.UsuarioRepository;
 @Service
 public class TiendaService {
 
+    private static final Logger log = LoggerFactory.getLogger(TiendaService.class);
     static final String FONDO = "FONDO";
     static final String MACETA = "MACETA";
     static final String INVERNADERO = "INVERNADERO";
@@ -39,13 +43,29 @@ public class TiendaService {
     private final InventarioUsuarioRepository inventarioRepo;
     private final FondoEscenaRepository fondoRepo;
     private final UsuarioRepository usuarioRepo;
+    private final ObjectProvider<LogroService> logroService;
 
     public TiendaService(ItemTiendaRepository itemRepo, InventarioUsuarioRepository inventarioRepo,
-                         FondoEscenaRepository fondoRepo, UsuarioRepository usuarioRepo) {
+                         FondoEscenaRepository fondoRepo, UsuarioRepository usuarioRepo,
+                         ObjectProvider<LogroService> logroService) {
         this.itemRepo = itemRepo;
         this.inventarioRepo = inventarioRepo;
         this.fondoRepo = fondoRepo;
         this.usuarioRepo = usuarioRepo;
+        this.logroService = logroService;
+    }
+
+    /** Compatibilidad para pruebas y usos sin logros. */
+    public TiendaService(ItemTiendaRepository itemRepo, InventarioUsuarioRepository inventarioRepo,
+                         FondoEscenaRepository fondoRepo, UsuarioRepository usuarioRepo) {
+        this(itemRepo, inventarioRepo, fondoRepo, usuarioRepo, new ObjectProvider<LogroService>() {
+            @Override public LogroService getObject(Object... args) { return null; }
+            @Override public LogroService getObject() { return null; }
+            @Override public LogroService getIfAvailable() { return null; }
+            @Override public LogroService getIfUnique() { return null; }
+            @Override public java.util.stream.Stream<LogroService> stream() { return java.util.stream.Stream.empty(); }
+            @Override public java.util.stream.Stream<LogroService> orderedStream() { return java.util.stream.Stream.empty(); }
+        });
     }
 
     @Transactional(readOnly = true)
@@ -103,7 +123,19 @@ public class TiendaService {
         compra.setIdUsuario(userId);
         compra.setIdItem(idItem);
         inventarioRepo.save(compra);
+        evaluarLogrosSeguro(userId);
         return listar(userId);
+    }
+
+    private void evaluarLogrosSeguro(Integer userId) {
+        try {
+            LogroService servicio = logroService.getIfAvailable();
+            if (servicio != null) {
+                servicio.evaluar(userId, java.time.LocalDateTime.now());
+            }
+        } catch (RuntimeException e) {
+            log.error("No se pudieron evaluar logros tras compra para el usuario {}", userId, e);
+        }
     }
 
     /** Escenas de cada tema, en orden DIA, TARDE, NOCHE, con su vista previa. */
