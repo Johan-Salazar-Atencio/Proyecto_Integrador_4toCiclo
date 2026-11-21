@@ -68,27 +68,32 @@ public class LogroService {
 
     @Transactional
     public List<LogroDesbloqueadoDto> evaluar(Integer userId, LocalDateTime ahora) {
-        Usuario u = usuarioRepo.findById(userId).orElse(null);
-        if (u == null) {
+        try {
+            Usuario u = usuarioRepo.findById(userId).orElse(null);
+            if (u == null) {
+                return List.of();
+            }
+            List<Logro> activos = logroRepo.findByActivoTrueOrderByOrdenAscIdLogroAsc();
+            Map<Integer, LogroUsuario> estados = estadosPorLogro(userId);
+            List<LogroDesbloqueadoDto> nuevos = new ArrayList<>();
+            for (Logro logro : activos) {
+                LogroUsuario estado = estadoDe(userId, logro, estados);
+                if (estado.getDesbloqueadoEn() != null) {
+                    continue;
+                }
+                int progreso = calcularProgreso(u, logro, ahora);
+                int meta = Math.max(1, valor(logro.getMeta(), 1));
+                estado.setProgreso(Math.min(progreso, meta));
+                if (estado.getProgreso() >= meta) {
+                    desbloquear(u, logro, estado, ahora, nuevos);
+                }
+                logroUsuarioRepo.save(estado);
+            }
+            return nuevos;
+        } catch (RuntimeException e) {
+            log.error("No se pudieron evaluar logros para el usuario {}", userId, e);
             return List.of();
         }
-        List<Logro> activos = logroRepo.findByActivoTrueOrderByOrdenAscIdLogroAsc();
-        Map<Integer, LogroUsuario> estados = estadosPorLogro(userId);
-        List<LogroDesbloqueadoDto> nuevos = new ArrayList<>();
-        for (Logro logro : activos) {
-            LogroUsuario estado = estadoDe(userId, logro, estados);
-            if (estado.getDesbloqueadoEn() != null) {
-                continue;
-            }
-            int progreso = calcularProgreso(u, logro, ahora);
-            int meta = Math.max(1, valor(logro.getMeta(), 1));
-            estado.setProgreso(Math.min(progreso, meta));
-            if (estado.getProgreso() >= meta) {
-                desbloquear(u, logro, estado, ahora, nuevos);
-            }
-            logroUsuarioRepo.save(estado);
-        }
-        return nuevos;
     }
 
     private void desbloquear(Usuario u, Logro logro, LogroUsuario estado, LocalDateTime ahora,
