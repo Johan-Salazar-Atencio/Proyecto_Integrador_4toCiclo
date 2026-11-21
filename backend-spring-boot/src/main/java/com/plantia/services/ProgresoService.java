@@ -189,7 +189,7 @@ public class ProgresoService {
         int xp = valor(logro.getRecompensaXp(), 0);
         int monedas = valor(logro.getRecompensaMonedas(), 0);
         if (xp == 0 && monedas == 0) {
-            return vueltasRestantes > 0 ? evaluarLogrosSeguro(usuario.getIdUsuario(), ahora) : List.of();
+            return List.of();
         }
         ReglaProgreso premio = new ReglaProgreso();
         premio.setXp(xp);
@@ -200,10 +200,20 @@ public class ProgresoService {
         }
         usuario.setUpdatedAt(ahora);
         usuarioRepo.save(usuario);
-        if (vueltasRestantes > 0) {
-            return evaluarLogrosSeguro(usuario.getIdUsuario(), ahora);
+        return evaluarLogrosSeguro(usuario.getIdUsuario(), ahora, vueltasRestantes - 1);
+    }
+
+    private List<LogroDesbloqueadoDto> evaluarLogrosSeguro(Integer userId, LocalDateTime ahora, int vueltasRestantes) {
+        if (vueltasRestantes <= 0) {
+            return List.of();
         }
-        return List.of();
+        try {
+            LogroService servicio = logroService.getIfAvailable();
+            return servicio == null ? List.of() : servicio.evaluar(userId, ahora, vueltasRestantes);
+        } catch (RuntimeException e) {
+            log.error("No se pudieron evaluar logros para el usuario {}", userId, e);
+            return List.of();
+        }
     }
 
     @Transactional(readOnly = true)

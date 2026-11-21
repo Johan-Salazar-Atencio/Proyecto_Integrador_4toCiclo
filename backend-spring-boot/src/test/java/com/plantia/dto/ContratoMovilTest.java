@@ -123,11 +123,26 @@ class ContratoMovilTest {
         assertThat(claves(progreso))
                 .containsExactlyInAnyOrder("xpGanado", "monedasGanadas", "nivel", "subioDeNivel", "experienciaXp", "rachaDias");
 
+        LogroDesbloqueadoDto logro = new LogroDesbloqueadoDto(1, "PRIMERA_PLANTA", "Mi primera planta", "desc", "semilla", "COMUN", 20, 10);
+        ProgresoDto conLogros = progreso.conLogrosNuevos(List.of(logro));
+        assertThat(claves(conLogros)).contains("logrosNuevos");
+        assertThat(claves(logro)).containsExactlyInAnyOrder("idLogro", "codigo", "titulo", "descripcion", "icono", "rareza", "recompensaXp", "recompensaMonedas");
+
         ScanResultDto sinProgreso = new ScanResultDto(1, 2, "Monstera", "Monstera deliciosa", 92.5,
                 "/files/x.jpg", false, List.of(), true);
         ScanResultDto conProgreso = new ScanResultDto(1, 2, "Monstera", "Monstera deliciosa", 92.5,
                 "/files/x.jpg", false, List.of(), true, null, progreso);
         assertThat(claves(sinProgreso)).doesNotContain("progreso");
         assertThat(claves(conProgreso)).contains("progreso");
+    }
+
+    @Test
+    void logros() throws Exception {
+        LogroDto logro = new LogroDto(1, "PRIMERA_PLANTA", "Mi primera planta", "desc", "semilla", "COMUN", 1, 1, true,
+                null, false, 20, 10);
+        assertThat(claves(logro)).containsExactlyInAnyOrder("idLogro", "codigo", "titulo", "descripcion", "icono", "rareza",
+                "meta", "progreso", "desbloqueado", "secreto", "recompensaXp", "recompensaMonedas");
+        LogrosResponseDto respuesta = new LogrosResponseDto(1, 1, List.of(logro));
+        assertThat(claves(respuesta)).containsExactlyInAnyOrder("total", "desbloqueados", "logros");
     }
 }

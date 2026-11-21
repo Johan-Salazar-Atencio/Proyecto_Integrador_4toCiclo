@@ -1,12 +1,13 @@
 package com.plantia.services;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.plantia.dto.LogroDesbloqueadoDto;
+import com.plantia.dto.LogroDto;
+import com.plantia.dto.LogrosResponseDto;
 import com.plantia.models.Logro;
 import com.plantia.models.LogroUsuario;
 import com.plantia.models.Usuario;
@@ -68,6 +71,11 @@ public class LogroService {
 
     @Transactional
     public List<LogroDesbloqueadoDto> evaluar(Integer userId, LocalDateTime ahora) {
+        return evaluar(userId, ahora, MAX_VUELTAS);
+    }
+
+    @Transactional
+    public List<LogroDesbloqueadoDto> evaluar(Integer userId, LocalDateTime ahora, int vueltasRestantes) {
         try {
             Usuario u = usuarioRepo.findById(userId).orElse(null);
             if (u == null) {
@@ -85,7 +93,7 @@ public class LogroService {
                 int meta = Math.max(1, valor(logro.getMeta(), 1));
                 estado.setProgreso(Math.min(progreso, meta));
                 if (estado.getProgreso() >= meta) {
-                    desbloquear(u, logro, estado, ahora, nuevos);
+                    desbloquear(u, logro, estado, ahora, nuevos, vueltasRestantes);
                 }
                 logroUsuarioRepo.save(estado);
             }
@@ -97,12 +105,12 @@ public class LogroService {
     }
 
     private void desbloquear(Usuario u, Logro logro, LogroUsuario estado, LocalDateTime ahora,
-                             List<LogroDesbloqueadoDto> nuevos) {
+                             List<LogroDesbloqueadoDto> nuevos, int vueltasRestantes) {
         estado.setDesbloqueadoEn(ahora);
         estado.setNotificado(false);
         logroUsuarioRepo.save(estado);
         nuevos.add(aDesbloqueado(logro));
-        nuevos.addAll(progresoService.getObject().premiarLogro(u, logro, ahora, MAX_VUELTAS));
+        nuevos.addAll(progresoService.getObject().premiarLogro(u, logro, ahora, vueltasRestantes));
     }
 
     private int calcularProgreso(Usuario u, Logro logro, LocalDateTime ahora) {
@@ -172,6 +180,71 @@ public class LogroService {
             lu.setNotificado(false);
             return lu;
         });
+    }
+
+    @Transactional
+    public LogrosResponseDto listar(Integer userId, LocalDateTime ahora) {
+        evaluar(userId, ahora);
+        List<Logro> todos = logroRepo.findAllByOrderByOrdenAscIdLogroAsc();
+        Map<Integer, LogroUsuario> estados = estadosPorLogro(userId);
+        List<LogroDto> visibles = new ArrayList<>();
+        for (Logro logro : todos) {
+            LogroUsuario estado = estados.get(logro.getIdLogro());
+            boolean desbloqueado = estado != null && estado.getDesbloqueadoEn() != null;
+            boolean activo = Boolean.TRUE.equals(logro.getActivo());
+            if (!activo && !desbloqueado) {
+                continue;
+            }
+            visibles.add(aDto(logro, estado));
+        }
+        int desbloqueados = (int) visibles.stream().filter(LogroDto::desbloqueado).count();
+        return new LogrosResponseDto(visibles.size(), desbloqueados, visibles);
+    }
+
+    @Transactional
+    public List<LogroDesbloqueadoDto> pendientes(Integer userId, LocalDateTime ahora) {
+        evaluar(userId, ahora);
+        Map<Integer, Logro> porId = logroRepo.findAll().stream().collect(Collectors.toMap(Logro::getIdLogro, l -> l, (a, b) -> a));
+        return logroUsuarioRepo.findByIdUsuarioAndDesbloqueadoEnIsNotNullAndNotificadoFalse(userId).stream()
+                .map(LogroUsuario::getIdLogro)
+                .map(porId::get)
+                .filter(java.util.Objects::nonNull)
+                .sorted(Comparator.comparing((Logro l) -> valor(l.getOrden(), 0)).thenComparing(Logro::getIdLogro))
+                .map(LogroService::aDesbloqueado)
+                .toList();
+    }
+
+    @Transactional
+    public void marcarVistos(Integer userId, List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        for (Integer idLogro : ids) {
+            if (idLogro == null) {
+                continue;
+            }
+            logroUsuarioRepo.findByIdUsuarioAndIdLogro(userId, idLogro).ifPresent(estado -> {
+                if (estado.getDesbloqueadoEn() != null && !Boolean.TRUE.equals(estado.getNotificado())) {
+                    estado.setNotificado(true);
+                    logroUsuarioRepo.save(estado);
+                }
+            });
+        }
+    }
+
+    static LogroDto aDto(Logro logro, LogroUsuario estado) {
+        boolean desbloqueado = estado != null && estado.getDesbloqueadoEn() != null;
+        boolean secretoBloqueado = Boolean.TRUE.equals(logro.getSecreto()) && !desbloqueado;
+        int meta = Math.max(1, valor(logro.getMeta(), 1));
+        int progreso = estado != null ? Math.min(valor(estado.getProgreso(), 0), meta) : 0;
+        if (secretoBloqueado) {
+            return new LogroDto(logro.getIdLogro(), logro.getCodigo(), "???", "Logro secreto", "secreto",
+                    logro.getRareza(), 1, 0, false, null, true, 0, 0);
+        }
+        return new LogroDto(logro.getIdLogro(), logro.getCodigo(), logro.getTitulo(), logro.getDescripcion(),
+                logro.getIcono(), logro.getRareza(), meta, desbloqueado ? meta : progreso, desbloqueado,
+                estado != null ? estado.getDesbloqueadoEn() : null, Boolean.TRUE.equals(logro.getSecreto()),
+                valor(logro.getRecompensaXp(), 0), valor(logro.getRecompensaMonedas(), 0));
     }
 
     static LogroDesbloqueadoDto aDesbloqueado(Logro logro) {
