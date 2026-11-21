@@ -6,11 +6,15 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.plantia.dto.LogroDesbloqueadoDto;
 import com.plantia.dto.ProgresoDto;
 import com.plantia.models.HistorialProgreso;
 import com.plantia.models.MisionUsuario;
@@ -31,8 +35,10 @@ import com.plantia.repositories.UsuarioRepository;
 @Service
 public class ProgresoService {
 
+    private static final Logger log = LoggerFactory.getLogger(ProgresoService.class);
     static final String MOTIVO_RACHA = "RACHA";
     static final String MOTIVO_MISION = "MISION";
+    static final String MOTIVO_LOGRO = "LOGRO";
 
     private final UsuarioRepository usuarioRepo;
     private final NivelRepository nivelRepo;
@@ -40,19 +46,39 @@ public class ProgresoService {
     private final HistorialProgresoRepository historialRepo;
     private final MisionService misionService;
     private final MisionUsuarioRepository misionUsuarioRepo;
+    private final ObjectProvider<LogroService> logroService;
 
     public ProgresoService(UsuarioRepository usuarioRepo,
                            NivelRepository nivelRepo,
                            ReglaProgresoRepository reglaRepo,
                            HistorialProgresoRepository historialRepo,
                            MisionService misionService,
-                           MisionUsuarioRepository misionUsuarioRepo) {
+                           MisionUsuarioRepository misionUsuarioRepo,
+                           ObjectProvider<LogroService> logroService) {
         this.usuarioRepo = usuarioRepo;
         this.nivelRepo = nivelRepo;
         this.reglaRepo = reglaRepo;
         this.historialRepo = historialRepo;
         this.misionService = misionService;
         this.misionUsuarioRepo = misionUsuarioRepo;
+        this.logroService = logroService;
+    }
+
+    /** Compatibilidad para pruebas y usos que no inyectan logros. */
+    public ProgresoService(UsuarioRepository usuarioRepo,
+                           NivelRepository nivelRepo,
+                           ReglaProgresoRepository reglaRepo,
+                           HistorialProgresoRepository historialRepo,
+                           MisionService misionService,
+                           MisionUsuarioRepository misionUsuarioRepo) {
+        this(usuarioRepo, nivelRepo, reglaRepo, historialRepo, misionService, misionUsuarioRepo, new ObjectProvider<LogroService>() {
+            @Override public LogroService getObject(Object... args) { return null; }
+            @Override public LogroService getObject() { return null; }
+            @Override public LogroService getIfAvailable() { return null; }
+            @Override public LogroService getIfUnique() { return null; }
+            @Override public java.util.stream.Stream<LogroService> stream() { return java.util.stream.Stream.empty(); }
+            @Override public java.util.stream.Stream<LogroService> orderedStream() { return java.util.stream.Stream.empty(); }
+        });
     }
 
     @Transactional
@@ -107,9 +133,7 @@ public class ProgresoService {
         usuarioRepo.bloquear(userId); // premios simultaneos no se pisan (ni XP, ni monedas, ni topes diarios)
         Usuario u = usuarioRepo.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-        List<Nivel> niveles = nivelRepo.findAll().stream()
-                .sorted(Comparator.comparing(Nivel::getNivel))
-                .toList();
+        List<Nivel> niveles = niveles();
         int nivelInicial = valor(u.getNivel(), 1);
 
         List<String> aplicar = new ArrayList<>();
@@ -141,8 +165,65 @@ public class ProgresoService {
         usuarioRepo.save(u);
 
         int nivel = valor(u.getNivel(), 1);
-        return new ProgresoDto(xpGanado, monedasGanadas, nivel, nivel > nivelInicial,
+        ProgresoDto dto = new ProgresoDto(xpGanado, monedasGanadas, nivel, nivel > nivelInicial,
                 valor(u.getExperienciaXp(), 0), valor(u.getRachaDias(), 0));
+        return dto.conLogrosNuevos(evaluarLogrosSeguro(userId, ahora));
+    }
+
+    List<LogroDesbloqueadoDto> evaluarLogrosSeguro(Integer userId, LocalDateTime ahora) {
+        try {
+            LogroService servicio = logroService.getIfAvailable();
+            return servicio == null ? List.of() : servicio.evaluar(userId, ahora);
+        } catch (RuntimeException e) {
+            log.error("No se pudieron evaluar logros para el usuario {}", userId, e);
+            return List.of();
+        }
+    }
+
+    @Transactional
+    public List<LogroDesbloqueadoDto> premiarLogro(Usuario usuario, com.plantia.models.Logro logro, LocalDateTime ahora, int vueltasRestantes) {
+        ReglaProgreso reglaLogro = reglaRepo.findByMotivo(MOTIVO_LOGRO)
+                .filter(r -> Boolean.TRUE.equals(r.getActiva())).orElse(null);
+        if (reglaLogro == null) {
+            return List.of();
+        }
+        int xp = valor(logro.getRecompensaXp(), 0);
+        int monedas = valor(logro.getRecompensaMonedas(), 0);
+        if (xp == 0 && monedas == 0) {
+            return List.of();
+        }
+        ReglaProgreso premio = new ReglaProgreso();
+        premio.setXp(xp);
+        premio.setMonedas(monedas);
+        int[] ganado = sumar(usuario, premio, niveles());
+        if (ganado[0] != 0 || ganado[1] != 0) {
+            historialRepo.save(movimiento(usuario, reglaLogro, ganado, logro.getIdLogro(), ahora));
+        }
+        usuario.setUpdatedAt(ahora);
+        usuarioRepo.save(usuario);
+        return evaluarLogrosSeguro(usuario.getIdUsuario(), ahora, vueltasRestantes - 1);
+    }
+
+    private List<LogroDesbloqueadoDto> evaluarLogrosSeguro(Integer userId, LocalDateTime ahora, int vueltasRestantes) {
+        if (vueltasRestantes <= 0) {
+            return List.of();
+        }
+        try {
+            LogroService servicio = logroService.getIfAvailable();
+            return servicio == null ? List.of() : servicio.evaluar(userId, ahora, vueltasRestantes);
+        } catch (RuntimeException e) {
+            log.error("No se pudieron evaluar logros para el usuario {}", userId, e);
+            return List.of();
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public long contarAccionHistorial(Integer userId, String motivo) {
+        return historialRepo.countByUsuarioAndMotivo(userId, motivo);
+    }
+
+    private List<Nivel> niveles() {
+        return nivelRepo.findAll().stream().sorted(Comparator.comparing(Nivel::getNivel)).toList();
     }
 
     /**

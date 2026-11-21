@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,7 @@ public class ResultadoDesastreService {
     private final TipoDesastreRepository tipoRepo;
     private final ProgresoService progreso;
     private final ParametrosJuego parametros;
+    private final ObjectProvider<LogroService> logroService;
     private final Duration gracia;
 
     public ResultadoDesastreService(EventoDesastreRepository eventoRepo,
@@ -51,6 +53,7 @@ public class ResultadoDesastreService {
                                     TipoDesastreRepository tipoRepo,
                                     ProgresoService progreso,
                                     ParametrosJuego parametros,
+                                    ObjectProvider<LogroService> logroService,
                                     @Value("${app.eventos.gracia-horas:6}") long graciaHoras) {
         this.eventoRepo = eventoRepo;
         this.plantaRepo = plantaRepo;
@@ -58,7 +61,25 @@ public class ResultadoDesastreService {
         this.tipoRepo = tipoRepo;
         this.progreso = progreso;
         this.parametros = parametros;
+        this.logroService = logroService;
         this.gracia = Duration.ofHours(graciaHoras);
+    }
+
+    public ResultadoDesastreService(EventoDesastreRepository eventoRepo,
+                                    PlantaUsuarioRepository plantaRepo,
+                                    RegistroDesastreUsuarioRepository registroRepo,
+                                    TipoDesastreRepository tipoRepo,
+                                    ProgresoService progreso,
+                                    ParametrosJuego parametros,
+                                    @Value("${app.eventos.gracia-horas:6}") long graciaHoras) {
+        this(eventoRepo, plantaRepo, registroRepo, tipoRepo, progreso, parametros, new ObjectProvider<LogroService>() {
+            @Override public LogroService getObject(Object... args) { return null; }
+            @Override public LogroService getObject() { return null; }
+            @Override public LogroService getIfAvailable() { return null; }
+            @Override public LogroService getIfUnique() { return null; }
+            @Override public java.util.stream.Stream<LogroService> stream() { return java.util.stream.Stream.empty(); }
+            @Override public java.util.stream.Stream<LogroService> orderedStream() { return java.util.stream.Stream.empty(); }
+        }, graciaHoras);
     }
 
     /** Procesa los eventos FINALIZADOS que aun no tienen resultado. */
@@ -132,8 +153,20 @@ public class ResultadoDesastreService {
             if (cuenta[0] > 0 && cuenta[0] == cuenta[1]) {
                 progreso.otorgarSinRacha(idUsuario, "EVENTO_COMPLETO", e.getIdDesastre(), ahora);
             }
+            evaluarLogrosSeguro(idUsuario, ahora);
         });
         log.info("Evento {} procesado: {} plantas salvadas, {} golpeadas", e.getIdDesastre(), salvadas, danadas);
+    }
+
+    private void evaluarLogrosSeguro(Integer userId, LocalDateTime ahora) {
+        try {
+            LogroService servicio = logroService.getIfAvailable();
+            if (servicio != null) {
+                servicio.evaluar(userId, ahora);
+            }
+        } catch (RuntimeException e) {
+            log.error("No se pudieron evaluar logros tras desastre para el usuario {}", userId, e);
+        }
     }
 
     private List<PlantaUsuario> plantasAfectadas(EventoDesastre e) {

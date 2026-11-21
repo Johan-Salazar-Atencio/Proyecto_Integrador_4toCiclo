@@ -10,4 +10,6 @@ import com.plantia.models.MisionUsuario;
 public interface MisionUsuarioRepository extends JpaRepository<MisionUsuario, Integer> {
 
     List<MisionUsuario> findByIdUsuarioAndFecha(Integer idUsuario, LocalDate fecha);
+
+    long countByIdUsuarioAndCompletadaTrue(Integer idUsuario);
 }
