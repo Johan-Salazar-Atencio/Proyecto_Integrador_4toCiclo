@@ -102,7 +102,7 @@ public class LogroService {
         estado.setNotificado(false);
         logroUsuarioRepo.save(estado);
         nuevos.add(aDesbloqueado(logro));
-        progresoService.getObject().premiarLogro(u, logro, ahora, MAX_VUELTAS);
+        nuevos.addAll(progresoService.getObject().premiarLogro(u, logro, ahora, MAX_VUELTAS));
     }
 
     private int calcularProgreso(Usuario u, Logro logro, LocalDateTime ahora) {

@@ -180,16 +180,16 @@ public class ProgresoService {
     }
 
     @Transactional
-    public void premiarLogro(Usuario usuario, com.plantia.models.Logro logro, LocalDateTime ahora, int vueltasRestantes) {
+    public List<LogroDesbloqueadoDto> premiarLogro(Usuario usuario, com.plantia.models.Logro logro, LocalDateTime ahora, int vueltasRestantes) {
         ReglaProgreso reglaLogro = reglaRepo.findByMotivo(MOTIVO_LOGRO)
                 .filter(r -> Boolean.TRUE.equals(r.getActiva())).orElse(null);
         if (reglaLogro == null) {
-            return;
+            return List.of();
         }
         int xp = valor(logro.getRecompensaXp(), 0);
         int monedas = valor(logro.getRecompensaMonedas(), 0);
         if (xp == 0 && monedas == 0) {
-            return;
+            return vueltasRestantes > 0 ? evaluarLogrosSeguro(usuario.getIdUsuario(), ahora) : List.of();
         }
         ReglaProgreso premio = new ReglaProgreso();
         premio.setXp(xp);
@@ -201,8 +201,9 @@ public class ProgresoService {
         usuario.setUpdatedAt(ahora);
         usuarioRepo.save(usuario);
         if (vueltasRestantes > 0) {
-            evaluarLogrosSeguro(usuario.getIdUsuario(), ahora);
+            return evaluarLogrosSeguro(usuario.getIdUsuario(), ahora);
         }
+        return List.of();
     }
 
     @Transactional(readOnly = true)
