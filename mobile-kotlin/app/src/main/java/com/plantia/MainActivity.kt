@@ -24,7 +24,6 @@ import com.plantia.data.local.TemaConfig
 import com.plantia.data.logros.ProgramadorLogros
 import com.plantia.data.network.DescubridorMdns
 import com.plantia.data.remote.RetrofitClient
-import com.plantia.ui.logros.HostCelebracionLogros
 import com.plantia.ui.navigation.AppNavigation
 import com.plantia.ui.theme.MobilekotlinTheme
 
@@ -81,9 +80,8 @@ class MainActivity : ComponentActivity() {
             }
             MobilekotlinTheme(darkTheme = oscuro) {
                 Surface(modifier = Modifier.fillMaxSize()) {
+                    // AppNavigation monta tambien la celebracion de logros (necesita la navegacion para "Ver mis logros")
                     AppNavigation()
-                    // Celebra los logros nuevos uno tras otro, encima de cualquier pantalla
-                    HostCelebracionLogros()
                 }
             }
         }

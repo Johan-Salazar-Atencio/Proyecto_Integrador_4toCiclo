@@ -34,6 +34,7 @@ import com.plantia.ui.collection.CollectionScreen
 import com.plantia.ui.detail.CollectionDetailScreen
 import com.plantia.ui.detail.PlantDetailScreen
 import com.plantia.ui.garden.VirtualGardenScreen
+import com.plantia.ui.logros.HostCelebracionLogros
 import com.plantia.ui.logros.LogrosScreen
 import com.plantia.ui.misiones.MisionesScreen
 import com.plantia.ui.home.HomeScreen
@@ -317,4 +318,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         }
     }
     }
+
+    // Celebra los logros nuevos uno tras otro, encima de cualquier pantalla
+    HostCelebracionLogros(onVerLogros = { navController.navigate(Routes.LOGROS) { launchSingleTop = true } })
 }
