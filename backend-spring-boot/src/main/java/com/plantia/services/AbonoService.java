@@ -67,6 +67,8 @@ public class AbonoService {
             throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED, "No te alcanzan las monedas");
         }
         u.setMonedas(valor(u.getMonedas()) - precio);
+        // Un abono de tienda tambien es un abono real para el logro ABONOS_TOTAL (ya esta bloqueado arriba)
+        ProgresoService.sumarCuidado(u, "ABONAR");
         p.setUltimoDiaAbonoTienda(hoy);
         PlantasService.sumarMediosDias(p, valor(abono.getMediosDias()), total);
         usuarioRepo.save(u);

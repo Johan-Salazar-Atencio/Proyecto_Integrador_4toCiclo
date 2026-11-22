@@ -621,4 +621,28 @@ class PlantasServiceTest {
 
         assertThat(service.resumen(DUENO, 10).macetaCodigo()).isEqualTo("ROSA");
     }
+
+    @Test
+    void cadaCuidadoUtilSumaSuContadorParaLosLogrosAunqueLasReglasNoPaguen() {
+        // Sin reglas cargadas (como pasado el tope diario): no hay XP, pero el cuidado si cuenta
+        service.cuidar(DUENO, 10, "REGAR"); // 50 -> 70
+        service.cuidar(DUENO, 10, "REGAR"); // 70 -> 90
+        service.cuidar(DUENO, 10, "REGAR"); // 90 -> 100
+        service.cuidar(DUENO, 10, "REGAR"); // ya al 100: no es un cuidado real, no cuenta
+        service.cuidar(DUENO, 10, "SOL");
+        service.cuidar(DUENO, 10, "ABONAR");
+
+        assertThat(usuario.getRiegosTotal()).isEqualTo(3);
+        assertThat(usuario.getLuzTotal()).isEqualTo(1);
+        assertThat(usuario.getAbonosTotal()).isEqualTo(1);
+    }
+
+    @Test
+    void digitalizarBloqueaAlUsuarioAntesDeGuardarLaPlanta() {
+        service.digitalizar(DUENO, null, 5, null);
+
+        org.mockito.InOrder orden = org.mockito.Mockito.inOrder(usuarioRepo, plantaRepo);
+        orden.verify(usuarioRepo).bloquear(DUENO);
+        orden.verify(plantaRepo).save(any());
+    }
 }

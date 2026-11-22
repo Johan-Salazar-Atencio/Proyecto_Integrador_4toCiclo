@@ -75,6 +75,16 @@ public class Usuario {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /** Cuidados reales hechos por el usuario (V30): base de los logros RIEGOS/ABONOS/LUZ_TOTAL. */
+    @Column(name = "riegos_total", nullable = false)
+    private Integer riegosTotal = 0;
+
+    @Column(name = "abonos_total", nullable = false)
+    private Integer abonosTotal = 0;
+
+    @Column(name = "luz_total", nullable = false)
+    private Integer luzTotal = 0;
+
     public Integer getIdUsuario() { return idUsuario; }
     public void setIdUsuario(Integer idUsuario) { this.idUsuario = idUsuario; }
     public String getNombre() { return nombre; }
@@ -112,4 +122,10 @@ public class Usuario {
     public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public Integer getRiegosTotal() { return riegosTotal; }
+    public void setRiegosTotal(Integer riegosTotal) { this.riegosTotal = riegosTotal; }
+    public Integer getAbonosTotal() { return abonosTotal; }
+    public void setAbonosTotal(Integer abonosTotal) { this.abonosTotal = abonosTotal; }
+    public Integer getLuzTotal() { return luzTotal; }
+    public void setLuzTotal(Integer luzTotal) { this.luzTotal = luzTotal; }
 }

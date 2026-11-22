@@ -95,6 +95,9 @@ public class PlantasService {
     @Transactional
     public PlantSummaryDto digitalizar(Integer userId, Integer idEscaneo, Integer idCatalogo,
                                        Map<String, Object> apariencia) {
+        // Primero el usuario: guardar la planta toma un candado compartido sobre su fila (FK) y el FOR UPDATE
+        // del premio, si llegara despues, haria que dos digitalizaciones simultaneas se bloquearan entre si
+        usuarioRepo.bloquear(userId);
         String foto = null;
         if (idEscaneo != null) {
             EscaneoHistorial escaneo = escaneoRepo.findById(idEscaneo)
@@ -233,6 +236,10 @@ public class PlantasService {
         }
         plantaRepo.save(p);
         PlantSummaryDto dto = map(p);
+        if (util) {
+            // Cuenta para los logros de cuidados aunque la regla ya haya llegado a su tope diario
+            progresoService.registrarCuidado(userId, accion);
+        }
         // Solo un cuidado util da hojas y XP (regar una planta al 100 % no cuenta); cada regla tiene su tope diario
         return util ? dto.conProgreso(progresoService.otorgar(userId, List.of(motivoDeCuidado(accion)), accionesDeCuidado(accion), p.getIdPlantaUsuario())) : dto;
     }

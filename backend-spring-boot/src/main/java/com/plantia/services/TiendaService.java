@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,8 @@ public class TiendaService {
     private final UsuarioRepository usuarioRepo;
     private final ObjectProvider<LogroService> logroService;
 
+    /** Constructor que usa Spring (hay otro, de compatibilidad para pruebas: sin esta marca la app no arranca). */
+    @Autowired
     public TiendaService(ItemTiendaRepository itemRepo, InventarioUsuarioRepository inventarioRepo,
                          FondoEscenaRepository fondoRepo, UsuarioRepository usuarioRepo,
                          ObjectProvider<LogroService> logroService) {
@@ -132,7 +135,7 @@ public class TiendaService {
         try {
             LogroService servicio = logroService.getIfAvailable();
             if (servicio != null) {
-                servicio.evaluar(userId, java.time.LocalDateTime.now());
+                servicio.evaluarSeguro(userId, java.time.LocalDateTime.now()); // tras el commit de la compra
             }
         } catch (RuntimeException e) {
             log.error("No se pudieron evaluar logros tras compra para el usuario {}", userId, e);

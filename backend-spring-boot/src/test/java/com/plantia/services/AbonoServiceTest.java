@@ -155,4 +155,19 @@ class AbonoServiceTest {
         falla(HttpStatus.CONFLICT, 1);
         assertThat(usuario.getMonedas()).isEqualTo(100);
     }
+
+    @Test
+    void elAbonoDeTiendaCuentaParaElLogroDeAbonos() {
+        service.abonar(1, 10, null, HOY);
+
+        assertThat(usuario.getAbonosTotal()).isEqualTo(1);
+    }
+
+    @Test
+    void unAbonoRechazadoNoCuenta() {
+        service.abonar(1, 10, null, HOY);
+        assertThatThrownBy(() -> service.abonar(1, 10, null, HOY)).isInstanceOf(ResponseStatusException.class);
+
+        assertThat(usuario.getAbonosTotal()).isEqualTo(1);
+    }
 }

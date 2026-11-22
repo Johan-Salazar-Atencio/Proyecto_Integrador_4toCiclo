@@ -94,4 +94,40 @@ class EscaneoServiceTest {
         assertThatThrownBy(() -> service.escanear(1, foto)).isInstanceOf(IllegalStateException.class);
         assertThat(eventos).contains("borrar http://x/files/scan.jpg");
     }
+
+    @Test
+    void unEscaneoIdentificadoBloqueaAlUsuarioAntesDeGuardarse() {
+        // Evita el deadlock de dos escaneos simultaneos: el INSERT toma candado compartido por la FK a usuarios
+        ia = new IaClient() {
+            @Override public IaResultDto identificar(MultipartFile f) {
+                return new IaResultDto("Monstera", "Monstera deliciosa", 92.0, List.of(), "{}");
+            }
+        };
+        CatalogoService catalogo = mock(CatalogoService.class);
+        com.plantia.models.PlantaCatalogo especie = new com.plantia.models.PlantaCatalogo();
+        especie.setIdCatalogo(5);
+        when(catalogo.upsertDesdeIa(any())).thenReturn(especie);
+        ProgresoService progreso = mock(ProgresoService.class);
+        when(escaneoRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+        service = new EscaneoService(escaneoRepo, mock(PlantaCatalogoRepository.class), storage, ia, catalogo, progreso, tx);
+
+        service.escanear(1, foto);
+
+        org.mockito.InOrder orden = org.mockito.Mockito.inOrder(progreso, escaneoRepo);
+        orden.verify(progreso).bloquearUsuario(1);
+        orden.verify(escaneoRepo).save(any());
+        orden.verify(progreso).otorgar(org.mockito.ArgumentMatchers.eq(1), org.mockito.ArgumentMatchers.anyList(),
+                org.mockito.ArgumentMatchers.anyList(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void unEscaneoNoIdentificadoNoBloquea() {
+        ProgresoService progreso = mock(ProgresoService.class);
+        when(escaneoRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+        service = new EscaneoService(escaneoRepo, mock(PlantaCatalogoRepository.class), storage, ia, null, progreso, tx);
+
+        service.escanear(1, foto);
+
+        org.mockito.Mockito.verifyNoInteractions(progreso);
+    }
 }

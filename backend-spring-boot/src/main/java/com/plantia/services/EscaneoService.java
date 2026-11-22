@@ -89,6 +89,12 @@ public class EscaneoService {
 
     private ScanResultDto registrar(Integer userId, String imagenUrl, IaResultDto ia) {
         boolean identificado = esIdentificado(ia);
+        if (identificado) {
+            // El usuario se bloquea ANTES de guardar el escaneo: el INSERT toma un candado compartido sobre su
+            // fila (FK a usuarios) y, si el FOR UPDATE de ProgresoService llegara despues, dos escaneos
+            // simultaneos del mismo usuario se esperarian entre si (deadlock).
+            progresoService.bloquearUsuario(userId);
+        }
 
         PlantaCatalogo catalogo = null;
         if (identificado) {

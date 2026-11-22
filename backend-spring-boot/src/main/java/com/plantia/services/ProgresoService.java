@@ -9,6 +9,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +49,8 @@ public class ProgresoService {
     private final MisionUsuarioRepository misionUsuarioRepo;
     private final ObjectProvider<LogroService> logroService;
 
+    /** Constructor que usa Spring (hay otro, de compatibilidad para pruebas: sin esta marca la app no arranca). */
+    @Autowired
     public ProgresoService(UsuarioRepository usuarioRepo,
                            NivelRepository nivelRepo,
                            ReglaProgresoRepository reglaRepo,
@@ -170,56 +173,89 @@ public class ProgresoService {
         return dto.conLogrosNuevos(evaluarLogrosSeguro(userId, ahora));
     }
 
+    /**
+     * Logros tras una accion: LogroService los evalua despues del commit de esta transaccion y en una
+     * propia, asi un fallo de logros nunca tumba la accion. La lista se llena antes de responder.
+     */
     List<LogroDesbloqueadoDto> evaluarLogrosSeguro(Integer userId, LocalDateTime ahora) {
         try {
             LogroService servicio = logroService.getIfAvailable();
-            return servicio == null ? List.of() : servicio.evaluar(userId, ahora);
+            return servicio == null ? List.of() : servicio.evaluarSeguro(userId, ahora);
         } catch (RuntimeException e) {
             log.error("No se pudieron evaluar logros para el usuario {}", userId, e);
             return List.of();
         }
     }
 
+    /**
+     * Suma 1 al contador del cuidado (REGAR, SOL o ABONAR) con el usuario bloqueado. Va aparte de las reglas
+     * porque estas tienen tope diario: pasado el tope no queda fila en historial_progreso, pero el cuidado
+     * si cuenta para los logros RIEGOS_TOTAL, LUZ_TOTAL y ABONOS_TOTAL.
+     */
     @Transactional
-    public List<LogroDesbloqueadoDto> premiarLogro(Usuario usuario, com.plantia.models.Logro logro, LocalDateTime ahora, int vueltasRestantes) {
+    public void registrarCuidado(Integer userId, String accion) {
+        usuarioRepo.bloquear(userId);
+        Usuario u = usuarioRepo.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        sumarCuidado(u, accion);
+        usuarioRepo.save(u);
+    }
+
+    /** Suma el cuidado en la entidad (el que llama ya tiene al usuario bloqueado). */
+    static void sumarCuidado(Usuario u, String accion) {
+        switch (accion == null ? "" : accion) {
+            case "REGAR" -> u.setRiegosTotal(valor(u.getRiegosTotal(), 0) + 1);
+            case "SOL" -> u.setLuzTotal(valor(u.getLuzTotal(), 0) + 1);
+            case "ABONAR" -> u.setAbonosTotal(valor(u.getAbonosTotal(), 0) + 1);
+            default -> { }
+        }
+    }
+
+    /** Lo que hace falta para pagar logros; LogroService lo carga una sola vez por evaluacion. */
+    public record DatosPremio(ReglaProgreso reglaLogro, List<Nivel> niveles) {}
+
+    /** Regla LOGRO activa (null si esta apagada: los logros se desbloquean sin pagar) y tabla de niveles. */
+    public DatosPremio datosPremio() {
         ReglaProgreso reglaLogro = reglaRepo.findByMotivo(MOTIVO_LOGRO)
                 .filter(r -> Boolean.TRUE.equals(r.getActiva())).orElse(null);
-        if (reglaLogro == null) {
-            return List.of();
+        return new DatosPremio(reglaLogro, reglaLogro == null ? List.of() : niveles());
+    }
+
+    /**
+     * Paga un logro recien desbloqueado (XP, monedas y subida de nivel) y lo anota en el historial. Solo se
+     * llama desde LogroService.evaluar, dentro de su transaccion y con el usuario ya bloqueado. Ya no evalua
+     * los logros que el premio destraba (NIVEL_X): eso lo hace LogroService con otra vuelta sobre los mismos
+     * datos, sin repetir consultas. Sin @Transactional y sin atrapar errores a proposito: si algo falla, la
+     * transaccion de logros entera se deshace (ni desbloqueo ni premio a medias).
+     *
+     * @return true si cambio XP o monedas del usuario
+     */
+    public boolean pagarLogro(Usuario usuario, com.plantia.models.Logro logro, LocalDateTime ahora, DatosPremio datos) {
+        if (datos == null || datos.reglaLogro() == null) {
+            return false;
         }
         int xp = valor(logro.getRecompensaXp(), 0);
         int monedas = valor(logro.getRecompensaMonedas(), 0);
         if (xp == 0 && monedas == 0) {
-            return List.of();
+            return false;
         }
         ReglaProgreso premio = new ReglaProgreso();
         premio.setXp(xp);
         premio.setMonedas(monedas);
-        int[] ganado = sumar(usuario, premio, niveles());
-        if (ganado[0] != 0 || ganado[1] != 0) {
-            historialRepo.save(movimiento(usuario, reglaLogro, ganado, logro.getIdLogro(), ahora));
+        int[] ganado = sumar(usuario, premio, datos.niveles());
+        if (ganado[0] == 0 && ganado[1] == 0) {
+            return false;
         }
+        historialRepo.save(movimiento(usuario, datos.reglaLogro(), ganado, logro.getIdLogro(), ahora));
         usuario.setUpdatedAt(ahora);
         usuarioRepo.save(usuario);
-        return evaluarLogrosSeguro(usuario.getIdUsuario(), ahora, vueltasRestantes - 1);
+        return true;
     }
 
-    private List<LogroDesbloqueadoDto> evaluarLogrosSeguro(Integer userId, LocalDateTime ahora, int vueltasRestantes) {
-        if (vueltasRestantes <= 0) {
-            return List.of();
-        }
-        try {
-            LogroService servicio = logroService.getIfAvailable();
-            return servicio == null ? List.of() : servicio.evaluar(userId, ahora, vueltasRestantes);
-        } catch (RuntimeException e) {
-            log.error("No se pudieron evaluar logros para el usuario {}", userId, e);
-            return List.of();
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public long contarAccionHistorial(Integer userId, String motivo) {
-        return historialRepo.countByUsuarioAndMotivo(userId, motivo);
+    /** Bloquea al usuario (SELECT ... FOR UPDATE) dentro de la transaccion del que llama. */
+    @Transactional
+    public void bloquearUsuario(Integer userId) {
+        usuarioRepo.bloquear(userId);
     }
 
     private List<Nivel> niveles() {

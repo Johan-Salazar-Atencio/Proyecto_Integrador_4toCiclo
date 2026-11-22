@@ -377,4 +377,33 @@ class ProgresoServiceTest {
         assertThat(p.xpGanado()).isEqualTo(20);
         verify(historialRepo, never()).save(any());
     }
+
+    @Test
+    void registrarCuidadoBloqueaAlUsuarioYSumaElContadorCorrecto() {
+        service.registrarCuidado(USER, "REGAR");
+        service.registrarCuidado(USER, "SOL");
+        service.registrarCuidado(USER, "ABONAR");
+        service.registrarCuidado(USER, "OTRA");
+
+        org.mockito.InOrder orden = org.mockito.Mockito.inOrder(usuarioRepo);
+        orden.verify(usuarioRepo).bloquear(USER);
+        orden.verify(usuarioRepo).findById(USER);
+        assertThat(usuario.getRiegosTotal()).isEqualTo(1);
+        assertThat(usuario.getLuzTotal()).isEqualTo(1);
+        assertThat(usuario.getAbonosTotal()).isEqualTo(1);
+    }
+
+    @Test
+    void elRiegoCuentaParaLogrosAunqueLaReglaYaLlegoASuTopeDiario() {
+        regla(3, "REGAR", 2, 1, 5);
+        when(historialRepo.countByIdUsuarioAndIdReglaAndFechaGreaterThanEqual(eq(USER), eq(3), any())).thenReturn(5L);
+
+        for (int i = 0; i < 8; i++) {
+            service.registrarCuidado(USER, "REGAR");
+            assertThat(service.otorgar(USER, List.of("REGAR"), 10, AHORA).xpGanado()).isZero();
+        }
+
+        assertThat(usuario.getRiegosTotal()).isEqualTo(8);
+        verify(historialRepo, never()).save(any());
+    }
 }

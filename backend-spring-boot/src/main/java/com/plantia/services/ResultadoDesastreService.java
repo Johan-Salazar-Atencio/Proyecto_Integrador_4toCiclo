@@ -9,6 +9,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +48,8 @@ public class ResultadoDesastreService {
     private final ObjectProvider<LogroService> logroService;
     private final Duration gracia;
 
+    /** Constructor que usa Spring (hay otro, de compatibilidad para pruebas: sin esta marca la app no arranca). */
+    @Autowired
     public ResultadoDesastreService(EventoDesastreRepository eventoRepo,
                                     PlantaUsuarioRepository plantaRepo,
                                     RegistroDesastreUsuarioRepository registroRepo,
@@ -162,7 +165,7 @@ public class ResultadoDesastreService {
         try {
             LogroService servicio = logroService.getIfAvailable();
             if (servicio != null) {
-                servicio.evaluar(userId, ahora);
+                servicio.evaluarSeguro(userId, ahora); // tras el commit del cierre del evento
             }
         } catch (RuntimeException e) {
             log.error("No se pudieron evaluar logros tras desastre para el usuario {}", userId, e);

@@ -23,7 +23,14 @@ public interface EscaneoHistorialRepository extends JpaRepository<EscaneoHistori
     @Query("SELECT COUNT(DISTINCT e.idCatalogo) FROM EscaneoHistorial e WHERE e.idUsuario = :idUsuario AND e.idCatalogo IS NOT NULL")
     long countDistinctEspeciesByIdUsuario(@Param("idUsuario") Integer idUsuario);
 
+    /**
+     * Escaneos identificados cuya hora, vista en {@code zonaUsuario}, cae entre {@code desde} y {@code hasta}.
+     * fecha_escaneo es TIMESTAMP sin zona escrito con LocalDateTime.now() del servidor, asi que primero se
+     * interpreta en {@code zonaServidor} y luego se pasa a la zona del jugador.
+     */
     @Query(value = "SELECT COUNT(*) FROM escaneos_historial e WHERE e.id_usuario = :idUsuario AND e.id_catalogo IS NOT NULL "
-            + "AND EXTRACT(HOUR FROM e.fecha_escaneo) BETWEEN :desde AND :hasta", nativeQuery = true)
-    long countEscaneosEnFranja(@Param("idUsuario") Integer idUsuario, @Param("desde") int desde, @Param("hasta") int hasta);
+            + "AND EXTRACT(HOUR FROM ((e.fecha_escaneo AT TIME ZONE CAST(:zonaServidor AS TEXT)) "
+            + "AT TIME ZONE CAST(:zonaUsuario AS TEXT))) BETWEEN :desde AND :hasta", nativeQuery = true)
+    long countEscaneosEnFranja(@Param("idUsuario") Integer idUsuario, @Param("desde") int desde, @Param("hasta") int hasta,
+                               @Param("zonaServidor") String zonaServidor, @Param("zonaUsuario") String zonaUsuario);
 }
