@@ -25,6 +25,7 @@ const TITULOS = [
   [RUTAS.HISTORIAL, 'Historial'],
   [RUTAS.JARDIN, 'Jardín virtual'],
   [RUTAS.MISIONES, 'Misiones'],
+  [RUTAS.LOGROS, 'Logros'],
   [RUTAS.TIENDA, 'Tienda'],
 ]
 

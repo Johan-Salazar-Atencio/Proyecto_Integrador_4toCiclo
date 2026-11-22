@@ -2,6 +2,7 @@
 const TRAZOS = {
   leaf: 'M5 19c0-8 5-14 14-14 0 9-6 14-14 14zM5 19l7-7',
   lock: 'M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z',
+  trophy: 'M8 4h8v5a4 4 0 0 1-8 0zM8 6H4v1a4 4 0 0 0 4 4M16 6h4v1a4 4 0 0 1-4 4M12 13v4M8 20h8M10 17h4',
   cam: 'M4 8h3l2-3h6l2 3h3v11H4zM12 17a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z',
   bell: 'M6 17V11a6 6 0 0 1 12 0v6l2 2H4zM10 21h4',
   edit: 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',

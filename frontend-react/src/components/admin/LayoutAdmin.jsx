@@ -12,6 +12,7 @@ const MENU = [
   { ruta: RUTAS_ADMIN.DASHBOARD, icono: 'chart', texto: 'Dashboard' },
   { ruta: RUTAS_ADMIN.EVENTOS, icono: 'alert', texto: 'Eventos y desastres', insignia: true },
   { ruta: RUTAS_ADMIN.MISIONES, icono: 'target', texto: 'Misiones diarias' },
+  { ruta: RUTAS_ADMIN.LOGROS, icono: 'trophy', texto: 'Logros' },
   { ruta: RUTAS_ADMIN.TIENDA, icono: 'bag', texto: 'Tienda' },
   { ruta: RUTAS_ADMIN.JUEGO, icono: 'leaf', texto: 'Economía del juego' },
   { ruta: RUTAS_ADMIN.CATALOGO, icono: 'book', texto: 'Catálogo y moderación' },

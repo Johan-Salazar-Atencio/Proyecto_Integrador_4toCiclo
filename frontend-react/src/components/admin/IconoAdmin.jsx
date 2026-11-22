@@ -20,6 +20,7 @@ const RUTAS = {
   edit: 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',
   trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
   up: 'M12 16V4M7 9l5-5 5 5M4 20h16',
+  trophy: 'M8 4h8v5a4 4 0 0 1-8 0zM8 6H4v1a4 4 0 0 0 4 4M16 6h4v1a4 4 0 0 1-4 4M12 13v4M8 20h8M10 17h4',
   menu: 'M4 7h16M4 12h16M4 17h16',
 }
 

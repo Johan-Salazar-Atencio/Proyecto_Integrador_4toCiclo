@@ -1,0 +1,70 @@
+/* Pagina de logros del usuario. Solo usa tokens de tema.css (claro y oscuro). */
+.logros { --r: var(--primario); display: flex; flex-direction: column; gap: 14px; max-width: 1180px; margin: 0 auto; min-width: 0; }
+.logro-btn { min-height: 44px; padding: 0 20px; }
+
+/* Encabezado con total y barra */
+.logros-cab { display: flex; align-items: center; justify-content: space-between; gap: 18px 28px; flex-wrap: wrap; }
+.logros-cab h2 { font-size: 1.6rem; font-weight: 800; }
+.logros-cab p { color: var(--texto-suave); font-weight: 700; }
+.logros-prog { display: flex; align-items: center; gap: 12px; flex: 1 1 260px; max-width: 520px; }
+.logros-prog b { min-width: 3.2em; text-align: right; }
+
+/* Filtros: botones de 44 px, sin scroll horizontal (se parten en filas) */
+.logros-filtros { display: flex; flex-direction: column; gap: 8px; }
+.logros-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.logros-chips button { min-height: 44px; padding: 0 16px; border: 1px solid var(--linea); border-radius: 999px; background: var(--superficie); color: var(--texto-suave); font: inherit; font-weight: 800; cursor: pointer; transition: background var(--transicion), color var(--transicion); }
+.logros-chips button.activa { background: var(--primario); border-color: var(--primario); color: var(--sobre-primario); }
+@media (min-width: 900px) { .logros-filtros { flex-direction: row; justify-content: space-between; align-items: center; } }
+
+/* Grilla: 2 columnas en celular, 3 a 5 en pantalla ancha (las tarjetas no se estiran de mas) */
+.logros-grilla { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 640px) { .logros-grilla { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
+@media (min-width: 960px) { .logros-grilla { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
+@media (min-width: 1240px) { .logros-grilla { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+/* Tarjeta: color por rareza */
+.logro-comun { --r: var(--primario); }
+.logro-rara { --r: var(--agua); }
+.logro-epica { --r: var(--abono); }
+.logro-legendaria { --r: var(--luz); }
+.logros-chips .chip-comun.activa { background: var(--primario); border-color: var(--primario); }
+.logros-chips .chip-rara.activa { background: var(--agua); border-color: var(--agua); }
+.logros-chips .chip-epica.activa { background: var(--abono); border-color: var(--abono); }
+.logros-chips .chip-legendaria.activa { background: var(--luz); border-color: var(--luz); }
+.logros-chips .chip-rara.activa, .logros-chips .chip-epica.activa, .logros-chips .chip-legendaria.activa { color: #fff; }
+
+.logro { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; padding: 16px 12px 14px; text-align: center; background: var(--superficie); border: 2px solid var(--linea); border-radius: var(--radio); box-shadow: var(--sombra); }
+.logro-abierto { border-color: var(--r); background: color-mix(in srgb, var(--r) 7%, var(--superficie)); }
+.logro-legendaria.logro-abierto { box-shadow: 0 0 0 1px var(--r), 0 8px 26px color-mix(in srgb, var(--r) 35%, transparent); }
+.logro h3 { font-family: var(--fuente-pixel); font-size: 1.1rem; font-weight: 500; line-height: 1.2; overflow-wrap: anywhere; }
+.logro p { color: var(--texto-suave); font-size: 0.82rem; line-height: 1.35; overflow-wrap: anywhere; }
+.logro-medalla { position: relative; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: color-mix(in srgb, var(--r) 16%, var(--superficie-2)); border: 2px solid var(--r); font-size: 2rem; }
+.logro-rareza { padding: 2px 10px; border-radius: 999px; background: color-mix(in srgb, var(--r) 16%, transparent); color: color-mix(in srgb, var(--r) 70%, var(--texto)); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; }
+.logro-fecha { display: inline-flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; margin-top: auto; padding-top: 4px; color: var(--primario); font-weight: 800; font-size: 0.75rem; }
+
+/* Bloqueado: escala de grises, candado y progreso */
+.logro-cerrado { background: var(--superficie-2); border-color: var(--linea); border-style: dashed; }
+.logro-cerrado > :not(.logro-prog) { filter: grayscale(1); }
+.logro-cerrado .logro-medalla { --r: var(--texto-suave); border-color: var(--linea); }
+.logro-cerrado h3 { color: var(--texto-suave); }
+.logro-candado { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--superficie); border: 1px solid var(--linea); color: var(--texto-suave); }
+.logro-prog { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: auto; padding-top: 4px; }
+.logro-prog small { color: var(--texto-suave); font-weight: 800; white-space: nowrap; }
+.logro-cerrado .barra-relleno { background: var(--texto-suave); }
+
+/* Aviso de logros nuevos */
+.logros-aviso { display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 14px; background: var(--tinte); border: 1px solid color-mix(in srgb, var(--primario) 45%, transparent); border-radius: 18px; font-weight: 700; }
+.logros-aviso > span:nth-child(2) { flex: 1; min-width: 0; }
+.logros-aviso-ico { font-size: 1.5rem; }
+.logros-aviso-x { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--texto-suave); cursor: pointer; }
+
+@media (max-width: 400px) {
+  .logro { padding: 14px 8px 12px; }
+  .logro h3 { font-size: 0.95rem; }
+  .logro p { font-size: 0.78rem; }
+}
+@media (max-width: 480px) {
+  .logros-chips { gap: 6px; }
+  .logros-chips button { padding: 0 12px; font-size: 0.82rem; }
+}
+.logro-cerrado .barra { background: color-mix(in srgb, var(--texto-suave) 28%, transparent); }

@@ -8,6 +8,7 @@ import LoginAdmin from './pages/admin/login/LoginAdmin'
 import CatalogoAdmin from './pages/admin/catalogo/CatalogoAdmin'
 import Eventos from './pages/admin/eventos/Eventos'
 import Misiones from './pages/admin/misiones/Misiones'
+import Logros from './pages/admin/logros/Logros'
 import TiendaAdmin from './pages/admin/tienda/TiendaAdmin'
 import Dashboard from './pages/admin/dashboard/Dashboard'
 import JuegoAdmin from './pages/admin/juego/JuegoAdmin'
@@ -21,6 +22,7 @@ import Home from './pages/user/home/Home'
 import DemoPlanta from './pages/user/DemoPlanta'
 import Historial from './pages/user/historial/Historial'
 import Jardin from './pages/user/jardin/Jardin'
+import LogrosUsuario from './pages/user/logros/LogrosUsuario'
 import MisionesUsuario from './pages/user/misiones/MisionesUsuario'
 import Terminos from './pages/user/legal/Terminos'
 import Tienda from './pages/user/tienda/Tienda'
@@ -55,6 +57,7 @@ export default function App() {
         <Route path={RUTAS.FICHA} element={<Ficha />} />
         <Route path={RUTAS.JARDIN} element={<Jardin />} />
         <Route path={RUTAS.MISIONES} element={<MisionesUsuario />} />
+        <Route path={RUTAS.LOGROS} element={<LogrosUsuario />} />
         <Route path={RUTAS.TIENDA} element={<Tienda />} />
         <Route path={RUTAS.COLECCION} element={<Coleccion />} />
         <Route path={`${RUTAS.COLECCION}/:id`} element={<DetalleColeccion />} />
@@ -70,6 +73,7 @@ export default function App() {
         <Route path={RUTAS_ADMIN.DASHBOARD} element={<Dashboard />} />
         <Route path={RUTAS_ADMIN.EVENTOS} element={<Eventos />} />
         <Route path={RUTAS_ADMIN.MISIONES} element={<Misiones />} />
+        <Route path={RUTAS_ADMIN.LOGROS} element={<Logros />} />
         <Route path={RUTAS_ADMIN.TIENDA} element={<TiendaAdmin />} />
         <Route path={RUTAS_ADMIN.JUEGO} element={<JuegoAdmin />} />
         <Route path={RUTAS_ADMIN.TIPOS_EVENTO} element={<Navigate to={RUTAS_ADMIN.EVENTOS} replace />} />

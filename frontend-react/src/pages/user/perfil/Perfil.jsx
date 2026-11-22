@@ -167,6 +167,7 @@ export default function Perfil() {
               </div>
               <i className={`perfil-interruptor ${recordar ? 'activo' : ''}`} aria-hidden="true" />
             </button>
+            <Link to={RUTAS.LOGROS} className="perfil-fila"><span className="perfil-ico"><Icono n="trophy" /></span><b>Mis logros</b><Icono n="r" className="perfil-flecha" /></Link>
             <Link to={RUTAS.EDITAR_DATOS} className="perfil-fila"><span className="perfil-ico"><Icono n="edit" /></span><b>Editar datos</b><Icono n="r" className="perfil-flecha" /></Link>
             <Link to={RUTAS.HISTORIAL} className="perfil-fila"><span className="perfil-ico"><Icono n="clock" /></span><b>Historial de escaneos</b><Icono n="r" className="perfil-flecha" /></Link>
             <Link to={RUTAS.TERMINOS} className="perfil-fila"><span className="perfil-ico"><Icono n="doc" /></span><b>Términos y privacidad</b><Icono n="r" className="perfil-flecha" /></Link>
