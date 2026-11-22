@@ -77,9 +77,9 @@ export default function LogrosUsuario() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  // Un pendiente se marca visto SOLO cuando su celebracion termina (regla del producto). Antes se marcaba al
-  // cargar la pagina: el movil ya no lo celebraba y, con StrictMode, ni siquiera se veia el aviso.
-  // Mientras CelebracionLogro sea un punto de enganche vacio, nunca llama a esto y el movil los sigue celebrando.
+  // Un pendiente se marca visto SOLO cuando el usuario cierra su celebracion (regla del producto). Antes se marcaba
+  // al cargar la pagina: el movil ya no lo celebraba y, con StrictMode, ni siquiera se veia el aviso.
+  // CelebracionLogro llama a esto al cerrar cada medalla, el resumen o "Saltar todos".
   const terminarCelebracion = useCallback((ids) => {
     const nuevos = (ids || []).filter((id) => id != null && !avisados.current.has(id))
     if (nuevos.length === 0) return

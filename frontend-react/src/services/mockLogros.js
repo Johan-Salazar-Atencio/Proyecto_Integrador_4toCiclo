@@ -63,4 +63,17 @@ export const MOCK_PENDIENTES = [
   { idLogro: 3, codigo: 'FRENTE_AL_HUAYCO', titulo: 'Frente al huayco', descripcion: 'Previene 3 huaycos.', icono: 'huayco', rareza: 'EPICA', recompensaXp: 150, recompensaMonedas: 80 },
 ]
 export async function usuarioMock() { await ESPERA(); return MOCK_USUARIO }
-export async function pendientesMock() { await ESPERA(100); return MOCK_PENDIENTES }
+// Para probar la celebracion con varios logros: ?mockPendientes=5 (1 a 7) en la URL. Sin el parametro, uno solo.
+const PENDIENTES_EXTRA = [
+  { idLogro: 1, codigo: 'PRIMERA_SEMILLA', titulo: 'Primera semilla', descripcion: 'Digitaliza tu primera planta.', icono: 'semilla', rareza: 'COMUN', recompensaXp: 20, recompensaMonedas: 10 },
+  { idLogro: 2, codigo: 'JARDIN_FELIZ', titulo: 'Jardín feliz', descripcion: 'Ten 5 plantas digitalizadas.', icono: 'hoja', rareza: 'RARA', recompensaXp: 60, recompensaMonedas: 30 },
+  { idLogro: 4, codigo: 'MAESTRO_JARDINERO', titulo: 'Maestro jardinero', descripcion: 'Mantén una racha de 30 días.', icono: 'racha', rareza: 'LEGENDARIA', recompensaXp: 500, recompensaMonedas: 300 },
+  { idLogro: 6, codigo: 'AMANECER', titulo: 'Madrugador', descripcion: 'Cuida una planta al amanecer.', icono: 'amanecer', rareza: 'COMUN', recompensaXp: 20, recompensaMonedas: 1 },
+  { idLogro: 7, codigo: 'NUEVO', titulo: 'Clave nueva', descripcion: 'Con un ícono que la web no conoce.', icono: 'inventado', rareza: 'RARA', recompensaXp: 40, recompensaMonedas: 20 },
+  { idLogro: 8, codigo: 'TIENDERO', titulo: 'Cliente fiel', descripcion: 'Compra 3 temas en la tienda.', icono: 'tienda', rareza: 'RARA', recompensaXp: 40, recompensaMonedas: 20 },
+]
+export async function pendientesMock() {
+  await ESPERA(100)
+  const n = Number(new URLSearchParams(window.location.search).get('mockPendientes')) || 1
+  return [...MOCK_PENDIENTES, ...PENDIENTES_EXTRA].slice(0, Math.max(1, Math.min(7, n)))
+}

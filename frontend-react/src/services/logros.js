@@ -13,7 +13,15 @@ export const obtenerLogros = () => (MOCK ? import('./mockLogros').then((m) => m.
 
 export const obtenerPendientes = () => (MOCK ? import('./mockLogros').then((m) => m.pendientesMock()) : llamar('/logros/pendientes'))
 
-export const marcarVistos = (ids) => (MOCK ? Promise.resolve(null) : llamar('/logros/vistos', { metodo: 'POST', cuerpo: { ids } }))
+// El servidor acepta como maximo 100 ids por llamada: si hay mas se envian en lotes, uno tras otro
+const LOTE_VISTOS = 100
+export async function marcarVistos(ids) {
+  for (let i = 0; i < ids.length; i += LOTE_VISTOS) {
+    const lote = ids.slice(i, i + LOTE_VISTOS)
+    await (MOCK ? Promise.resolve(null) : llamar('/logros/vistos', { metodo: 'POST', cuerpo: { ids: lote } }))
+  }
+  return null
+}
 
 export const RAREZAS = [
   { valor: 'COMUN', texto: 'Común' },

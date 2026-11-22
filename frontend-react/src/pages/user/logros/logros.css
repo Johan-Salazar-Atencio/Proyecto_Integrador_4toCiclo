@@ -68,3 +68,74 @@
   .logros-chips button { padding: 0 12px; font-size: 0.82rem; }
 }
 .logro-cerrado .barra { background: color-mix(in srgb, var(--texto-suave) 28%, transparent); }
+
+/* ===== Celebracion de logros: "D + aviso al terminar" (CelebracionLogro.jsx) =====
+   Mismos tiempos y medidas que el prototipo aprobado. Tokens de tema.css; el pixel art usa colores fijos. */
+.cel-ov, .cel-aviso {
+  --cel-velo: rgba(10, 26, 19, 0.88);
+  --f0: #15803d; --t0: #ffffff; --f1: #0369a1; --t1: #ffffff; --f2: #7e22ce; --t2: #ffffff; --f3: #d97706; --t3: #2b1a02;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='claro']) .cel-ov, :root:not([data-tema='claro']) .cel-aviso {
+    --cel-velo: rgba(4, 10, 7, 0.9);
+    --f0: #a3e635; --t0: #12200a; --f1: #38bdf8; --t1: #04202e; --f2: #c084fc; --t2: #2a0a45; --f3: #fbbf24; --t3: #2b1a02;
+  }
+}
+:root[data-tema='oscuro'] .cel-ov, :root[data-tema='oscuro'] .cel-aviso {
+  --cel-velo: rgba(4, 10, 7, 0.9);
+  --f0: #a3e635; --t0: #12200a; --f1: #38bdf8; --t1: #04202e; --f2: #c084fc; --t2: #2a0a45; --f3: #fbbf24; --t3: #2b1a02;
+}
+.cel-ov.rz-0, .cel-aviso.rz-0 { --rz: var(--primario); --rzf: var(--f0); --rzt: var(--t0); }
+.cel-ov.rz-1, .cel-aviso.rz-1 { --rz: var(--agua); --rzf: var(--f1); --rzt: var(--t1); }
+.cel-ov.rz-2, .cel-aviso.rz-2 { --rz: var(--abono); --rzf: var(--f2); --rzt: var(--t2); }
+.cel-ov.rz-3, .cel-aviso.rz-3 { --rz: var(--luz); --rzf: var(--f3); --rzt: var(--t3); }
+
+.cel-ov { --P: 3px; position: fixed; inset: 0; z-index: 1000; background: var(--cel-velo); color: var(--texto); overflow: hidden; touch-action: manipulation; -webkit-tap-highlight-color: transparent; line-height: 1.5; }
+.cel-ov.quieto { animation: cel-fundido 0.15s linear; }
+@keyframes cel-fundido { from { opacity: 0; } to { opacity: 1; } }
+.cel-ov-in { position: absolute; inset: 0; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.cel-fx { position: absolute; left: 0; top: 0; image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none; }
+.cel-stage { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; width: 100%; max-height: 100%; }
+.cel-slot { position: relative; width: 100%; flex: none; height: calc(var(--P) * 62); }
+
+.cel-card { position: relative; width: min(100%, 360px); background: var(--superficie); color: var(--texto); border: 1px solid color-mix(in srgb, var(--rz) 55%, var(--linea)); border-radius: 24px; padding: 18px 18px 14px; display: grid; gap: 8px; text-align: center; overflow: hidden; opacity: 0; transform: translateY(18px); }
+.cel-card.on, .cel-ov.quieto .cel-card { opacity: 1; transform: none; }
+.cel-ov:not(.quieto) .cel-card.on { transition: opacity 0.32s steps(4), transform 0.32s steps(4); }
+.cel-ov.rz-2 .cel-card { box-shadow: 0 0 22px color-mix(in srgb, var(--rz) 38%, transparent); }
+.cel-ov.rz-3 .cel-card { box-shadow: 0 0 30px color-mix(in srgb, var(--rz) 50%, transparent); border-color: var(--rz); }
+.cel-kick { margin: 0; font-family: var(--fuente-pixel); font-weight: 500; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--texto-suave); }
+/* Cinta de rareza que se despliega a saltos */
+.cel-chip { justify-self: center; display: inline-flex; align-items: center; padding: 4px 22px; font-size: 13px; font-weight: 700; background: var(--rzf); color: var(--rzt); clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 50%, 100% 100%, 0 100%, 9px 50%); transform-origin: center; transform: scaleX(0); }
+.cel-card.on .cel-chip, .cel-ov.quieto .cel-chip { transform: scaleX(1); transition: transform 0.4s steps(5) 0.1s; }
+.cel-ov.quieto .cel-chip { transition: none; }
+.cel-tit { margin: 2px 0 0; font-family: var(--fuente-pixel); font-weight: 500; font-size: 24px; line-height: 1.15; color: var(--texto); text-wrap: balance; overflow-wrap: anywhere; }
+.cel-desc { margin: 0; color: var(--texto-suave); font-size: 14.5px; }
+.cel-rec { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 2px; }
+.cel-rec span { font-weight: 700; font-size: 14px; padding: 6px 12px; border-radius: 12px; background: var(--superficie-2); border: 1px solid var(--linea); font-variant-numeric: tabular-nums; }
+.cel-ok { margin-top: 4px; min-height: 52px; border-radius: 16px; border: 0; background: var(--primario); color: var(--sobre-primario); font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; }
+.cel-saltar { min-height: 44px; background: none; border: 0; color: var(--texto-suave); font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.cel-ok:focus-visible, .cel-saltar:focus-visible { outline: 3px solid var(--primario); outline-offset: 2px; }
+.cel-pista { font-size: 12px; color: var(--texto-suave); }
+.cel-cuenta { position: absolute; z-index: 3; top: max(12px, env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 99px; background: var(--superficie); border: 1px solid var(--linea); color: var(--texto); }
+.cel-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.cel-resumen-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 4px 0; }
+.cel-resumen-grid canvas { width: 54px; height: 54px; image-rendering: pixelated; background: var(--superficie-2); border: 1px solid var(--linea); border-radius: 12px; padding: 4px; }
+
+/* Aviso de arriba: baja al terminar la animacion, no tapa la pagina y se va solo */
+.cel-aviso { position: fixed; z-index: 1001; top: max(12px, env(safe-area-inset-top, 0px)); left: 50%; width: min(calc(100% - 32px), 420px); transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; background: var(--superficie); color: var(--texto); border: 1px solid color-mix(in srgb, var(--rz) 60%, var(--linea)); border-radius: 22px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); cursor: pointer; line-height: 1.5; }
+.cel-aviso.rz-3 { border-color: var(--rz); box-shadow: 0 0 24px color-mix(in srgb, var(--rz) 45%, transparent), 0 10px 30px rgba(0, 0, 0, 0.35); }
+.cel-aviso:not(.quieto) { animation: cel-baja 0.45s cubic-bezier(0.2, 1.2, 0.35, 1) both; }
+@keyframes cel-baja { from { transform: translate(-50%, -160%); } to { transform: translate(-50%, 0); } }
+.cel-aviso canvas { flex: none; width: 54px; height: 54px; padding: 3px; border-radius: 14px; background: var(--superficie-2); image-rendering: pixelated; }
+.cel-aviso div { min-width: 0; display: grid; gap: 2px; }
+.cel-aviso .cel-kick { font-size: 11px; }
+.cel-aviso b { font-family: var(--fuente-pixel); font-weight: 500; font-size: 17px; line-height: 1.15; overflow-wrap: anywhere; }
+.cel-aviso small { font-size: 12px; font-weight: 700; color: var(--texto-suave); }
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .cel-stage { flex-direction: row; justify-content: center; gap: 20px; }
+  .cel-slot { width: 38%; }
+  .cel-card { width: min(52vw, 420px); padding: 12px 14px 8px; gap: 4px; }
+  .cel-tit { font-size: 20px; }
+  .cel-ok { min-height: 46px; }
+}
