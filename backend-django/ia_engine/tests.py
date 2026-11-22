@@ -121,6 +121,14 @@ class CadenaRespaldoTests(SimpleTestCase):
         self.assertNotIn("webui", cadena)
         self.assertEqual(cadena[0], "gemini")
 
+    def test_todos_en_cooldown_no_cae_a_mock(self):
+        with self.settings(WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+            self.factory.marcar_caido("webui")
+            self.factory.marcar_caido("gemini")
+            cadena = [p.name for p in self.factory.get_provider_chain("auto")]
+        self.assertNotIn("mock", cadena)
+        self.assertEqual(cadena[:2], ["webui", "gemini"])
+
     def test_indisponibilidad_detecta_error_de_conexion(self):
         import requests
 

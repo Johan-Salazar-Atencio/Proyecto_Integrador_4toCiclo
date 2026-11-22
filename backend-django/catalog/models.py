@@ -297,20 +297,83 @@ class FondoEscena(models.Model):
 
 
 class Logro(models.Model):
+    """Logro configurable (Flyway V29, el esquema es de Spring). El admin lo edita o lo desactiva
+    (activo=False); nunca se borra para conservar el progreso de los usuarios."""
+
+    RAREZAS = ["COMUN", "RARA", "EPICA", "LEGENDARIA"]
+    # condicion -> (explicacion en español, requiere parametro). ESCANEO_HORA lo exige; en
+    # DESASTRE_AFRONTADO es opcional (vacio = cualquier desastre); en las demas esta prohibido.
+    CONDICIONES = {
+        "ESCANEOS_TOTAL": "Plantas escaneadas en total",
+        "ESPECIES_DISTINTAS": "Especies distintas escaneadas",
+        "DESASTRE_AFRONTADO": "Desastres afrontados (de un tipo o de cualquiera)",
+        "DESASTRES_TIPOS_DISTINTOS": "Tipos de desastre distintos afrontados",
+        "PLANTAS_REFUGIADAS": "Plantas refugiadas antes de un evento",
+        "EVENTOS_SIN_PERDIDAS": "Eventos terminados sin perder ninguna planta",
+        "RIEGOS_TOTAL": "Riegos realizados en total",
+        "ABONOS_TOTAL": "Abonos realizados en total",
+        "LUZ_TOTAL": "Veces que se dio luz a una planta",
+        "RACHA_DIAS": "Dias seguidos de racha",
+        "NIVEL": "Nivel alcanzado",
+        "COMPRAS_TIENDA": "Compras hechas en la tienda",
+        "MACETAS_COMPRADAS": "Macetas compradas",
+        "INVERNADEROS_COMPRADOS": "Invernaderos comprados",
+        "FONDOS_COMPRADOS": "Fondos de escena comprados",
+        "MISIONES_COMPLETADAS": "Misiones completadas",
+        "ESCANEO_HORA": "Escaneos hechos en una franja horaria",
+    }
+    PARAMETRO_OBLIGATORIO = "ESCANEO_HORA"
+    PARAMETRO_OPCIONAL = "DESASTRE_AFRONTADO"
+    FRANJAS_HORARIAS = ["MADRUGADA", "NOCHE"]
+
     id_logro = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=100)
-    descripcion = models.TextField()
-    icono_url = models.CharField(max_length=255)
-    recompensa_monedas = models.IntegerField(default=50)
+    codigo = models.CharField(max_length=50, unique=True)
+    titulo = models.CharField(max_length=80)
+    descripcion = models.CharField(max_length=250)
+    icono = models.CharField(max_length=40)
+    rareza = models.CharField(max_length=15, default="COMUN")
+    condicion = models.CharField(max_length=40)
+    meta = models.IntegerField(default=1)
+    parametro = models.CharField(max_length=60, null=True, blank=True)
+    recompensa_xp = models.IntegerField(default=0)
+    recompensa_monedas = models.IntegerField(default=0)
+    secreto = models.BooleanField(default=False)
+    activo = models.BooleanField(default=True)
+    orden = models.IntegerField(default=0)
 
     class Meta:
         managed = False
         db_table = "logros"
         verbose_name = "Logro"
         verbose_name_plural = "Logros"
+        ordering = ["orden", "id_logro"]
 
     def __str__(self):
-        return self.nombre
+        return self.titulo
+
+    def desbloqueos(self):
+        """Usuarios que ya lo tienen desbloqueado."""
+        return LogroUsuario.objects.filter(id_logro=self.pk, desbloqueado_en__isnull=False).count()
+
+
+class LogroUsuario(models.Model):
+    """Progreso de un usuario en un logro (Flyway V29). Solo lectura: lo escribe Spring."""
+
+    id_logro_usuario = models.AutoField(primary_key=True)
+    id_usuario = models.IntegerField()
+    id_logro = models.IntegerField()
+    progreso = models.IntegerField(default=0)
+    desbloqueado_en = models.DateTimeField(null=True, blank=True)
+    notificado = models.BooleanField(default=False)
+
+    class Meta:
+        managed = False
+        db_table = "logros_usuario"
+        verbose_name = "Logro de usuario"
+        verbose_name_plural = "Logros de usuarios"
+
+    def __str__(self):
+        return f"usuario {self.id_usuario} / logro {self.id_logro}"
 
 
 class Mision(models.Model):

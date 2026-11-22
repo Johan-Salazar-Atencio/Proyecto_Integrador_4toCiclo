@@ -8,12 +8,14 @@ y `X-Admin-Token`; se comprueba el token, que no haya caducado y el rol ADMIN.
 import hashlib
 import hmac
 import os
+import re
 import secrets
 from datetime import timedelta
 
 import bcrypt
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
+from django.db.models import Count
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
@@ -23,8 +25,8 @@ from rest_framework.views import APIView
 
 from . import eventos_imagen, fondos_imagen
 from .models import (
-    EscaneoHistorial, EventoDesastre, FondoEscena, ItemTienda, Mision, ParametroJuego, PlantaCatalogo, Region,
-    RegistroDesastreUsuario, ReglaProgreso, TemaFondo, TipoDesastre, Usuario,
+    EscaneoHistorial, EventoDesastre, FondoEscena, ItemTienda, Logro, LogroUsuario, Mision, ParametroJuego,
+    PlantaCatalogo, Region, RegistroDesastreUsuario, ReglaProgreso, TemaFondo, TipoDesastre, Usuario,
 )
 
 # Hash BCrypt valido para comparar cuando el correo no existe: asi el tiempo de
@@ -337,6 +339,203 @@ class AdminMisionDetailView(APIView):
         if valores:
             mision.save(update_fields=list(valores))
         return Response(_mision_a_dict(mision))
+
+
+# ---------------------------------------------------------------------------------------------
+# Logros. El esquema es de Spring (V29). Nunca se borran ni se toca logros_usuario: asi, editar la
+# meta o la condicion no quita logros ya desbloqueados.
+# ---------------------------------------------------------------------------------------------
+ICONOS_LOGRO = [
+    "semilla", "hoja", "huayco", "copo", "sol", "bicho", "escudo", "refugio", "corazon", "gota", "abono",
+    "luz", "racha", "nivel", "tienda", "maceta", "invernadero", "fondo", "mision", "amanecer", "luna",
+]
+_CODIGO_LOGRO = re.compile(r"^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$")
+LIMITES_LOGRO = {
+    "codigo": 50, "titulo": 80, "descripcion": 250, "icono": 40,
+    "meta_max": 1000000, "recompensa_xp_max": 100000, "recompensa_monedas_max": 100000, "orden_max": 100000,
+}
+
+
+def _logro_a_dict(logro, desbloqueos=0):
+    return {
+        "id_logro": logro.id_logro, "codigo": logro.codigo, "titulo": logro.titulo,
+        "descripcion": logro.descripcion, "icono": logro.icono, "rareza": logro.rareza,
+        "condicion": logro.condicion, "meta": logro.meta, "parametro": logro.parametro,
+        "recompensa_xp": logro.recompensa_xp, "recompensa_monedas": logro.recompensa_monedas,
+        "secreto": logro.secreto, "activo": logro.activo, "orden": logro.orden, "desbloqueos": desbloqueos,
+    }
+
+
+def _desbloqueos_por_logro():
+    """{id_logro: usuarios que lo tienen desbloqueado}, en una sola consulta."""
+    filas = (LogroUsuario.objects.filter(desbloqueado_en__isnull=False)
+             .values("id_logro").annotate(n=Count("id_logro")))
+    return {f["id_logro"]: f["n"] for f in filas}
+
+
+def _codigos_desastre():
+    return list(TipoDesastre.objects.order_by("codigo").values_list("codigo", flat=True))
+
+
+def _validar_texto_logro(data, campo, etiqueta, maximo):
+    texto = data.get(campo)
+    texto = texto.strip() if isinstance(texto, str) else ""
+    if not texto or len(texto) > maximo:
+        return None, f"{etiqueta} es obligatorio (maximo {maximo} caracteres)"
+    return texto, None
+
+
+def _validar_parametro_logro(condicion, parametro):
+    """Devuelve (parametro_limpio, error) segun la condicion."""
+    if isinstance(parametro, str):
+        parametro = parametro.strip() or None
+    elif parametro is not None:
+        return None, "parametro debe ser un texto o null"
+    if condicion == Logro.PARAMETRO_OBLIGATORIO:
+        if parametro not in Logro.FRANJAS_HORARIAS:
+            return None, "La condicion ESCANEO_HORA exige parametro: " + " o ".join(Logro.FRANJAS_HORARIAS)
+    elif condicion == Logro.PARAMETRO_OPCIONAL:
+        if parametro is not None and parametro not in _codigos_desastre():
+            return None, ("Tipo de desastre no valido en parametro (o dejalo vacio para cualquiera): "
+                          + ", ".join(_codigos_desastre()))
+    elif parametro is not None:
+        return None, f"La condicion {condicion} no lleva parametro: dejalo vacio (null)"
+    return parametro, None
+
+
+def _validar_logro(data, parcial, actual=None):
+    """Devuelve (valores, error). Con parcial=True solo valida los campos que llegan; `actual` es el logro
+    que se edita (el codigo no se puede cambiar y condicion/parametro se revisan juntos)."""
+    if not isinstance(data, dict):
+        # Un cuerpo JSON que no es objeto ([1, 2], "texto") rompia data.get(...) con un 500
+        return None, "El cuerpo debe ser un objeto JSON con los campos del logro"
+    valores = {}
+    if not parcial:
+        codigo = str(data.get("codigo") or "").strip()
+        if not codigo or len(codigo) > LIMITES_LOGRO["codigo"] or not _CODIGO_LOGRO.match(codigo):
+            return None, "codigo es obligatorio: MAYUSCULAS_CON_GUION_BAJO, solo letras A-Z y numeros (maximo 50)"
+        if Logro.objects.filter(codigo=codigo).exists():
+            return None, f"Ya existe un logro con el codigo {codigo}"
+        valores["codigo"] = codigo
+    elif "codigo" in data and data["codigo"] != actual.codigo:
+        return None, "El codigo no se puede cambiar una vez creado el logro"
+    for campo, etiqueta in (("titulo", "El titulo"), ("descripcion", "La descripcion"), ("icono", "El icono")):
+        if not parcial or campo in data:
+            texto, error = _validar_texto_logro(data, campo, etiqueta, LIMITES_LOGRO[campo])
+            if error:
+                return None, error
+            valores[campo] = texto
+    if not parcial or "rareza" in data:
+        rareza = data.get("rareza", "COMUN")
+        if rareza not in Logro.RAREZAS:
+            return None, "Rareza no valida: " + ", ".join(Logro.RAREZAS)
+        valores["rareza"] = rareza
+    if not parcial or "condicion" in data:
+        if data.get("condicion") not in Logro.CONDICIONES:
+            return None, "Condicion no valida: " + ", ".join(Logro.CONDICIONES)
+        valores["condicion"] = data["condicion"]
+    enteros = (("meta", 1, LIMITES_LOGRO["meta_max"]), ("recompensa_xp", 0, LIMITES_LOGRO["recompensa_xp_max"]),
+               ("recompensa_monedas", 0, LIMITES_LOGRO["recompensa_monedas_max"]),
+               ("orden", None, LIMITES_LOGRO["orden_max"]))
+    for campo, minimo, maximo in enteros:
+        if campo in data or (not parcial and campo == "meta"):
+            valor = data.get(campo)
+            minimo = -maximo if minimo is None else minimo
+            if isinstance(valor, bool) or not isinstance(valor, int) or not minimo <= valor <= maximo:
+                return None, f"{campo} debe ser un entero entre {minimo} y {maximo}"
+            valores[campo] = valor
+    for campo in ("secreto", "activo"):
+        if campo in data:
+            if not isinstance(data[campo], bool):
+                return None, f"{campo} debe ser verdadero o falso"
+            valores[campo] = data[campo]
+    # condicion y parametro van juntos: al editar solo uno se revisa contra el valor que ya tenia el otro
+    if not parcial or "condicion" in data or "parametro" in data:
+        condicion = valores.get("condicion") or (actual.condicion if actual else None)
+        bruto = data["parametro"] if "parametro" in data else (actual.parametro if actual else None)
+        parametro, error = _validar_parametro_logro(condicion, bruto)
+        if error:
+            return None, error
+        valores["parametro"] = parametro
+    return valores, None
+
+
+class AdminLogroListCreateView(APIView):
+    """GET /api/admin/logros/ lista todos (activos e inactivos) con `desbloqueos`; POST crea uno."""
+
+    def get(self, request):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        conteo = _desbloqueos_por_logro()
+        logros = Logro.objects.order_by("orden", "id_logro")
+        return Response([_logro_a_dict(lg, conteo.get(lg.id_logro, 0)) for lg in logros])
+
+    def post(self, request):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        valores, error = _validar_logro(request.data, parcial=False)
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            logro = Logro.objects.create(**valores)
+        except IntegrityError:
+            return Response({"error": f"Ya existe un logro con el codigo {valores['codigo']}"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return Response(_logro_a_dict(logro), status=status.HTTP_201_CREATED)
+
+
+class AdminLogroDetailView(APIView):
+    """PATCH /api/admin/logros/<id>/ edita; para quitarlo se envia {"activo": false}. Nunca se borra (se
+    conserva el progreso de los usuarios) y no se toca logros_usuario: los ya desbloqueados siguen asi."""
+
+    def patch(self, request, pk):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        logro = Logro.objects.filter(pk=pk).first()
+        if logro is None:
+            return Response({"error": "Logro no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+        valores, error = _validar_logro(request.data, parcial=True, actual=logro)
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+        cambia_regla = any(c in valores and valores[c] != getattr(logro, c) for c in ("condicion", "parametro"))
+        for campo, valor in valores.items():
+            setattr(logro, campo, valor)
+        if valores:
+            logro.save(update_fields=list(valores))
+        desbloqueos = logro.desbloqueos()
+        cuerpo = _logro_a_dict(logro, desbloqueos)
+        if cambia_regla and desbloqueos:
+            cuerpo["advertencia"] = (
+                f"{desbloqueos} usuario(s) ya desbloquearon este logro y lo conservan. "
+                "Cambiar la condicion o el parametro solo afecta a quienes aun no lo tienen; "
+                "el progreso ya guardado no se recalcula."
+            )
+        return Response(cuerpo)
+
+
+class AdminLogroOpcionesView(APIView):
+    """GET /api/admin/logros/opciones/ lo que necesita el formulario: condiciones (con su explicacion y
+    parametro), rarezas, iconos sugeridos y limites."""
+
+    def get(self, request):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        condiciones = []
+        for codigo, explicacion in Logro.CONDICIONES.items():
+            if codigo == Logro.PARAMETRO_OBLIGATORIO:
+                parametro, valores = "obligatorio", list(Logro.FRANJAS_HORARIAS)
+            elif codigo == Logro.PARAMETRO_OPCIONAL:
+                parametro, valores = "opcional", _codigos_desastre()
+            else:
+                parametro, valores = "ninguno", []
+            condiciones.append({
+                "codigo": codigo, "explicacion": explicacion, "parametro": parametro,
+                "requiere_parametro": parametro == "obligatorio", "valores_permitidos": valores,
+            })
+        return Response({
+            "condiciones": condiciones, "rarezas": list(Logro.RAREZAS),
+            "iconos": ICONOS_LOGRO, "limites": LIMITES_LOGRO,
+        })
 
 
 # Parametros de juego que Spring lee de verdad, con el rango que acepta el admin (minimo, maximo)

@@ -105,9 +105,12 @@ def get_provider(name: str | None = None) -> IaProvider:
             raise ValueError(f"Proveedor de IA desconocido: {name}")
         return _REGISTRO[name]()
 
-    for nombre in _prioridad():
+    reales = _prioridad()
+    for nombre in reales:
         if _disponible(nombre):
             return _REGISTRO[nombre]()
+    if reales:  # todos en cooldown: reintentar el primero, no inventar datos
+        return _REGISTRO[reales[0]]()
     return MockProvider()
 
 
@@ -139,8 +142,17 @@ def get_provider_chain(name: str | None = None) -> list[IaProvider]:
         except Exception:  # noqa: BLE001 - un motor mal configurado no debe romper la cadena
             continue
 
-    # mock solo cuando no hay ningun motor real. Si los reales fallan se devuelve
-    # 502: inventar siempre "Monstera" esconde el fallo y engana al usuario.
+    # Si todos los motores reales estan en cooldown, se reintentan igual: el
+    # cooldown solo sirve para saltar un motor cuando hay otro que probar.
     if not cadena:
+        for nombre in orden:
+            try:
+                cadena.append(_REGISTRO[nombre]())
+            except Exception:  # noqa: BLE001
+                continue
+
+    # mock solo cuando no hay ningun motor real configurado. Si los reales fallan
+    # se devuelve 502: inventar siempre "Monstera" esconde el fallo y engana al usuario.
+    if not cadena and not orden:
         cadena.append(MockProvider())
     return cadena

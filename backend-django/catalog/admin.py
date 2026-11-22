@@ -105,8 +105,40 @@ class ItemTiendaAdmin(admin.ModelAdmin):
 
 @admin.register(Logro)
 class LogroAdmin(admin.ModelAdmin):
-    list_display = ("id_logro", "nombre", "recompensa_monedas")
-    search_fields = ("nombre",)
+    """Logros del juego. No se borran (se pierde el progreso de los usuarios): solo se activan o desactivan."""
+
+    list_display = ("orden", "codigo", "titulo", "rareza", "condicion", "meta", "recompensa_xp",
+                    "recompensa_monedas", "secreto", "activo")
+    list_display_links = ("codigo", "titulo")
+    list_filter = ("rareza", "condicion", "activo", "secreto")
+    search_fields = ("codigo", "titulo", "descripcion")
+    ordering = ("orden", "id_logro")
+    actions = ["activar", "desactivar"]
+
+    def get_readonly_fields(self, request, obj=None):
+        # El codigo lo usa Spring para reconocer el logro: no cambia una vez creado
+        base = ["desbloqueos_total"]
+        return base + ["codigo"] if obj is not None else base
+
+    @admin.display(description="Usuarios que lo desbloquearon")
+    def desbloqueos_total(self, obj):
+        return obj.desbloqueos() if obj is not None and obj.pk else 0
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_actions(self, request):
+        acciones = super().get_actions(request)
+        acciones.pop("delete_selected", None)
+        return acciones
+
+    @admin.action(description="Activar los logros seleccionados")
+    def activar(self, request, queryset):
+        queryset.update(activo=True)
+
+    @admin.action(description="Desactivar los logros seleccionados")
+    def desactivar(self, request, queryset):
+        queryset.update(activo=False)
 
 
 class PlantaUsuarioInline(admin.TabularInline):

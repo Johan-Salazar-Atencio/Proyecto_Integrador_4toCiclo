@@ -1,7 +1,7 @@
 """Autenticacion del panel admin (admin_views.py). Sin base de datos: se simula el usuario."""
 import os
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 from django.utils import timezone
@@ -916,3 +916,315 @@ class EventoUnoALaVezTests(SimpleTestCase):
             resp = admin_views.AdminEventoCreateView.as_view()(req)
         self.assertEqual(resp.status_code, 409)
         self.assertEqual(resp.data["id_desastre_activo"], 7)
+
+
+class LogroModeloYAdminTests(SimpleTestCase):
+    """Modelo Logro/LogroUsuario (esquema V29 de Spring) y su pantalla en el Django admin."""
+
+    def test_el_modelo_sigue_el_esquema_nuevo(self):
+        from .models import Logro, LogroUsuario
+
+        campos = {f.name for f in Logro._meta.get_fields()}
+        self.assertEqual(campos, {"id_logro", "codigo", "titulo", "descripcion", "icono", "rareza", "condicion", "meta",
+                                  "parametro", "recompensa_xp", "recompensa_monedas", "secreto", "activo", "orden"})
+        self.assertFalse(Logro._meta.managed)
+        self.assertFalse(LogroUsuario._meta.managed)
+        self.assertEqual(LogroUsuario._meta.db_table, "logros_usuario")
+        self.assertEqual(len(Logro.CONDICIONES), 17)
+
+    def test_admin_no_permite_eliminar_ni_accion_masiva(self):
+        from django.contrib import admin as dj_admin
+        from .models import Logro
+
+        ma = dj_admin.site._registry[Logro]
+        request = APIRequestFactory().get("/admin/")
+        self.assertFalse(ma.has_delete_permission(request))
+        self.assertFalse(ma.has_delete_permission(request, Logro(id_logro=1)))
+        self.assertEqual(ma.actions, ["activar", "desactivar"])
+
+    def test_admin_columnas_filtros_y_busqueda(self):
+        from django.contrib import admin as dj_admin
+        from .models import Logro
+
+        ma = dj_admin.site._registry[Logro]
+        self.assertEqual(set(ma.list_filter), {"rareza", "condicion", "activo", "secreto"})
+        self.assertIn("codigo", ma.search_fields)
+        self.assertIn("rareza", ma.list_display)
+
+    def test_codigo_solo_lectura_una_vez_creado(self):
+        from django.contrib import admin as dj_admin
+        from .models import Logro
+
+        ma = dj_admin.site._registry[Logro]
+        request = APIRequestFactory().get("/admin/")
+        self.assertNotIn("codigo", ma.get_readonly_fields(request, None))
+        self.assertIn("codigo", ma.get_readonly_fields(request, Logro(id_logro=1, codigo="X")))
+        self.assertIn("desbloqueos_total", ma.get_readonly_fields(request, None))
+
+    def test_desbloqueos_total_cuenta_usuarios(self):
+        from django.contrib import admin as dj_admin
+        from .models import Logro, LogroUsuario
+
+        ma = dj_admin.site._registry[Logro]
+        with patch.object(LogroUsuario.objects, "filter") as filtro:
+            filtro.return_value.count.return_value = 4
+            self.assertEqual(ma.desbloqueos_total(Logro(id_logro=3)), 4)
+            filtro.assert_called_once_with(id_logro=3, desbloqueado_en__isnull=False)
+        self.assertEqual(ma.desbloqueos_total(Logro()), 0)
+
+
+class AdminLogrosTests(SimpleTestCase):
+    """API de logros del panel React: permisos, validaciones, listado, PATCH y opciones."""
+
+    DATOS = {"codigo": "REGADOR_100", "titulo": "Regador", "descripcion": "Riega 100 veces.", "icono": "gota",
+             "rareza": "RARA", "condicion": "RIEGOS_TOTAL", "meta": 100, "recompensa_xp": 80, "recompensa_monedas": 30}
+    DESASTRES = ["HELADA", "HUAYCO", "OLA_DE_CALOR", "PLAGA"]
+
+    def _llamar(self, vista, metodo, datos=None, admin=True, **kwargs):
+        request = getattr(APIRequestFactory(), metodo)("/api/admin/logros/", datos, format="json")
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario() if admin else None):
+            return vista.as_view()(request, **kwargs)
+
+    def _crear(self, **cambios):
+        """POST sin base de datos: codigo libre y tipos de desastre conocidos."""
+        datos = dict(self.DATOS, **cambios)
+        logro = admin_views.Logro(id_logro=50, **datos)
+        with patch.object(admin_views.Logro.objects, "filter", return_value=MagicMock(exists=lambda: False)), \
+                patch.object(admin_views.Logro.objects, "create", return_value=logro) as crear, \
+                patch.object(admin_views, "_codigos_desastre", return_value=self.DESASTRES):
+            respuesta = self._llamar(admin_views.AdminLogroListCreateView, "post", datos)
+        return respuesta, crear
+
+    def _logro(self, **campos):
+        base = dict(id_logro=5, codigo="NIVEL_5", titulo="Brote", descripcion="Nivel 5", icono="nivel", rareza="COMUN",
+                    condicion="NIVEL", meta=5, parametro=None, recompensa_xp=50, recompensa_monedas=20,
+                    secreto=False, activo=True, orden=24)
+        base.update(campos)
+        logro = admin_views.Logro(**base)
+        logro.save = MagicMock()
+        return logro
+
+    def _patch(self, logro, datos, desbloqueos=0):
+        with patch.object(admin_views.Logro.objects, "filter", return_value=MagicMock(first=lambda: logro)), \
+                patch.object(admin_views.Logro, "desbloqueos", return_value=desbloqueos), \
+                patch.object(admin_views, "_codigos_desastre", return_value=self.DESASTRES):
+            return self._llamar(admin_views.AdminLogroDetailView, "patch", datos, pk=logro.id_logro)
+
+    # --- permisos y metodos ---
+    def test_sin_admin_devuelve_401_en_todo(self):
+        for vista, metodo, kw in ((admin_views.AdminLogroListCreateView, "get", {}),
+                                  (admin_views.AdminLogroListCreateView, "post", {}),
+                                  (admin_views.AdminLogroDetailView, "patch", {"pk": 1}),
+                                  (admin_views.AdminLogroOpcionesView, "get", {})):
+            respuesta = self._llamar(vista, metodo, self.DATOS if metodo != "get" else None, admin=False, **kw)
+            self.assertEqual(respuesta.status_code, 401, (vista, metodo))
+
+    def test_no_existe_delete(self):
+        for vista, kw in ((admin_views.AdminLogroListCreateView, {}), (admin_views.AdminLogroDetailView, {"pk": 1})):
+            respuesta = self._llamar(vista, "delete", None, **kw)
+            self.assertEqual(respuesta.status_code, 405)
+
+    def test_cuerpo_que_no_es_objeto_da_400_y_no_500(self):
+        # Regresion QA: POST con [1, 2] o "texto" daba 500 (AttributeError en data.get)
+        for cuerpo in ([1, 2], "texto", 5):
+            respuesta = self._llamar(admin_views.AdminLogroListCreateView, "post", cuerpo)
+            self.assertEqual(respuesta.status_code, 400, cuerpo)
+            respuesta = self._patch(self._logro(), cuerpo)
+            self.assertEqual(respuesta.status_code, 400, cuerpo)
+
+    def test_rutas_registradas(self):
+        from django.urls import resolve, reverse
+
+        self.assertEqual(reverse("admin-logro-list"), "/api/admin/logros/")
+        self.assertEqual(reverse("admin-logro-opciones"), "/api/admin/logros/opciones/")
+        self.assertEqual(resolve("/api/admin/logros/7/").func.view_class, admin_views.AdminLogroDetailView)
+        self.assertEqual(resolve("/api/admin/logros/opciones/").func.view_class, admin_views.AdminLogroOpcionesView)
+
+    # --- listado ---
+    def test_lista_todos_con_desbloqueos(self):
+        activo, inactivo = self._logro(id_logro=1), self._logro(id_logro=2, codigo="OTRO", activo=False)
+        with patch.object(admin_views.Logro.objects, "order_by", return_value=[activo, inactivo]), \
+                patch.object(admin_views, "_desbloqueos_por_logro", return_value={1: 7}):
+            respuesta = self._llamar(admin_views.AdminLogroListCreateView, "get")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual([x["desbloqueos"] for x in respuesta.data], [7, 0])
+        self.assertEqual([x["activo"] for x in respuesta.data], [True, False])
+        self.assertIn("recompensa_xp", respuesta.data[0])
+
+    def test_desbloqueos_cuenta_solo_desbloqueados(self):
+        with patch.object(admin_views.LogroUsuario.objects, "filter") as filtro:
+            filtro.return_value.values.return_value.annotate.return_value = [{"id_logro": 1, "n": 2}]
+            self.assertEqual(admin_views._desbloqueos_por_logro(), {1: 2})
+            filtro.assert_called_once_with(desbloqueado_en__isnull=False)
+
+    # --- creacion y validaciones ---
+    def test_crear_guarda_y_devuelve_201(self):
+        respuesta, crear = self._crear()
+        self.assertEqual(respuesta.status_code, 201)
+        self.assertEqual(crear.call_args.kwargs["codigo"], "REGADOR_100")
+        self.assertIsNone(crear.call_args.kwargs["parametro"])
+        self.assertEqual(respuesta.data["desbloqueos"], 0)
+
+    def test_codigo_debe_ser_mayusculas_con_guion_bajo(self):
+        for malo in ("regador", "Regador_1", "REGADOR 1", "_X", "X__Y", "X_", "", "A" * 51, "ÑANDÚ"):
+            respuesta, _ = self._crear(codigo=malo)
+            self.assertEqual(respuesta.status_code, 400, malo)
+            self.assertIn("codigo", respuesta.data["error"])
+
+    def test_codigo_repetido_da_400(self):
+        with patch.object(admin_views.Logro.objects, "filter", return_value=MagicMock(exists=lambda: True)):
+            respuesta = self._llamar(admin_views.AdminLogroListCreateView, "post", dict(self.DATOS))
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn("Ya existe", respuesta.data["error"])
+
+    def test_codigo_repetido_por_carrera_da_400(self):
+        from django.db import IntegrityError
+
+        with patch.object(admin_views.Logro.objects, "filter", return_value=MagicMock(exists=lambda: False)), \
+                patch.object(admin_views.Logro.objects, "create", side_effect=IntegrityError):
+            respuesta = self._llamar(admin_views.AdminLogroListCreateView, "post", dict(self.DATOS))
+        self.assertEqual(respuesta.status_code, 400)
+
+    def test_limites_de_titulo_y_descripcion(self):
+        self.assertEqual(self._crear(titulo="T" * 80)[0].status_code, 201)
+        self.assertEqual(self._crear(titulo="T" * 81)[0].status_code, 400)
+        self.assertEqual(self._crear(titulo="  ")[0].status_code, 400)
+        self.assertEqual(self._crear(descripcion="D" * 250)[0].status_code, 201)
+        self.assertEqual(self._crear(descripcion="D" * 251)[0].status_code, 400)
+        self.assertEqual(self._crear(icono="")[0].status_code, 400)
+
+    def test_condicion_y_rareza_de_la_lista(self):
+        self.assertEqual(self._crear(condicion="VOLAR")[0].status_code, 400)
+        self.assertEqual(self._crear(rareza="MITICA")[0].status_code, 400)
+        self.assertEqual(self._crear(rareza="LEGENDARIA")[0].status_code, 201)
+
+    def test_numeros(self):
+        self.assertEqual(self._crear(meta=0)[0].status_code, 400)
+        self.assertEqual(self._crear(meta=True)[0].status_code, 400)
+        self.assertEqual(self._crear(meta="3")[0].status_code, 400)
+        self.assertEqual(self._crear(recompensa_xp=-1)[0].status_code, 400)
+        self.assertEqual(self._crear(recompensa_monedas=-5)[0].status_code, 400)
+        self.assertEqual(self._crear(recompensa_xp=100001)[0].status_code, 400)
+        self.assertEqual(self._crear(recompensa_monedas=100001)[0].status_code, 400)
+        self.assertEqual(self._crear(orden=1.5)[0].status_code, 400)
+        self.assertEqual(self._crear(orden=7)[0].status_code, 201)
+
+    def test_escaneo_hora_exige_parametro_valido(self):
+        self.assertEqual(self._crear(condicion="ESCANEO_HORA")[0].status_code, 400)
+        self.assertEqual(self._crear(condicion="ESCANEO_HORA", parametro="TARDE")[0].status_code, 400)
+        self.assertEqual(self._crear(condicion="ESCANEO_HORA", parametro="NOCHE")[0].status_code, 201)
+
+    def test_desastre_afrontado_parametro_opcional_pero_valido(self):
+        self.assertEqual(self._crear(condicion="DESASTRE_AFRONTADO")[0].status_code, 201)
+        self.assertEqual(self._crear(condicion="DESASTRE_AFRONTADO", parametro="")[0].status_code, 201)
+        self.assertEqual(self._crear(condicion="DESASTRE_AFRONTADO", parametro="HUAYCO")[0].status_code, 201)
+        respuesta, _ = self._crear(condicion="DESASTRE_AFRONTADO", parametro="TORNADO")
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn("HUAYCO", respuesta.data["error"])
+
+    def test_parametro_prohibido_en_las_demas(self):
+        respuesta, _ = self._crear(condicion="NIVEL", parametro="HUAYCO")
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn("no lleva parametro", respuesta.data["error"])
+
+    # --- PATCH ---
+    def test_patch_inexistente_da_404(self):
+        with patch.object(admin_views.Logro.objects, "filter", return_value=MagicMock(first=lambda: None)):
+            respuesta = self._llamar(admin_views.AdminLogroDetailView, "patch", {"activo": False}, pk=99)
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_desactivar_solo_cambia_activo(self):
+        logro = self._logro()
+        respuesta = self._patch(logro, {"activo": False}, desbloqueos=3)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertFalse(respuesta.data["activo"])
+        self.assertEqual(respuesta.data["desbloqueos"], 3)
+        self.assertNotIn("advertencia", respuesta.data)
+        logro.save.assert_called_once_with(update_fields=["activo"])
+
+    def test_el_codigo_es_inmutable(self):
+        logro = self._logro()
+        respuesta = self._patch(logro, {"codigo": "OTRO_CODIGO"})
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn("no se puede cambiar", respuesta.data["error"])
+        logro.save.assert_not_called()
+
+    def test_mismo_codigo_se_ignora(self):
+        logro = self._logro()
+        respuesta = self._patch(logro, {"codigo": "NIVEL_5", "meta": 6})
+        self.assertEqual(respuesta.status_code, 200)
+        logro.save.assert_called_once_with(update_fields=["meta"])
+
+    def test_editar_meta_no_toca_logros_usuario(self):
+        logro = self._logro()
+        with patch.object(admin_views.LogroUsuario.objects, "filter") as filtro, \
+                patch.object(admin_views.LogroUsuario.objects, "update") as actualizar, \
+                patch.object(admin_views.Logro.objects, "filter", return_value=MagicMock(first=lambda: logro)):
+            filtro.return_value.count.return_value = 9
+            respuesta = self._llamar(admin_views.AdminLogroDetailView, "patch", {"meta": 50}, pk=5)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.data["meta"], 50)
+        self.assertNotIn("advertencia", respuesta.data)
+        actualizar.assert_not_called()
+        # logros_usuario solo se lee (conteo de desbloqueos): nunca se borra ni se actualiza
+        self.assertFalse(filtro.return_value.delete.called)
+        self.assertFalse(filtro.return_value.update.called)
+
+    def test_cambiar_condicion_con_desbloqueados_avisa_pero_permite(self):
+        logro = self._logro()
+        respuesta = self._patch(logro, {"condicion": "RIEGOS_TOTAL"}, desbloqueos=4)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.data["condicion"], "RIEGOS_TOTAL")
+        self.assertIn("4 usuario(s)", respuesta.data["advertencia"])
+        logro.save.assert_called_once_with(update_fields=["condicion", "parametro"])
+
+    def test_cambiar_parametro_con_desbloqueados_avisa(self):
+        logro = self._logro(condicion="DESASTRE_AFRONTADO", parametro="HUAYCO")
+        respuesta = self._patch(logro, {"parametro": "PLAGA"}, desbloqueos=2)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.data["parametro"], "PLAGA")
+        self.assertIn("advertencia", respuesta.data)
+
+    def test_cambiar_regla_sin_desbloqueados_no_avisa(self):
+        respuesta = self._patch(self._logro(), {"condicion": "RIEGOS_TOTAL"}, desbloqueos=0)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertNotIn("advertencia", respuesta.data)
+
+    def test_mismo_valor_de_condicion_no_avisa(self):
+        respuesta = self._patch(self._logro(), {"condicion": "NIVEL"}, desbloqueos=5)
+        self.assertNotIn("advertencia", respuesta.data)
+
+    def test_cambiar_a_condicion_que_no_admite_el_parametro_actual_da_400(self):
+        logro = self._logro(condicion="ESCANEO_HORA", parametro="NOCHE")
+        respuesta = self._patch(logro, {"condicion": "NIVEL"})
+        self.assertEqual(respuesta.status_code, 400)
+        logro.save.assert_not_called()
+        # enviando parametro null a la vez, si se permite
+        respuesta = self._patch(self._logro(condicion="ESCANEO_HORA", parametro="NOCHE"),
+                                {"condicion": "NIVEL", "parametro": None}, desbloqueos=1)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIsNone(respuesta.data["parametro"])
+
+    def test_patch_valida_igual_que_el_alta(self):
+        for datos in ({"titulo": "T" * 81}, {"descripcion": "D" * 251}, {"meta": 0}, {"recompensa_xp": -1},
+                      {"rareza": "X"}, {"condicion": "X"}, {"activo": "si"}, {"orden": "uno"}):
+            self.assertEqual(self._patch(self._logro(), datos).status_code, 400, datos)
+
+    # --- opciones ---
+    def test_opciones_para_armar_el_formulario(self):
+        with patch.object(admin_views, "_codigos_desastre", return_value=self.DESASTRES):
+            respuesta = self._llamar(admin_views.AdminLogroOpcionesView, "get")
+        self.assertEqual(respuesta.status_code, 200)
+        condiciones = {c["codigo"]: c for c in respuesta.data["condiciones"]}
+        self.assertEqual(len(condiciones), 17)
+        self.assertTrue(all(c["explicacion"] for c in condiciones.values()))
+        self.assertTrue(condiciones["ESCANEO_HORA"]["requiere_parametro"])
+        self.assertEqual(condiciones["ESCANEO_HORA"]["valores_permitidos"], ["MADRUGADA", "NOCHE"])
+        self.assertEqual(condiciones["DESASTRE_AFRONTADO"]["parametro"], "opcional")
+        self.assertFalse(condiciones["DESASTRE_AFRONTADO"]["requiere_parametro"])
+        self.assertEqual(condiciones["DESASTRE_AFRONTADO"]["valores_permitidos"], self.DESASTRES)
+        self.assertEqual(condiciones["NIVEL"]["parametro"], "ninguno")
+        self.assertEqual(condiciones["NIVEL"]["valores_permitidos"], [])
+        self.assertEqual(respuesta.data["rarezas"], ["COMUN", "RARA", "EPICA", "LEGENDARIA"])
+        self.assertIn("luna", respuesta.data["iconos"])
+        self.assertEqual(len(respuesta.data["iconos"]), 21)
