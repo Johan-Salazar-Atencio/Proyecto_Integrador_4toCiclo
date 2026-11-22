@@ -21,8 +21,10 @@ import com.plantia.data.local.ConexionConfig
 import com.plantia.data.local.ModoTema
 import com.plantia.data.local.Sesion
 import com.plantia.data.local.TemaConfig
+import com.plantia.data.logros.ProgramadorLogros
 import com.plantia.data.network.DescubridorMdns
 import com.plantia.data.remote.RetrofitClient
+import com.plantia.ui.logros.HostCelebracionLogros
 import com.plantia.ui.navigation.AppNavigation
 import com.plantia.ui.theme.MobilekotlinTheme
 
@@ -53,6 +55,8 @@ class MainActivity : ComponentActivity() {
         ConexionConfig.init(applicationContext)
         TemaConfig.init(applicationContext)
         pedirPermisoRedLocal()
+        // Avisa con una notificacion de los logros que se desbloqueen con la app cerrada
+        ProgramadorLogros.programar(applicationContext)
 
         // Busca el PC en la red local por mDNS: asi no hay que hardcodear la IP
         // y funciona aunque se cambie de WiFi.
@@ -78,6 +82,8 @@ class MainActivity : ComponentActivity() {
             MobilekotlinTheme(darkTheme = oscuro) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     AppNavigation()
+                    // Celebra los logros nuevos uno tras otro, encima de cualquier pantalla
+                    HostCelebracionLogros()
                 }
             }
         }

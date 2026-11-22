@@ -73,6 +73,9 @@ dependencies {
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.foundation:foundation")
 
+    // Revision periodica de logros desbloqueados con la app cerrada (aviso local)
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
+
     // Red: backend Spring Boot
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")

@@ -15,6 +15,9 @@ import com.plantia.data.remote.dto.ElegirInvernaderoRequest
 import com.plantia.data.remote.dto.PonerMacetaRequest
 import com.plantia.data.remote.dto.DailyMissionDto
 import com.plantia.data.remote.dto.FondoDto
+import com.plantia.data.remote.dto.LogroNuevoDto
+import com.plantia.data.remote.dto.LogrosRespuestaDto
+import com.plantia.data.remote.dto.LogrosVistosRequest
 import com.plantia.data.remote.dto.RegionDto
 import com.plantia.data.remote.dto.PlantSummaryDto
 import com.plantia.data.remote.dto.TemaFondoDto
@@ -212,6 +215,20 @@ interface PlantiaApi {
     suspend fun coleccionDetalle(
         @Path("id") idColeccion: Int
     ): Response<ColeccionDetalleDto>
+
+    // Logros
+
+    /** Todos los logros con el avance del usuario. */
+    @GET("api/v1/logros")
+    suspend fun logros(): Response<LogrosRespuestaDto>
+
+    /** Logros desbloqueados que todavia no se celebraron (lista vacia si no hay). */
+    @GET("api/v1/logros/pendientes")
+    suspend fun logrosPendientes(): Response<List<LogroNuevoDto>>
+
+    /** Marca logros como vistos una vez celebrados (204). */
+    @POST("api/v1/logros/vistos")
+    suspend fun logrosVistos(@Body cuerpo: LogrosVistosRequest): Response<Unit>
 
     // Acceso
 

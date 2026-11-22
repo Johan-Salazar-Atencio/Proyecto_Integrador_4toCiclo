@@ -9,7 +9,9 @@ data class ScanResultDto(
     val confianza: Double? = null,
     val imagenUrl: String? = null,
     val nuevoEnColeccion: Boolean = false,
-    val cuidados: List<CuidadoSeccionDto>? = null
+    val cuidados: List<CuidadoSeccionDto>? = null,
+    /** XP y logros ganados con el escaneo; el servidor viejo no lo manda. */
+    val progreso: ProgresoDto? = null
 )
 
 data class CuidadoSeccionDto(

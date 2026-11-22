@@ -1,7 +1,9 @@
 package com.plantia.data.repository
 
 import com.plantia.BuildConfig
+import com.plantia.data.mapper.logrosNuevos
 import com.plantia.data.mapper.toDomain
+import com.plantia.data.model.LogroNuevo
 import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.remote.PlantiaApi
@@ -15,7 +17,9 @@ import kotlinx.coroutines.withContext
 import retrofit2.Response
 
 class RemoteGardenRepository(
-    private val api: () -> PlantiaApi = { RetrofitClient.api }
+    private val api: () -> PlantiaApi = { RetrofitClient.api },
+    /** Recibe los logros que desbloqueo una accion (digitalizar, cuidar...), para celebrarlos. */
+    private val alDesbloquear: (List<LogroNuevo>) -> Unit = {}
 ) : GardenRepository {
 
     override suspend fun plantaActiva(): PlantaActivaResultado = withContext(Dispatchers.IO) {
@@ -103,6 +107,7 @@ class RemoteGardenRepository(
                 val respuesta = llamada()
                 val cuerpo = respuesta.body()
                 if (respuesta.isSuccessful && cuerpo != null) {
+                    cuerpo.progreso.logrosNuevos().takeIf { it.isNotEmpty() }?.let(alDesbloquear)
                     PlantaResultado.Con(cuerpo.aPlanta())
                 } else {
                     PlantaResultado.Fallo(

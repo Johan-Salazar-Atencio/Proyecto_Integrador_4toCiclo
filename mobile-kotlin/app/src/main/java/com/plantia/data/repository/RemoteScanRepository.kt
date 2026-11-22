@@ -1,7 +1,9 @@
 package com.plantia.data.repository
 
 import com.plantia.data.local.Sesion
+import com.plantia.data.mapper.logrosNuevos
 import com.plantia.data.mapper.toDomain
+import com.plantia.data.model.LogroNuevo
 import com.plantia.data.model.RecentScan
 import com.plantia.data.remote.PlantiaApi
 import com.plantia.data.remote.RetrofitClient
@@ -17,7 +19,9 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 
 class RemoteScanRepository(
-    private val api: () -> PlantiaApi = { RetrofitClient.api }
+    private val api: () -> PlantiaApi = { RetrofitClient.api },
+    /** Recibe los logros que desbloqueo el escaneo, para celebrarlos. */
+    private val alDesbloquear: (List<LogroNuevo>) -> Unit = {}
 ) : ScanRepository {
 
     private val ultimo = MutableStateFlow<ScanResultDto?>(null)
@@ -35,6 +39,7 @@ class RemoteScanRepository(
         val servicio = withContext(Dispatchers.IO) { api() }
         val resultado = servicio.escanear(Sesion.userId.value, parte)
         ultimo.value = resultado
+        resultado.progreso.logrosNuevos().takeIf { it.isNotEmpty() }?.let(alDesbloquear)
         return resultado
     }
 

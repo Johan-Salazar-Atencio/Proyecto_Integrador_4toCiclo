@@ -34,6 +34,7 @@ import com.plantia.ui.collection.CollectionScreen
 import com.plantia.ui.detail.CollectionDetailScreen
 import com.plantia.ui.detail.PlantDetailScreen
 import com.plantia.ui.garden.VirtualGardenScreen
+import com.plantia.ui.logros.LogrosScreen
 import com.plantia.ui.misiones.MisionesScreen
 import com.plantia.ui.home.HomeScreen
 import com.plantia.ui.legal.TermsScreen
@@ -146,6 +147,11 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onEscanear = { navController.navigate(Routes.SCAN) },
                 onPlantasVirtuales = { navController.navigate(Routes.COLLECTION_DIGITALES) }
             )
+        }
+
+        // Logros
+        composable(Routes.LOGROS) {
+            LogrosScreen(onBack = { navController.popBackStack() })
         }
 
         // Escaneo
@@ -295,6 +301,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onCambiarTema = perfilViewModel::cambiarTema,
                 onGuardarHost = perfilViewModel::guardarHost,
                 onReintentar = { perfilViewModel.recargar() },
+                onVerLogros = { navController.navigate(Routes.LOGROS) },
                 onVerHistorial = { navController.navigate(Routes.HISTORIAL) },
                 onVerTerminos = { navController.navigate(Routes.TERMINOS) },
                 onEditarDatos = { navController.navigate(Routes.EDITAR_DATOS) },

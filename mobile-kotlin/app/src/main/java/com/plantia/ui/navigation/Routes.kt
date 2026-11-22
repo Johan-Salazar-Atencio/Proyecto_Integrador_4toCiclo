@@ -27,6 +27,7 @@ object Routes {
     const val COLLECTION_DIGITALES = "CollectionScreen/digitales"
     const val TIENDA = "tienda"
     const val MISIONES = "misiones"
+    const val LOGROS = "logros"
     const val PERFIL = "perfil"
     const val EDITAR_DATOS = "editar_datos"
 

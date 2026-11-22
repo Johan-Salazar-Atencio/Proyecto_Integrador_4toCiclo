@@ -46,6 +46,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Yard
 import androidx.compose.material3.AlertDialog
@@ -123,6 +124,7 @@ fun PerfilScreen(
     onGuardarHost: (String?) -> Unit,
     onReintentar: () -> Unit,
     onVerHistorial: () -> Unit,
+    onVerLogros: () -> Unit = {},
     onVerTerminos: () -> Unit,
     onEditarDatos: () -> Unit,
     onCerrarSesion: () -> Unit,
@@ -203,6 +205,7 @@ fun PerfilScreen(
             Column(Modifier.fillMaxWidth().tarjeta().padding(horizontal = 14.dp, vertical = 4.dp)) {
                 FilaRecordatorios(recordar, alCambiarRecordatorio)
                 FilaAcceso(Icons.Filled.Edit, "Editar datos", onEditarDatos)
+                FilaAcceso(Icons.Filled.EmojiEvents, "Logros", onVerLogros)
                 FilaAcceso(Icons.Filled.History, "Historial de escaneos", onVerHistorial)
                 FilaAcceso(Icons.Filled.Description, "Términos y privacidad", onVerTerminos)
             }

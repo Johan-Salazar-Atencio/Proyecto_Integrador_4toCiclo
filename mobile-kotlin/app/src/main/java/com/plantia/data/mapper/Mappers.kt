@@ -6,6 +6,10 @@ import com.plantia.data.model.CatalogoItem
 import com.plantia.data.model.ColeccionItem
 import com.plantia.data.model.Cuidado
 import com.plantia.data.model.DailyMission
+import com.plantia.data.model.Logro
+import com.plantia.data.model.LogroNuevo
+import com.plantia.data.model.LogrosResumen
+import com.plantia.data.model.Rareza
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.QuickAccessItem
 import com.plantia.data.model.Region
@@ -17,6 +21,10 @@ import com.plantia.data.remote.dto.CatalogoItemDto
 import com.plantia.data.remote.dto.ColeccionItemDto
 import com.plantia.data.remote.dto.CuidadoSeccionDto
 import com.plantia.data.remote.dto.DailyMissionDto
+import com.plantia.data.remote.dto.LogroDto
+import com.plantia.data.remote.dto.LogroNuevoDto
+import com.plantia.data.remote.dto.LogrosRespuestaDto
+import com.plantia.data.remote.dto.ProgresoDto
 import com.plantia.data.model.Apariencia
 import com.plantia.data.remote.dto.PlantSummaryDto
 import com.plantia.data.remote.dto.QuickAccessDto
@@ -171,3 +179,46 @@ fun CuidadoSeccionDto.toDomain(): Cuidado = Cuidado(
 )
 
 fun RegionDto.toDomain(): Region = Region(code = code, name = name)
+
+// ---- Logros ----
+
+fun LogroDto.toDomain(): Logro = Logro(
+    idLogro = idLogro,
+    codigo = codigo,
+    titulo = titulo,
+    descripcion = descripcion,
+    icono = icono,
+    rareza = Rareza.desde(rareza),
+    meta = meta.coerceAtLeast(0),
+    progreso = progreso.coerceAtLeast(0),
+    desbloqueado = desbloqueado,
+    desbloqueadoEn = desbloqueadoEn?.takeIf { it.isNotBlank() },
+    secreto = secreto,
+    recompensaXp = recompensaXp,
+    recompensaMonedas = recompensaMonedas
+)
+
+fun LogrosRespuestaDto.toDomain(): LogrosResumen {
+    val lista = logros.map { it.toDomain() }
+    // Si el servidor no manda los totales se calculan con la lista
+    return LogrosResumen(
+        total = if (total > 0) total else lista.size,
+        desbloqueados = if (total > 0) desbloqueados else lista.count { it.desbloqueado },
+        logros = lista
+    )
+}
+
+fun LogroNuevoDto.toDomain(): LogroNuevo = LogroNuevo(
+    idLogro = idLogro,
+    codigo = codigo,
+    titulo = titulo,
+    descripcion = descripcion,
+    icono = icono,
+    rareza = Rareza.desde(rareza),
+    recompensaXp = recompensaXp,
+    recompensaMonedas = recompensaMonedas
+)
+
+/** Logros nuevos de una accion; vacio si el servidor viejo no manda el campo o el id no es valido. */
+fun ProgresoDto?.logrosNuevos(): List<LogroNuevo> =
+    this?.logrosNuevos.orEmpty().filter { it.idLogro > 0 }.map { it.toDomain() }

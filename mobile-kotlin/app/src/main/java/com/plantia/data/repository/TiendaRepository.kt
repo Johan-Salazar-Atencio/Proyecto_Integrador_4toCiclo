@@ -2,7 +2,9 @@ package com.plantia.data.repository
 
 import com.google.gson.JsonParser
 import com.plantia.BuildConfig
+import com.plantia.data.mapper.logrosNuevos
 import com.plantia.data.mapper.toDomain
+import com.plantia.data.model.LogroNuevo
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.TemaFondo
 import com.plantia.data.model.Tienda
@@ -55,18 +57,27 @@ class RemoteTiendaRepository(
     private val api: () -> PlantiaApi = { RetrofitClient.api },
     private val baseUrl: () -> String = { (RetrofitClient.baseUrl.value ?: BuildConfig.API_BASE_URL).trimEnd('/') },
     /** Poner otro fondo cambia la escena: el arte guardado debe leerse otra vez. */
-    private val arte: () -> ArteRepository? = { null }
+    private val arte: () -> ArteRepository? = { null },
+    /** Recibe los logros que desbloqueo el abono, para celebrarlos. */
+    private val alDesbloquear: (List<LogroNuevo>) -> Unit = {},
+    /** Avisa que se compro algo: el servidor puede haber desbloqueado un logro sin decirlo en la respuesta. */
+    private val alComprar: () -> Unit = {}
 ) : TiendaRepository {
 
     override suspend fun cargar(): TiendaResultado = tienda { api().tienda() }
 
-    override suspend fun comprar(idItem: Int): TiendaResultado = tienda { api().comprarItem(idItem) }
+    override suspend fun comprar(idItem: Int): TiendaResultado =
+        tienda { api().comprarItem(idItem) }.also { if (it is TiendaResultado.Con) alComprar() }
 
     override suspend fun usarAbono(idPlanta: Int, idItem: Int?): AbonoResultado = withContext(Dispatchers.IO) {
         try {
             val respuesta = api().abonoTienda(idPlanta, if (idItem != null) mapOf("idItem" to idItem) else emptyMap())
             val cuerpo = respuesta.body()
-            if (respuesta.isSuccessful && cuerpo != null) AbonoResultado.Con(cuerpo.toDomain())
+            if (respuesta.isSuccessful && cuerpo != null) {
+                cuerpo.progreso.logrosNuevos().takeIf { it.isNotEmpty() }?.let(alDesbloquear)
+                alComprar()
+                AbonoResultado.Con(cuerpo.toDomain())
+            }
             else AbonoResultado.Fallo(mensajeDe(respuesta))
         } catch (e: Exception) {
             AbonoResultado.Fallo(e.message ?: SIN_CONEXION)

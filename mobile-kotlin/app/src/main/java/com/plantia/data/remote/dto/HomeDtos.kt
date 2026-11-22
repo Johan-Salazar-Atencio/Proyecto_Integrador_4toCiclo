@@ -75,7 +75,9 @@ data class PlantSummaryDto(
     val golpeTipo: String? = null,
     val costoRevivir: Int? = null,
     val enBaul: Boolean = false,
-    val macetaCodigo: String = "TERRACOTA"
+    val macetaCodigo: String = "TERRACOTA",
+    /** XP y logros ganados con la accion (digitalizar, cuidar); solo llega en esas respuestas. */
+    val progreso: ProgresoDto? = null
 )
 
 data class AparienciaDto(
