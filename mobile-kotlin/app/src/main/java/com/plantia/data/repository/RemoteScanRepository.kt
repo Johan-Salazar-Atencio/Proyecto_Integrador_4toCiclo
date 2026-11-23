@@ -37,7 +37,11 @@ class RemoteScanRepository(
         )
         // La primera vez RetrofitClient sondea el host por red: nunca en el hilo principal.
         val servicio = withContext(Dispatchers.IO) { api() }
-        val resultado = servicio.escanear(Sesion.userId.value, parte)
+        val resultado = try {
+            servicio.escanear(Sesion.userId.value, parte)
+        } catch (e: retrofit2.HttpException) {
+            throw e.conMensajeDelServidor() // la pantalla muestra el mensaje del servidor (QA-36)
+        }
         ultimo.value = resultado
         resultado.progreso.logrosNuevos().takeIf { it.isNotEmpty() }?.let(alDesbloquear)
         return resultado

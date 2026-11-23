@@ -51,11 +51,7 @@ class ApiAuthRepository : AuthRepository {
                 )
                 AuthResultado.Ok(iniciarSesionLocal(response.id, response.nombre, response.email, response.sessionToken))
             } catch (e: HttpException) {
-                val mensaje = when (e.code()) {
-                    401 -> "Correo o contraseña incorrectos."
-                    400 -> "Correo o contraseña incorrectos."
-                    else -> extraerMensaje(e) ?: "Correo o contraseña incorrectos."
-                }
+                val mensaje = mensajeDeLogin(e.code(), runCatching { e.response()?.errorBody()?.string() }.getOrNull())
                 AuthResultado.Error(mensaje)
             } catch (e: IOException) {
                 AuthResultado.Error("No se pudo conectar con el servidor.")
@@ -75,6 +71,8 @@ class ApiAuthRepository : AuthRepository {
         return try {
             val errorBody = e.response()?.errorBody()?.string()
             if (errorBody.isNullOrBlank()) return null
+            // Spring responde {"error": "..."} (QA-46)
+            mensajeDeError(errorBody)?.let { return it }
             // Intentar extraer "mensaje": "..." o "message": "..."
             val regexMensaje = Regex(""""mensaje"\s*:\s*"([^"]+)"""")
             val match = regexMensaje.find(errorBody)
@@ -88,4 +86,14 @@ class ApiAuthRepository : AuthRepository {
             null
         }
     }
+}
+
+/**
+ * Mensaje del login segun la respuesta. QA-46: tras 5 claves malas Spring responde 429 con
+ * {"error": "Demasiados intentos..."}, pero la app mostraba "Correo o contraseña incorrectos."
+ */
+internal fun mensajeDeLogin(codigo: Int, cuerpo: String?): String = when (codigo) {
+    400, 401 -> "Correo o contraseña incorrectos."
+    429 -> mensajeDeError(cuerpo) ?: "Demasiados intentos. Espera unos minutos y vuelve a intentarlo."
+    else -> mensajeDeError(cuerpo) ?: "Correo o contraseña incorrectos."
 }

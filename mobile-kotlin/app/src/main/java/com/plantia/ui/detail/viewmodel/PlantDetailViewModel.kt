@@ -108,9 +108,9 @@ class PlantDetailViewModel(
         /** Texto que la ficha muestra sobre el boton cuando la especie ya esta en el jardin. */
         fun avisoYaEnJardin(planta: PlantSummary?): String? = when {
             planta == null -> null
-            planta.enBaul -> "${planta.name} esta en tu baul: sacala primero para verla en el jardin."
-            planta.muerta -> "${planta.name} ya esta en tu jardin y esta muerta: digitalizarla otra vez no la revive."
-            else -> "${planta.name} ya esta en tu jardin. Digitalizarla otra vez no la reinicia: conserva su progreso y solo se actualiza la foto."
+            planta.enBaul -> "${planta.name} está en tu baúl: sácala primero para verla en el jardín."
+            planta.muerta -> "${planta.name} ya está en tu jardín y está muerta: digitalizarla otra vez no la revive."
+            else -> "${planta.name} ya está en tu jardín. Digitalizarla otra vez no la reinicia: conserva su progreso y solo se actualiza la foto."
         }
 
         val Factory = viewModelFactory {

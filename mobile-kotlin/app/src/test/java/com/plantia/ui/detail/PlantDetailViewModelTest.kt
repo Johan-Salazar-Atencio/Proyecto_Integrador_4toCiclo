@@ -123,7 +123,7 @@ class PlantDetailViewModelTest {
     @Test
     fun el_aviso_distingue_muerta_y_baul() {
         assertTrue(PlantDetailViewModel.avisoYaEnJardin(plantaDe("x", fase = "MUERTA"))!!.contains("no la revive"))
-        assertTrue(PlantDetailViewModel.avisoYaEnJardin(plantaDe("x", enBaul = true))!!.contains("baul"))
+        assertTrue(PlantDetailViewModel.avisoYaEnJardin(plantaDe("x", enBaul = true))!!.contains("baúl"))
     }
 
     @Test

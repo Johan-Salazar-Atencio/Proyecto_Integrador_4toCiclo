@@ -443,7 +443,7 @@ internal fun BarraAcciones(
     puedeDigitalizar: Boolean = true
 ) {
     // Ya esta en el jardin: el boton lo dice y un aviso explica que no se reinicia (QA-04)
-    val textoDigitalizar = if (avisoJardin != null) "Ver en mi jardin" else "Digitalizar"
+    val textoDigitalizar = if (avisoJardin != null) "Ver en mi jardín" else "Digitalizar"
     Surface(color = SurfaceWhite, border = BorderStroke(1.dp, DividerColor)) {
         Column {
             if (avisoJardin != null) {
