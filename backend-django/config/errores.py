@@ -17,3 +17,26 @@ def manejar_excepcion(exc, context):
     logger.exception("Error no previsto en %s", vista.__class__.__name__ if vista else "la API")
     set_rollback()
     return Response({"error": "Error interno del servidor"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SinPaginasDeDepuracion:
+    """QA-44: con DJANGO_DEBUG=true, un 404 o 500 fuera de DRF (por ejemplo /noexiste o /api/admin/noexiste/) devolvia
+    la pagina de depuracion de Django, que lista todas las rutas y muestra trazas. Este middleware la cambia por un
+    {"error"} en JSON. Solo actua sobre esas paginas HTML de depuracion (DEBUG activo); el sitio /admin/ y la API
+    siguen igual. DJANGO_PAGINAS_DEBUG=true la vuelve a mostrar (solo para depurar en la propia maquina)."""
+
+    MENSAJES = {404: "No encontrado", 500: "Error interno del servidor"}
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from django.conf import settings
+        from django.http import JsonResponse
+
+        respuesta = self.get_response(request)
+        if (settings.DEBUG and not getattr(settings, "PAGINAS_DEBUG", False)
+                and respuesta.status_code in self.MENSAJES
+                and respuesta.get("Content-Type", "").startswith("text/html")):
+            return JsonResponse({"error": self.MENSAJES[respuesta.status_code]}, status=respuesta.status_code)
+        return respuesta

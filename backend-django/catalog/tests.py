@@ -1405,17 +1405,20 @@ class CancelarEventoTests(SimpleTestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertTrue(respuesta.data["cancelado"])
         self.assertEqual(evento.estado, "FINALIZADO")
-        self.assertTrue(evento.procesado)  # Spring no aplicara danos
+        self.assertFalse(evento.procesado)  # lo procesa Spring como cancelado (sin danos)
+        self.assertEqual(evento.fecha_inicio, evento.fecha_fin)  # marca de cancelado
         self.assertLessEqual(evento.fecha_fin, timezone.now())
-        plantas.update.assert_called_once_with(esta_refugiada=False, refugiada_desde=None)
+        # QA-34: Django ya no hace el UPDATE masivo de plantas (chocaba con los candados de Spring)
+        plantas.update.assert_not_called()
 
     def test_cancelar_un_evento_en_curso_tampoco_dana(self):
         from datetime import timedelta
 
         evento = self._evento("ACTIVO", -timedelta(hours=1))
-        respuesta, _ = self._cancelar(evento)
+        respuesta, plantas = self._cancelar(evento)
         self.assertEqual(respuesta.status_code, 200)
-        self.assertTrue(evento.procesado)
+        self.assertEqual(evento.fecha_inicio, evento.fecha_fin)
+        plantas.update.assert_not_called()
 
     def test_un_evento_ya_terminado_no_se_toca(self):
         from datetime import timedelta
@@ -1515,3 +1518,104 @@ class LimiteDeIntentosDelPanelTests(SimpleTestCase):
                 codigos.append(admin_views.AdminLoginView.as_view()(request).status_code)
         self.assertEqual(codigos, [401, 401, 401, 401, 401, 429])
         cache.clear()
+
+
+class RecompensaDeMisionTests(SimpleTestCase):
+    """QA-35: la recompensa de una mision tiene el mismo tope que la de un logro (antes 2^31-1 desbordaba en Spring)."""
+
+    def test_recompensas_y_meta_fuera_de_tope_dan_400(self):
+        for datos in ({"recompensa_monedas": 2147483647}, {"recompensa_xp": 100001}, {"meta": 1000001}, {"orden": 100001}):
+            valores, error = admin_views._validar_mision(datos, parcial=True)
+            self.assertIsNotNone(error, datos)
+        valores, error = admin_views._validar_mision({"recompensa_monedas": 100000, "recompensa_xp": 0}, parcial=True)
+        self.assertIsNone(error)
+        self.assertEqual(valores["recompensa_monedas"], 100000)
+
+
+class LimiteDeIntentosPorIpTests(SimpleTestCase):
+    """QA-37: los fallos desde otra IP no bloquean al admin y los intentos simultaneos no pasan el tope."""
+
+    def _login(self, ip, clave="mala"):
+        request = APIRequestFactory().post("/api/admin/login/", {"email": "admin@x.z", "password": clave}, format="json",
+                                           REMOTE_ADDR=ip)
+        return admin_views.AdminLoginView.as_view()(request).status_code
+
+    def setUp(self):
+        from unittest.mock import MagicMock
+
+        parche = patch.object(Usuario.objects, "filter", return_value=MagicMock(first=lambda: None))
+        parche.start()
+        self.addCleanup(parche.stop)
+
+    def test_otra_ip_no_bloquea_al_admin(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.assertEqual([self._login("6.6.6.6") for _ in range(6)], [401] * 5 + [429])
+        self.assertEqual(self._login("2.2.2.2"), 401)  # desde su IP el admin sigue pudiendo intentar
+        cache.clear()
+
+    def test_en_paralelo_solo_pasan_cinco(self):
+        from concurrent.futures import ThreadPoolExecutor
+
+        from django.core.cache import cache
+
+        cache.clear()
+        with ThreadPoolExecutor(20) as ex:
+            codigos = list(ex.map(lambda _: self._login("3.3.3.3"), range(20)))
+        self.assertEqual(codigos.count(401), 5)
+        self.assertEqual(codigos.count(429), 15)
+        cache.clear()
+
+
+class CrearAdminTests(SimpleTestCase):
+    """QA-40: el admin de produccion se crea con un comando explicito; la clave nunca va fija."""
+
+    def _llamar(self, existente=None, clave="clave-larga-de-prueba", **opciones):
+        import os
+        from unittest.mock import MagicMock
+
+        from django.core.management import call_command
+
+        guardados = []
+        with patch.dict(os.environ, {"PLANTIA_ADMIN_PASSWORD": clave}), patch.object(
+                Usuario.objects, "filter", return_value=MagicMock(first=lambda: existente)), patch.object(
+                Usuario, "save", lambda self, **kw: guardados.append((self, kw))):
+            call_command("crear_admin", **opciones)
+        return guardados
+
+    def test_crea_un_admin_nuevo_con_hash_bcrypt(self):
+        import bcrypt
+
+        ((u, _),) = self._llamar(email="Jefa@Plantia.pe", nombre="Jefa")
+        self.assertEqual((u.email, u.rol, u.nombre), ("jefa@plantia.pe", "ADMIN", "Jefa"))
+        self.assertTrue(bcrypt.checkpw(b"clave-larga-de-prueba", u.password_hash.encode()))
+
+    def test_promueve_una_cuenta_existente_y_cierra_sus_sesiones(self):
+        existente = Usuario(id_usuario=3, email="ana@plantia.pe", rol="USER", password_hash="x", session_token="t")
+        ((u, kw),) = self._llamar(existente=existente, email="ana@plantia.pe")
+        self.assertEqual(u.rol, "ADMIN")
+        self.assertIsNone(u.session_token)
+        self.assertIn("password_hash", kw["update_fields"])
+
+    def test_clave_corta_o_cuenta_demo_se_rechazan(self):
+        from django.core.management.base import CommandError
+
+        with self.assertRaises(CommandError):
+            self._llamar(email="ana@plantia.pe", clave="corta")
+        with self.assertRaises(CommandError):
+            self._llamar(email="admin@plantia.test")
+
+
+class SinPaginasDeDepuracionTests(SimpleTestCase):
+    """QA-44: con DEBUG activo, un 404 fuera de DRF ya no muestra la pagina de depuracion con las rutas."""
+
+    def test_404_fuera_de_la_api_responde_json(self):
+        from django.test import override_settings
+
+        with override_settings(DEBUG=True, PAGINAS_DEBUG=False):
+            for ruta in ("/noexiste", "/api/admin/noexiste/"):
+                respuesta = self.client.get(ruta)
+                self.assertEqual(respuesta.status_code, 404)
+                self.assertEqual(respuesta.json(), {"error": "No encontrado"})
+                self.assertNotIn(b"urlpatterns", respuesta.content)

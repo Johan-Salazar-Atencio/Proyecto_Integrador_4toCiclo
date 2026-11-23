@@ -111,12 +111,18 @@ def _password_valida(password, password_hash):
         return False
 
 
-def _contar_fallo(clave):
-    if not cache.add(clave, 1, _ESPERA_INTENTOS):
-        try:
-            cache.incr(clave)
-        except ValueError:  # caduco justo entre add e incr
-            cache.add(clave, 1, _ESPERA_INTENTOS)
+_MAX_INTENTOS_POR_IP = 100
+
+
+def _sumar_intento(clave):
+    """Suma 1 de forma atomica (add + incr de la cache) y devuelve el total del periodo."""
+    if cache.add(clave, 1, _ESPERA_INTENTOS):
+        return 1
+    try:
+        return cache.incr(clave)
+    except ValueError:  # caduco justo entre add e incr
+        cache.add(clave, 1, _ESPERA_INTENTOS)
+        return 1
 
 
 class AdminLoginView(AdminAPIView):
@@ -129,18 +135,20 @@ class AdminLoginView(AdminAPIView):
         password = password if isinstance(password, str) else ""
         if not email or not password:
             return Response({"error": "Faltan credenciales"}, status=status.HTTP_400_BAD_REQUEST)
-        clave_intentos = "admin-login:" + hashlib.sha256(email.encode("utf-8")).hexdigest()
-        if cache.get(clave_intentos, 0) >= _MAX_INTENTOS:
+        # QA-37: el intento se cuenta ANTES de mirar la clave (atomico: en paralelo ya no pasan 13) y por correo + IP,
+        # asi probar claves desde otra IP no deja fuera al admin. Ademas un tope por IP para todos los correos.
+        ip = request.META.get("REMOTE_ADDR", "")
+        clave_intentos = "admin-login:" + hashlib.sha256(f"{email}|{ip}".encode("utf-8")).hexdigest()
+        if (_sumar_intento(clave_intentos) > _MAX_INTENTOS
+                or _sumar_intento("admin-login-ip:" + ip) > _MAX_INTENTOS_POR_IP):
             return Response({"error": "Demasiados intentos fallidos. Espera unos minutos y vuelve a intentarlo."},
                             status=status.HTTP_429_TOO_MANY_REQUESTS)
         u = Usuario.objects.filter(email=email).first()
         if u is None:
             _password_valida(password, _HASH_FICTICIO.decode())
-            _contar_fallo(clave_intentos)
             return Response(_CREDENCIALES_INVALIDAS, status=status.HTTP_401_UNAUTHORIZED)
         # Mismo mensaje para "no es admin" y "clave incorrecta": no se revela que el correo existe
         if not _password_valida(password, u.password_hash) or u.rol != "ADMIN":
-            _contar_fallo(clave_intentos)
             return Response(_CREDENCIALES_INVALIDAS, status=status.HTTP_401_UNAUTHORIZED)
         cache.delete(clave_intentos)
         token = secrets.token_hex(16)
@@ -318,10 +326,11 @@ def _ahora_como(referencia):
 class AdminEventoFinalizarView(AdminAPIView):
     """PATCH /api/admin/eventos/<id>/  CANCELA el evento: termina ya y SIN danos (QA-07).
 
-    Antes quedaba FINALIZADO sin procesar y Spring danaba todas las plantas no prevenidas, incluso de un evento que
-    aun no habia empezado. Ahora queda FINALIZADO y procesado (Spring no aplica resultados: nadie pierde salud ni
-    gana premio) y las plantas que se habian prevenido vuelven a estar sin proteger. Solo acepta
-    {"estado": "FINALIZADO"} o cuerpo vacio."""
+    Queda FINALIZADO con fecha_inicio = fecha_fin = ahora: es la marca de "cancelado" que Spring reconoce al procesarlo
+    (ResultadoDesastreService): no dana a nadie, no paga premios y quita la prevencion de las plantas, bloqueando
+    usuario y plantas en el mismo orden que el resto de Spring. QA-34: antes Django hacia aqui un UPDATE masivo de
+    plantas_usuario sin ese orden y, con usuarios activos, chocaba con Spring (deadlock, 500 y el evento seguia
+    ACTIVO). Aqui solo se toca la fila del evento. Solo acepta {"estado": "FINALIZADO"} o cuerpo vacio."""
 
     def patch(self, request, pk):
         admin = _admin_desde_request(request)
@@ -339,20 +348,12 @@ class AdminEventoFinalizarView(AdminAPIView):
                 return Response({"id_desastre": evento.id_desastre, "estado": evento.estado, "cancelado": False})
             ahora = _ahora_como(evento.fecha_fin)
             evento.estado = "FINALIZADO"
-            evento.procesado = True
-            if evento.fecha_fin > ahora:
-                evento.fecha_fin = ahora
-            if evento.fecha_inicio > evento.fecha_fin:
-                evento.fecha_inicio = evento.fecha_fin
+            evento.procesado = False  # Spring lo procesa como cancelado (sin danos) y quita la prevencion
+            evento.fecha_inicio = ahora
+            evento.fecha_fin = ahora
             evento.updated_at = timezone.now()
             evento.save(update_fields=["estado", "procesado", "fecha_inicio", "fecha_fin", "updated_at"])
-            prevenidas = PlantaUsuario.objects.filter(esta_refugiada=True)
-            region = evento.id_region
-            if region is not None and region.codigo != "GLOBAL":
-                prevenidas = prevenidas.filter(id_usuario__id_region=region)
-            liberadas = prevenidas.update(esta_refugiada=False, refugiada_desde=None)
-        return Response({"id_desastre": evento.id_desastre, "estado": evento.estado, "cancelado": True,
-                         "plantas_sin_proteccion": liberadas})
+        return Response({"id_desastre": evento.id_desastre, "estado": evento.estado, "cancelado": True})
 
 
 class AdminStatsView(AdminAPIView):
@@ -446,12 +447,14 @@ def _validar_mision(data, parcial):
         if not isinstance(data.get("tipo"), str) or data.get("tipo") not in Mision.TIPOS:
             return None, "Tipo de mision no valido: " + ", ".join(Mision.TIPOS)
         valores["tipo"] = data["tipo"]
-    enteros = (("meta", 1), ("recompensa_monedas", 0), ("recompensa_xp", 0), ("orden", 0))
-    for campo, minimo in enteros:
+    # QA-35: mismos topes que los logros; con 2^31-1 Spring desbordaba el saldo y tumbaba los escaneos de todos
+    enteros = (("meta", 1, LIMITES_LOGRO["meta_max"]), ("recompensa_monedas", 0, LIMITES_LOGRO["recompensa_monedas_max"]),
+               ("recompensa_xp", 0, LIMITES_LOGRO["recompensa_xp_max"]), ("orden", 0, LIMITES_LOGRO["orden_max"]))
+    for campo, minimo, maximo in enteros:
         if campo in data or (not parcial and campo == "meta"):
             valor = data.get(campo)
-            if not _es_entero(valor, minimo):
-                return None, f"{campo} debe ser un entero entre {minimo} y {ENTERO_MAX}"
+            if not _es_entero(valor, minimo, maximo):
+                return None, f"{campo} debe ser un entero entre {minimo} y {maximo}"
             valores[campo] = valor
     if "descripcion" in data:
         descripcion = data["descripcion"]

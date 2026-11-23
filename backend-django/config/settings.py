@@ -57,7 +57,11 @@ MIGRATION_MODULES = {
     "admin_panel": None,
 }
 
+# QA-44: sin paginas de depuracion (con la lista de rutas) aunque DJANGO_DEBUG este activo
+PAGINAS_DEBUG = env_bool("DJANGO_PAGINAS_DEBUG", False)
+
 MIDDLEWARE = [
+    "config.errores.SinPaginasDeDepuracion",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

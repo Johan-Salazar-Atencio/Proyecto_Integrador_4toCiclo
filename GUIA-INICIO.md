@@ -107,6 +107,41 @@ curl -X POST http://127.0.0.1:8080/api/v1/escaneos `
 Debe devolver `nombreComun`, `nombreCientifico`, `confianza` y `cuidados`
 reales.
 
+### Pruebas de concurrencia de Spring (Postgres real)
+
+`QaPostgresTest` y `LogrosPostgresTest` (carreras de escaneos, misiones,
+cuidados, cierre de eventos, logros pagados una sola vez) **solo corren si
+existe `PLANTIA_TEST_DB_URL`**; sin ella el resumen de Maven las cuenta como
+*Skipped*. La base debe llamarse con "prueba" o "test" (nunca la de desarrollo):
+
+```powershell
+createdb -U postgres plantia_prueba
+$env:PLANTIA_TEST_DB_URL = "jdbc:postgresql://localhost:5432/plantia_prueba?stringtype=unspecified"
+mvn test
+```
+
+Usuario y clave por defecto `plantia`/`plantia` (o `PLANTIA_TEST_DB_USER` y
+`PLANTIA_TEST_DB_PASSWORD`). Flyway aplica todas las migraciones desde cero.
+
+### Producción: datos de demostración y administrador
+
+- `PLANTIA_PRODUCCION=true` (Spring) deshabilita al arrancar las cuentas demo
+  que siembran V3/V4/V6/V9 (`admin@`, `johan@`, `lucia@plantia.test`) y cancela
+  el evento de demostración. No borra nada.
+- El administrador real se crea a propósito, **nunca con una clave fija**:
+
+```powershell
+cd backend-django
+python manage.py crear_admin --email admin@tu-dominio.pe --nombre "Admin Plantia"
+```
+
+  La clave se pide dos veces por teclado (o se toma de la variable
+  `PLANTIA_ADMIN_PASSWORD` en un despliegue automatizado; mínimo 12
+  caracteres). Si el correo ya existe, pasa a ADMIN, cambia su clave y cierra
+  sus sesiones. Spring avisa en el log si en producción no queda ningún admin.
+- Django en producción: `DJANGO_DEBUG=false`, `DJANGO_SECRET_KEY` propia y
+  `DJANGO_ALLOWED_HOSTS` reales. Spring: `CORS_ORIGENES` con el origen de la web.
+
 ## 5) App Android (móvil)
 
 Crea `mobile-kotlin\local.properties`:

@@ -4,6 +4,7 @@ import os
 from django import forms
 from django.conf import settings
 from django.contrib import admin
+from django.utils import timezone
 from django.utils.html import format_html
 
 from . import eventos_imagen
@@ -102,8 +103,10 @@ class EventoDesastreAdmin(admin.ModelAdmin):
 
     @admin.action(description="Cancelar (terminar sin danos)")
     def finalizar(self, request, queryset):
-        # QA-07: como el panel, cancelar = FINALIZADO y procesado, para que Spring no dane plantas
-        queryset.exclude(estado="FINALIZADO").update(estado="FINALIZADO", procesado=True)
+        # QA-07 y QA-34: como el panel, inicio = fin = ahora es la marca de cancelado; Spring lo procesa sin danos
+        # y quita la prevencion con su orden de candados
+        ahora = timezone.now()
+        queryset.exclude(estado="FINALIZADO").update(estado="FINALIZADO", procesado=False, fecha_inicio=ahora, fecha_fin=ahora)
 
 
 @admin.register(ItemTienda)
