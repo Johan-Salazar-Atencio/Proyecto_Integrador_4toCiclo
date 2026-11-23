@@ -1,5 +1,6 @@
 package com.plantia.ui.detail
 
+import com.plantia.data.mapper.toDomain
 import com.plantia.data.remote.dto.ScanResultDto
 import com.plantia.data.repository.DetalleColeccionResultado
 import com.plantia.data.repository.PlantaResultado
@@ -89,5 +90,45 @@ class PlantDetailViewModelTest {
 
         assertEquals(listOf(3), collection.agregados)
         assertTrue(termino)
+    }
+
+    // QA-04: si la especie ya esta en el jardin, la ficha lo avisa antes de digitalizar
+    private fun plantaDe(especie: String, fase: String = "BROTE", enBaul: Boolean = false) =
+        com.plantia.data.model.PlantSummary(name = "Mi Rosita", species = especie, healthPercent = 50, humidityPercent = 50,
+            lightPercent = 50, lastWatered = "", id = 4, fase = fase, enBaul = enBaul)
+
+    @Test
+    fun avisa_si_la_especie_ya_esta_en_el_jardin() {
+        garden.lista = com.plantia.data.repository.PlantasResultado.Con(listOf(plantaDe("Rosa qaensis")))
+        scan.fijarUltimo(ScanResultDto(idEscaneo = 3, idCatalogo = 9, nombreCientifico = " rosa QAENSIS"))
+        val vm = vm()
+        vm.mostrarUltimoEscaneo()
+
+        assertEquals(4, vm.enJardin?.id)
+        val aviso = PlantDetailViewModel.avisoYaEnJardin(vm.enJardin)!!
+        assertTrue(aviso.contains("no la reinicia"))
+    }
+
+    @Test
+    fun sin_la_especie_en_el_jardin_no_hay_aviso() {
+        garden.lista = com.plantia.data.repository.PlantasResultado.Con(listOf(plantaDe("Ficus qaensis")))
+        scan.fijarUltimo(ScanResultDto(idEscaneo = 3, idCatalogo = 9, nombreCientifico = "Rosa qaensis"))
+        val vm = vm()
+        vm.mostrarUltimoEscaneo()
+
+        assertNull(vm.enJardin)
+        assertNull(PlantDetailViewModel.avisoYaEnJardin(null))
+    }
+
+    @Test
+    fun el_aviso_distingue_muerta_y_baul() {
+        assertTrue(PlantDetailViewModel.avisoYaEnJardin(plantaDe("x", fase = "MUERTA"))!!.contains("no la revive"))
+        assertTrue(PlantDetailViewModel.avisoYaEnJardin(plantaDe("x", enBaul = true))!!.contains("baul"))
+    }
+
+    @Test
+    fun la_respuesta_de_digitalizar_trae_ya_en_jardin() {
+        val dto = com.plantia.data.remote.dto.PlantSummaryDto(name = "Mi Rosita", species = "Rosa qaensis", yaEnJardin = true)
+        assertTrue(dto.toDomain().yaEnJardin)
     }
 }

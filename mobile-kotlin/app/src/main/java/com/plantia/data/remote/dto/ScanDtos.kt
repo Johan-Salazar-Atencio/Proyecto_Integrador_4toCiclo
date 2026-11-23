@@ -10,6 +10,8 @@ data class ScanResultDto(
     val imagenUrl: String? = null,
     val nuevoEnColeccion: Boolean = false,
     val cuidados: List<CuidadoSeccionDto>? = null,
+    /** false si la IA no reconocio una especie (QA-14); null en servidores viejos. */
+    val identificado: Boolean? = null,
     /** XP y logros ganados con el escaneo; el servidor viejo no lo manda. */
     val progreso: ProgresoDto? = null
 )

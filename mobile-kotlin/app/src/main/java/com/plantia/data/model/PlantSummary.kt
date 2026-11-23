@@ -32,7 +32,9 @@ data class PlantSummary(
     /** Guardada en el baul: congelada, solo ocupa espacio y no se cuida. */
     val enBaul: Boolean = false,
     /** Codigo de la maceta que tiene puesta (TERRACOTA si no eligio otra). */
-    val macetaCodigo: String = "TERRACOTA"
+    val macetaCodigo: String = "TERRACOTA",
+    /** Respuesta de digitalizar una especie que ya estaba: no se reinicio (QA-04). */
+    val yaEnJardin: Boolean = false
 ) {
     /** Murio por no abonarla a tiempo: se puede revivir a cambio de hojas. */
     val muerta: Boolean get() = fase == "MUERTA"

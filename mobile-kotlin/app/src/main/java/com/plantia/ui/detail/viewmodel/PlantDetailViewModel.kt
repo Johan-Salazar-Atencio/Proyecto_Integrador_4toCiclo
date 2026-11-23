@@ -7,11 +7,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.plantia.data.model.PlantSummary
 import com.plantia.data.remote.dto.ScanResultDto
 import com.plantia.data.repository.CollectionRepository
 import com.plantia.data.repository.DetalleColeccionResultado
 import com.plantia.data.repository.GardenRepository
 import com.plantia.data.repository.PlantaResultado
+import com.plantia.data.repository.PlantasResultado
 import com.plantia.data.repository.ScanRepository
 import com.plantia.di.AppContainer
 import kotlinx.coroutines.launch
@@ -41,8 +43,23 @@ class PlantDetailViewModel(
     var aviso: String? by mutableStateOf(null)
         private set
 
+    /** Planta de la misma especie que ya esta en el jardin (o el baul); null si no hay (QA-04). */
+    var enJardin: PlantSummary? by mutableStateOf(null)
+        private set
+
     fun mostrarUltimoEscaneo() {
         uiState = scan.ultimoResultado.value?.let { DetalleUiState.Listo(it) } ?: DetalleUiState.SinResultado
+        (uiState as? DetalleUiState.Listo)?.let { revisarJardin(it.resultado) }
+    }
+
+    /** Antes de digitalizar se mira si la especie ya esta en el jardin, para avisarlo con claridad. */
+    private fun revisarJardin(resultado: ScanResultDto) {
+        enJardin = null
+        if (resultado.nombreCientifico.isNullOrBlank()) return
+        viewModelScope.launch {
+            val r = garden.listar()
+            if (r is PlantasResultado.Con) enJardin = plantaDeLaEspecie(r.plantas, resultado.nombreCientifico)
+        }
     }
 
     fun cargarDeColeccion(id: Int) {
@@ -52,6 +69,7 @@ class PlantDetailViewModel(
                 is DetalleColeccionResultado.Con -> DetalleUiState.Listo(r.planta)
                 is DetalleColeccionResultado.Fallo -> DetalleUiState.Fallo(r.mensaje)
             }
+            (uiState as? DetalleUiState.Listo)?.let { revisarJardin(it.resultado) }
         }
     }
 
@@ -80,6 +98,21 @@ class PlantDetailViewModel(
     }
 
     companion object {
+        /** La planta de la misma especie (nombre cientifico, sin distinguir mayusculas); null si no hay. */
+        fun plantaDeLaEspecie(plantas: List<PlantSummary>, cientifico: String?): PlantSummary? {
+            val especie = cientifico?.trim()?.lowercase().orEmpty()
+            if (especie.isEmpty()) return null
+            return plantas.firstOrNull { it.species.trim().lowercase() == especie }
+        }
+
+        /** Texto que la ficha muestra sobre el boton cuando la especie ya esta en el jardin. */
+        fun avisoYaEnJardin(planta: PlantSummary?): String? = when {
+            planta == null -> null
+            planta.enBaul -> "${planta.name} esta en tu baul: sacala primero para verla en el jardin."
+            planta.muerta -> "${planta.name} ya esta en tu jardin y esta muerta: digitalizarla otra vez no la revive."
+            else -> "${planta.name} ya esta en tu jardin. Digitalizarla otra vez no la reinicia: conserva su progreso y solo se actualiza la foto."
+        }
+
         val Factory = viewModelFactory {
             initializer {
                 PlantDetailViewModel(AppContainer.scan, AppContainer.collection, AppContainer.garden)

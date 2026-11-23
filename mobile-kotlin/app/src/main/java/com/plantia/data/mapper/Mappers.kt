@@ -120,7 +120,8 @@ fun PlantSummaryDto.toDomain(): PlantSummary = PlantSummary(
     golpeTipo = golpeTipo,
     costoRevivir = costoRevivir,
     enBaul = enBaul,
-    macetaCodigo = macetaCodigo.ifBlank { "TERRACOTA" }
+    macetaCodigo = macetaCodigo.ifBlank { "TERRACOTA" },
+    yaEnJardin = yaEnJardin
 )
 
 fun DailyMissionDto.toDomain(): DailyMission = DailyMission(

@@ -64,7 +64,9 @@ fun PlantDetailScreen(
             resultado = estado.resultado,
             onBack = onBack,
             onDigitalize = { viewModel.digitalizar(onDigitalize) },
-            onSave = { viewModel.guardar(onSave) }
+            onSave = { viewModel.guardar(onSave) },
+            avisoJardin = PlantDetailViewModel.avisoYaEnJardin(viewModel.enJardin),
+            puedeDigitalizar = viewModel.enJardin?.enBaul != true
         )
         DetalleUiState.Cargando, is DetalleUiState.Fallo -> Unit
     }
@@ -78,7 +80,10 @@ fun PlantDetailContent(
     onDigitalize: () -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
-    mostrarGuardar: Boolean = true
+    mostrarGuardar: Boolean = true,
+    /** Aviso de que la especie ya esta en el jardin (QA-04); null si no. */
+    avisoJardin: String? = null,
+    puedeDigitalizar: Boolean = true
 ) {
     val fallida = resultado.identificacionFallida()
 
@@ -122,7 +127,9 @@ fun PlantDetailContent(
                     puedeGuardar = true,
                     mostrarGuardar = mostrarGuardar,
                     onDigitalize = onDigitalize,
-                    onSave = onSave
+                    onSave = onSave,
+                    avisoJardin = avisoJardin,
+                    puedeDigitalizar = puedeDigitalizar
                 )
             }
         }

@@ -76,7 +76,9 @@ fun CollectionDetailScreen(
             onBack = onBack,
             onDigitalize = { viewModel.digitalizar(onDigitalize) },
             onSave = {},
-            mostrarGuardar = false
+            mostrarGuardar = false,
+            avisoJardin = PlantDetailViewModel.avisoYaEnJardin(viewModel.enJardin),
+            puedeDigitalizar = viewModel.enJardin?.enBaul != true
         )
     }
 }

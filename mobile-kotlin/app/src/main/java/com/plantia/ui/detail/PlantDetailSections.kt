@@ -438,53 +438,76 @@ internal fun BarraAcciones(
     puedeGuardar: Boolean,
     mostrarGuardar: Boolean,
     onDigitalize: () -> Unit,
-    onSave: () -> Unit
+    onSave: () -> Unit,
+    avisoJardin: String? = null,
+    puedeDigitalizar: Boolean = true
 ) {
+    // Ya esta en el jardin: el boton lo dice y un aviso explica que no se reinicia (QA-04)
+    val textoDigitalizar = if (avisoJardin != null) "Ver en mi jardin" else "Digitalizar"
     Surface(color = SurfaceWhite, border = BorderStroke(1.dp, DividerColor)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                // Respeta barra de navegacion y recortes (notch) en los lados al rotar.
-                .windowInsetsPadding(
-                    WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
-                )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Desde la coleccion la planta ya esta guardada: solo se ofrece Digitalizar, en verde.
-            if (!mostrarGuardar) {
-                Button(
+        Column {
+            if (avisoJardin != null) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    color = BackgroundLight,
+                    border = BorderStroke(1.dp, DividerColor)
+                ) {
+                    Text(
+                        avisoJardin,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        fontSize = 13.sp,
+                        color = TextPrimary
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // Respeta barra de navegacion y recortes (notch) en los lados al rotar.
+                    .windowInsetsPadding(
+                        WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Desde la coleccion la planta ya esta guardada: solo se ofrece Digitalizar, en verde.
+                if (!mostrarGuardar) {
+                    Button(
+                        onClick = onDigitalize,
+                        enabled = puedeDigitalizar,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
+                    ) {
+                        Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.size(8.dp))
+                        Text(textoDigitalizar)
+                    }
+                    return@Row
+                }
+                OutlinedButton(
                     onClick = onDigitalize,
-                    modifier = Modifier.fillMaxWidth(),
+                    enabled = puedeDigitalizar,
+                    modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = GreenDark)
                 ) {
                     Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.size(8.dp))
-                    Text("Digitalizar")
+                    Text(textoDigitalizar)
                 }
-                return@Row
-            }
-            OutlinedButton(
-                onClick = onDigitalize,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = GreenDark)
-            ) {
-                Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.size(8.dp))
-                Text("Digitalizar")
-            }
-            Button(
-                onClick = onSave,
-                enabled = puedeGuardar,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
-            ) {
-                Icon(Icons.Filled.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.size(8.dp))
-                Text("Guardar")
+                Button(
+                    onClick = onSave,
+                    enabled = puedeGuardar,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary, contentColor = SobrePrimario)
+                ) {
+                    Icon(Icons.Filled.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.size(8.dp))
+                    Text("Guardar")
+                }
             }
         }
     }

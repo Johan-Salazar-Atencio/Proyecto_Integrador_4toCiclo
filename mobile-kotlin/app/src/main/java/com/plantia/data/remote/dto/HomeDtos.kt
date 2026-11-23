@@ -77,7 +77,9 @@ data class PlantSummaryDto(
     val enBaul: Boolean = false,
     val macetaCodigo: String = "TERRACOTA",
     /** XP y logros ganados con la accion (digitalizar, cuidar); solo llega en esas respuestas. */
-    val progreso: ProgresoDto? = null
+    val progreso: ProgresoDto? = null,
+    /** true al digitalizar una especie que ya estaba en el jardin: el servidor no la reinicio (QA-04). */
+    val yaEnJardin: Boolean = false
 )
 
 data class AparienciaDto(

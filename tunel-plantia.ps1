@@ -1,8 +1,18 @@
 # Mantenedor del tunel USB Plantia
 # Re-establece "adb reverse tcp:8080" cada vez que el celular reaparece.
 # No requiere administrador. Ejecutar con: powershell -ExecutionPolicy Bypass -File tunel-plantia.ps1
-$adb = "C:\Users\ACER\AppData\Local\Android\Sdk\platform-tools\adb.exe"
-$serial = "AK7BCP4228409141"
+# Opcional: -Adb <ruta de adb.exe> y -Serial <serial del telefono> (o las variables PLANTIA_ADB y PLANTIA_SERIAL).
+# Sin serial se usa el telefono conectado. Antes iban fijos la ruta de un usuario y el serial de un telefono (QA-32).
+param(
+    [string]$Adb = $env:PLANTIA_ADB,
+    [string]$Serial = $env:PLANTIA_SERIAL
+)
+if (-not $Adb) {
+    $sdk = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { Join-Path $env:LOCALAPPDATA "Android\Sdk" }
+    $Adb = Join-Path $sdk "platform-tools\adb.exe"
+}
+$adb = $Adb
+$serial = if ($Serial) { [regex]::Escape($Serial) } else { "\S+" }
 
 Write-Host "Tunel Plantia activo. Ctrl+C para detener."
 while ($true) {
