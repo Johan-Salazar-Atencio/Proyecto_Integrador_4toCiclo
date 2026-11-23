@@ -40,8 +40,22 @@ public record PlantSummaryDto(
         /** Codigo de la maceta que tiene puesta (TERRACOTA si no eligio otra); la app la dibuja con ese codigo. */
         String macetaCodigo,
         /** XP y nivel ganados con la accion (digitalizar, cuidar); no se envia en las consultas. */
-        @JsonInclude(JsonInclude.Include.NON_NULL) ProgresoDto progreso
+        @JsonInclude(JsonInclude.Include.NON_NULL) ProgresoDto progreso,
+        /** true solo al digitalizar una especie que ya estaba en el jardin: no se reinicio (QA-04); la app lo avisa. */
+        @JsonInclude(JsonInclude.Include.NON_NULL) Boolean yaEnJardin
 ) {
+    /** Sin aviso de "ya en el jardin" (todas las respuestas menos re-digitalizar). */
+    public PlantSummaryDto(String name, String species, int healthPercent, int humidityPercent,
+                           int lightPercent, String lastWatered, String imageUrl, Integer id,
+                           int crecimiento, Map<String, Object> apariencia, String fotoUrl,
+                           boolean activa, boolean refugiada, int diasCuidados, int diasTotales, String fase,
+                           boolean enRecuperacion, Long recuperacionSegundos, String golpeTipo, Integer costoRevivir,
+                           boolean enBaul, String macetaCodigo, ProgresoDto progreso) {
+        this(name, species, healthPercent, humidityPercent, lightPercent, lastWatered, imageUrl, id, crecimiento,
+                apariencia, fotoUrl, activa, refugiada, diasCuidados, diasTotales, fase, enRecuperacion,
+                recuperacionSegundos, golpeTipo, costoRevivir, enBaul, macetaCodigo, progreso, null);
+    }
+
     /** Sin progreso: consultas del jardin. */
     public PlantSummaryDto(String name, String species, int healthPercent, int humidityPercent,
                            int lightPercent, String lastWatered, String imageUrl, Integer id,
@@ -63,6 +77,12 @@ public record PlantSummaryDto(
     public PlantSummaryDto conProgreso(ProgresoDto progreso) {
         return new PlantSummaryDto(name, species, healthPercent, humidityPercent, lightPercent, lastWatered,
                 imageUrl, id, crecimiento, apariencia, fotoUrl, activa, refugiada, diasCuidados, diasTotales, fase,
-                enRecuperacion, recuperacionSegundos, golpeTipo, costoRevivir, enBaul, macetaCodigo, progreso);
+                enRecuperacion, recuperacionSegundos, golpeTipo, costoRevivir, enBaul, macetaCodigo, progreso, yaEnJardin);
+    }
+
+    public PlantSummaryDto conYaEnJardin() {
+        return new PlantSummaryDto(name, species, healthPercent, humidityPercent, lightPercent, lastWatered,
+                imageUrl, id, crecimiento, apariencia, fotoUrl, activa, refugiada, diasCuidados, diasTotales, fase,
+                enRecuperacion, recuperacionSegundos, golpeTipo, costoRevivir, enBaul, macetaCodigo, progreso, true);
     }
 }

@@ -37,6 +37,13 @@ public class EscaneoHistorial {
     @Column(name = "fecha_escaneo")
     private LocalDateTime fechaEscaneo;
 
+    /** JSON con la apariencia que dio la IA (ya filtrada); de aqui sale la de la planta al digitalizar (V31). */
+    @Column(name = "apariencia")
+    private String apariencia;
+
+    public String getApariencia() { return apariencia; }
+    public void setApariencia(String apariencia) { this.apariencia = apariencia; }
+
     public Integer getIdEscaneo() { return idEscaneo; }
     public void setIdEscaneo(Integer idEscaneo) { this.idEscaneo = idEscaneo; }
     public Integer getIdUsuario() { return idUsuario; }

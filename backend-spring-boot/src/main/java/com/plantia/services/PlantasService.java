@@ -75,6 +75,7 @@ public class PlantasService {
      */
     @Transactional
     public Optional<PlantSummaryDto> activa(Integer userId) {
+        plantaRepo.bloquearDeUsuario(userId); // QA-03: envejecer y guardar sin pisar un cuidado simultaneo
         // Las plantas del baul no se muestran en el jardin
         List<PlantaUsuario> plantas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId).stream()
                 .filter(p -> !enBaul(p))
@@ -88,17 +89,21 @@ public class PlantasService {
     }
 
     /**
-     * Digitaliza una planta en el jardin del usuario y la deja como activa. Sale de un
-     * escaneo propio (idEscaneo) o de una especie de su coleccion (idCatalogo). Si ya
-     * tenia esa especie, se reinicia en vez de duplicarla.
+     * Digitaliza una planta en el jardin del usuario y la deja como activa. Sale de un escaneo propio (idEscaneo) o de
+     * una especie que el usuario ya escaneo (idCatalogo, su coleccion); la especie debe estar publicada (QA-05).
+     * La apariencia (y con ella los dias de crecimiento) sale del escaneo guardado en el servidor, nunca del cliente
+     * (QA-12). Si ya tenia esa especie en el jardin NO se reinicia ni se revive (QA-04): conserva apodo, dias,
+     * crecimiento, estado y abono; solo se actualiza la foto si viene de un escaneo, y la respuesta trae
+     * yaEnJardin=true para que la app lo avise.
      */
     @Transactional
-    public PlantSummaryDto digitalizar(Integer userId, Integer idEscaneo, Integer idCatalogo,
-                                       Map<String, Object> apariencia) {
+    public PlantSummaryDto digitalizar(Integer userId, Integer idEscaneo, Integer idCatalogo) {
         // Primero el usuario: guardar la planta toma un candado compartido sobre su fila (FK) y el FOR UPDATE
         // del premio, si llegara despues, haria que dos digitalizaciones simultaneas se bloquearan entre si
         usuarioRepo.bloquear(userId);
+        plantaRepo.bloquearDeUsuario(userId);
         String foto = null;
+        String apariencia;
         if (idEscaneo != null) {
             EscaneoHistorial escaneo = escaneoRepo.findById(idEscaneo)
                     .filter(e -> userId.equals(e.getIdUsuario()))
@@ -108,33 +113,47 @@ public class PlantasService {
             }
             idCatalogo = escaneo.getIdCatalogo();
             foto = escaneo.getImagenFotoUrl();
-        }
-        if (idCatalogo == null) {
+            apariencia = escaneo.getApariencia();
+        } else if (idCatalogo != null) {
+            // Solo una especie que el usuario escaneo: antes bastaba un id del catalogo global y se cobraba por cada una
+            apariencia = escaneoRepo.findFirstByIdUsuarioAndIdCatalogoOrderByFechaEscaneoDesc(userId, idCatalogo)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Esa especie no esta en tu coleccion"))
+                    .getApariencia();
+        } else {
             throw new IllegalArgumentException("Falta idEscaneo o idCatalogo");
         }
         PlantaCatalogo catalogo = catalogoRepo.findById(idCatalogo)
+                .filter(c -> !Boolean.FALSE.equals(c.getPublicada()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Especie no encontrada"));
 
         List<PlantaUsuario> suyas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId);
         final Integer especie = catalogo.getIdCatalogo();
-        PlantaUsuario planta = suyas.stream()
+        PlantaUsuario existente = suyas.stream()
                 .filter(p -> especie.equals(p.getIdCatalogo()))
                 .findFirst()
-                .orElseGet(PlantaUsuario::new);
-        // Reiniciar una especie que ya tenia no da XP: si no, se podria repetir para ganar
-        boolean nueva = planta.getIdPlantaUsuario() == null;
-        if (!nueva && enBaul(planta)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Esa planta esta en el baul: sacala primero");
+                .orElse(null);
+        if (existente != null) {
+            if (enBaul(existente)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Esa planta esta en el baul: sacala primero");
+            }
+            // Ya estaba en el jardin: no se reinicia, no se revive, no paga otra vez. Solo la foto nueva y queda elegida.
+            if (foto != null) {
+                existente.setFotoUrl(foto);
+            }
+            suyas.forEach(p -> p.setEsActiva(p == existente));
+            plantaRepo.saveAll(suyas);
+            return map(existente, catalogo).conYaEnJardin();
         }
         // Un jardin lleno no recibe plantas nuevas: hay que mandar una al baul
         int tope = parametros.maxPlantasActivas();
-        if (nueva && activasDe(suyas) >= tope) {
+        if (activasDe(suyas) >= tope) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Tu jardin esta lleno (" + tope + " plantas). Manda una al baul para sumar otra.");
         }
         suyas.forEach(p -> p.setEsActiva(false));
 
         LocalDateTime ahora = LocalDateTime.now();
+        PlantaUsuario planta = new PlantaUsuario();
         planta.setIdUsuario(userId);
         planta.setIdCatalogo(especie);
         planta.setApodo(catalogo.getNombreComun());
@@ -143,34 +162,27 @@ public class PlantasService {
         planta.setSolPorcentaje(70);
         planta.setCrecimiento(0);
         planta.setDiasCuidados(0);
-        planta.setUltimoDiaCuidado(null);
-        planta.setUltimoDiaAbonoTienda(null);
         planta.setEtapaCrecimiento("SEMILLA");
         planta.setModoTiempo("REAL");
         planta.setEstaRefugiada(false);
-        planta.setRecuperacionHasta(null);
-        planta.setGolpeTipo(null);
         planta.setUltimoRiego(ahora);
         planta.setUltimoSol(ahora);
         planta.setUltimoAbono(ahora);
         planta.setFechaPlantado(ahora);
         planta.setUpdatedAt(ahora);
-        planta.setApariencia(aJson(apariencia));
-        if (foto != null) {
-            planta.setFotoUrl(foto);
-        }
+        planta.setApariencia(com.plantia.util.AparienciaUtil.aJson(deJson(apariencia)));
+        planta.setFotoUrl(foto);
         planta.setEsActiva(true);
 
         plantaRepo.saveAll(suyas);
         PlantaUsuario guardada = plantaRepo.save(planta);
-        PlantSummaryDto dto = map(guardada, catalogo);
-        return nueva
-                ? dto.conProgreso(progresoService.otorgar(userId, List.of("DIGITALIZAR"), List.of("DIGITALIZAR", "COLECCION"), guardada.getIdPlantaUsuario()))
-                : dto;
+        return map(guardada, catalogo)
+                .conProgreso(progresoService.otorgar(userId, List.of("DIGITALIZAR"), List.of("DIGITALIZAR", "COLECCION"), guardada.getIdPlantaUsuario()));
     }
 
     @Transactional
     public List<PlantSummaryDto> listar(Integer userId) {
+        plantaRepo.bloquearDeUsuario(userId); // QA-03: envejecer y guardar sin pisar un cuidado simultaneo
         List<PlantaUsuario> plantas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId);
         Map<Integer, PlantaCatalogo> catalogos = CatalogosPorId.de(catalogoRepo, plantas, PlantaUsuario::getIdCatalogo);
         LocalDateTime ahora = LocalDateTime.now();
@@ -184,6 +196,7 @@ public class PlantasService {
     /** Elige la planta que se muestra en "Mi jardin". */
     @Transactional
     public PlantSummaryDto seleccionar(Integer userId, Integer idPlantaUsuario) {
+        plantaRepo.bloquearDeUsuario(userId); // QA-03: no guarda valores viejos de las otras plantas
         PlantaUsuario elegida = propia(userId, idPlantaUsuario);
         exigirFueraDelBaul(elegida);
         List<PlantaUsuario> suyas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId);
@@ -199,6 +212,10 @@ public class PlantasService {
      */
     @Transactional
     public PlantSummaryDto cuidar(Integer userId, Integer idPlantaUsuario, String accion) {
+        // QA-03: usuario y luego la planta (mismo orden que digitalizar y los premios); asi un GET o "seleccionar"
+        // simultaneos no guardan agua o salud viejas encima de este cuidado
+        usuarioRepo.bloquear(userId);
+        plantaRepo.bloquear(idPlantaUsuario);
         LocalDateTime ahora = LocalDateTime.now();
         PlantaUsuario p = envejecer(propia(userId, idPlantaUsuario), ahora);
         exigirFueraDelBaul(p);
@@ -265,6 +282,8 @@ public class PlantasService {
      */
     @Transactional
     public PlantSummaryDto prevenir(Integer userId, Integer idPlantaUsuario) {
+        usuarioRepo.bloquear(userId); // la mision REFUGIO bloquea al usuario: primero el, luego la planta
+        plantaRepo.bloquear(idPlantaUsuario);
         PlantaUsuario p = propia(userId, idPlantaUsuario);
         exigirFueraDelBaul(p);
         if ("MUERTA".equals(p.getEtapaCrecimiento())) {
@@ -303,20 +322,13 @@ public class PlantasService {
         };
     }
 
-    /** Activa una planta digital (avanza su etapa: SEMILLA -> BROTE -> ADULTA). */
+    /**
+     * Nombre anterior de {@link #seleccionar}: ya no cambia la fase (QA-06). Antes subia SEMILLA -> BROTE -> ADULTA gratis
+     * y "revivia" plantas muertas; ningun cliente lo usa. Se conserva la ruta para no romper apps viejas.
+     */
     @Transactional
     public PlantSummaryDto activar(Integer userId, Integer idPlantaUsuario) {
-        PlantaUsuario p = propia(userId, idPlantaUsuario);
-        String etapa = p.getEtapaCrecimiento() == null ? "SEMILLA" : p.getEtapaCrecimiento();
-        String siguiente = switch (etapa) {
-            case "SEMILLA" -> "BROTE";
-            case "BROTE" -> "ADULTA";
-            default -> "ADULTA";
-        };
-        p.setEtapaCrecimiento(siguiente);
-        p.setUpdatedAt(LocalDateTime.now());
-        plantaRepo.save(p);
-        return map(p);
+        return seleccionar(userId, idPlantaUsuario);
     }
 
     /**
@@ -357,6 +369,7 @@ public class PlantasService {
     /** El usuario ya vio la animacion del evento que golpeo a la planta: no se vuelve a mostrar. */
     @Transactional
     public PlantSummaryDto golpeVisto(Integer userId, Integer idPlantaUsuario) {
+        plantaRepo.bloquear(idPlantaUsuario);
         PlantaUsuario p = propia(userId, idPlantaUsuario);
         if (p.getGolpeTipo() != null) {
             p.setGolpeTipo(null);
@@ -387,6 +400,7 @@ public class PlantasService {
      */
     @Transactional
     public PlantSummaryDto guardarEnBaul(Integer userId, Integer idPlantaUsuario) {
+        plantaRepo.bloquear(idPlantaUsuario);
         PlantaUsuario p = envejecer(propia(userId, idPlantaUsuario), LocalDateTime.now());
         if (!enBaul(p)) {
             if (p.getRecuperacionHasta() != null) {
@@ -404,6 +418,7 @@ public class PlantasService {
     /** Saca la planta del baul y la devuelve al jardin; 409 si el jardin ya esta lleno. El tiempo guardado no cuenta como desgaste. */
     @Transactional
     public PlantSummaryDto sacarDelBaul(Integer userId, Integer idPlantaUsuario) {
+        plantaRepo.bloquearDeUsuario(userId); // tambien cuenta las del jardin: dos "sacar" a la vez no pasan el tope
         PlantaUsuario p = propia(userId, idPlantaUsuario);
         if (enBaul(p)) {
             int tope = parametros.maxPlantasActivas();
@@ -421,8 +436,10 @@ public class PlantasService {
     /** Cambia el apodo de la planta (maximo 50 caracteres); vacio vuelve al nombre comun de la especie. */
     @Transactional
     public PlantSummaryDto renombrar(Integer userId, Integer idPlantaUsuario, String apodo) {
+        plantaRepo.bloquear(idPlantaUsuario);
         PlantaUsuario p = propia(userId, idPlantaUsuario);
-        String limpio = apodo == null ? "" : apodo.trim();
+        // Sin etiquetas HTML, como el nombre del registro (QA-26)
+        String limpio = apodo == null ? "" : apodo.replaceAll("<[^>]*>", "").trim();
         if (limpio.length() > 50) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El apodo no puede pasar de 50 caracteres");
         }
@@ -451,6 +468,7 @@ public class PlantasService {
     @Transactional
     public PlantSummaryDto revivir(Integer userId, Integer idPlantaUsuario) {
         usuarioRepo.bloquear(userId); // antes de leer el saldo: evita revivir dos veces pagando una
+        plantaRepo.bloquear(idPlantaUsuario);
         PlantaUsuario p = propia(userId, idPlantaUsuario);
         exigirFueraDelBaul(p);
         if (!"MUERTA".equals(p.getEtapaCrecimiento())) {
@@ -527,17 +545,6 @@ public class PlantasService {
         return n != null ? n : 0;
     }
 
-    private String aJson(Map<String, Object> apariencia) {
-        if (apariencia == null || apariencia.isEmpty()) {
-            return null;
-        }
-        try {
-            return json.writeValueAsString(apariencia);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
-    }
-
     /** Resumen de una planta propia (404 si no es del usuario). */
     @Transactional
     public PlantSummaryDto resumen(Integer userId, Integer idPlantaUsuario) {
@@ -586,7 +593,7 @@ public class PlantasService {
                 etapaUrl(cat, p.getEtapaCrecimiento()),
                 p.getIdPlantaUsuario(),
                 valor(p.getCrecimiento()),
-                deJson(p.getApariencia()),
+                com.plantia.util.AparienciaUtil.limpiar(deJson(p.getApariencia())),
                 p.getFotoUrl(),
                 Boolean.TRUE.equals(p.getEsActiva()),
                 Boolean.TRUE.equals(p.getEstaRefugiada()),

@@ -34,16 +34,29 @@ public class AbonoService {
         this.plantas = plantas;
     }
 
+    /** Logros (ABONOS_TOTAL) al momento, como tras un cuidado; antes se celebraban recien en la siguiente accion (QA-16). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.beans.factory.ObjectProvider<LogroService> logros;
+
     @Transactional
     public void abonar(Integer userId, Integer idPlantaUsuario, Integer idItem) {
         abonar(userId, idPlantaUsuario, idItem, LocalDate.now());
+        LogroService servicio = logros != null ? logros.getIfAvailable() : null;
+        if (servicio != null) {
+            servicio.evaluarSeguro(userId, java.time.LocalDateTime.now()); // tras el commit y sin tumbar el abono
+        }
     }
 
     void abonar(Integer userId, Integer idPlantaUsuario, Integer idItem, LocalDate hoy) {
         usuarioRepo.bloquear(userId); // antes de leer saldo y "abono de hoy": evita pagar o abonar dos veces
+        plantaRepo.bloquear(idPlantaUsuario); // QA-03: un GET simultaneo no pisa los dias que suma el abono
         PlantaUsuario p = plantaRepo.findById(idPlantaUsuario)
                 .filter(x -> userId.equals(x.getIdUsuario()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Planta no encontrada"));
+        if (PlantasService.enBaul(p)) {
+            // QA-16: la planta del baul esta congelada; antes se cobraba el abono igual
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La planta esta en el baul: sacala primero");
+        }
         int total = CrecimientoPlanta.diasTotales(plantas.apariencia(p));
         if ("MUERTA".equals(p.getEtapaCrecimiento())
                 || (p.getSaludPorcentaje() != null && p.getSaludPorcentaje() < PlantasService.SALUD_MARCHITA)) {

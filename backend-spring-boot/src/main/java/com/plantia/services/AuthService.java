@@ -82,10 +82,12 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
         }
 
+        intentos.exigirPermitido(emailNormalizado);
         Usuario usuario = usuarioRepo.findByEmail(emailNormalizado)
                 .orElse(null);
 
         if (usuario == null) {
+            intentos.fallo(emailNormalizado);
             // Comparamos contra un hash valido para no revelar (por tiempo) si
             // el email existe. Siempre lanzamos el mismo error.
             passwordEncoder.matches(password, DUMMY_HASH);
@@ -93,14 +95,19 @@ public class AuthService {
         }
 
         if (!passwordEncoder.matches(password, usuario.getPasswordHash())) {
+            intentos.fallo(emailNormalizado);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
         }
+        intentos.exito(emailNormalizado);
 
         String token = abrirSesion(usuario);
         usuarioRepo.save(usuario);
 
         return new AuthUsuarioResponse(usuario.getIdUsuario(), usuario.getNombre(), usuario.getEmail(), usuario.getRol(), token);
     }
+
+    /** QA-27: tras 5 claves equivocadas seguidas para un correo, 15 minutos sin poder intentarlo (429). */
+    private final com.plantia.util.IntentosLogin intentos = new com.plantia.util.IntentosLogin(5, java.time.Duration.ofMinutes(15));
 
     /** Genera un token nuevo, guarda solo su hash con fecha de caducidad y devuelve el token. */
     private String abrirSesion(Usuario usuario) {

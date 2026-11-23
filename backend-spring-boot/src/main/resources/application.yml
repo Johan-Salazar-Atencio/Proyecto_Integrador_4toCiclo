@@ -37,7 +37,18 @@ app:
   ia:
     base-url: ${IA_BASE_URL:http://localhost:8000}
     provider: ${IA_PROVIDER:auto}
-    timeout-seconds: ${IA_TIMEOUT:60}
+    # Mas que el presupuesto de Django (WebUI 15 s + Gemini 45 s = 60 s, QA-31): si no, Spring cortaba justo cuando
+    # Django respondia y el escaneo quedaba como "Planta desconocida"
+    timeout-seconds: ${IA_TIMEOUT:75}
+  escaneo:
+    # QA-08: escaneos por usuario y minuto (el tope de Django es de toda la app)
+    max-por-minuto: ${ESCANEOS_POR_MINUTO:10}
+  # QA-09: en produccion (PLANTIA_PRODUCCION=true) se deshabilitan al arrancar las cuentas y el evento de demostracion
+  # que siembran las migraciones V3, V4, V6 y V9
+  produccion: ${PLANTIA_PRODUCCION:false}
+  cors:
+    # QA-29: origenes permitidos en /api/** (separados por coma). "*" en desarrollo; en produccion, el de la web
+    origenes: ${CORS_ORIGENES:*}
 
 logging:
   level:

@@ -101,7 +101,7 @@ class PlantasServiceTest {
 
     @Test
     void crearDesdeEscaneoAjenoDa404() {
-        assertThatThrownBy(() -> service.digitalizar(OTRO, 20, null, null))
+        assertThatThrownBy(() -> service.digitalizar(OTRO, 20, null))
                 .isInstanceOf(ResponseStatusException.class);
         verify(plantaRepo, never()).save(any());
     }
@@ -569,7 +569,7 @@ class PlantasServiceTest {
     void conElJardinLlenoNoSeDigitalizaUnaPlantaNueva() {
         when(plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(DUENO)).thenReturn(plantasActivas(12));
 
-        assertThatThrownBy(() -> service.digitalizar(DUENO, 20, null, null))
+        assertThatThrownBy(() -> service.digitalizar(DUENO, 20, null))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
         verify(plantaRepo, never()).save(any());
@@ -639,7 +639,8 @@ class PlantasServiceTest {
 
     @Test
     void digitalizarBloqueaAlUsuarioAntesDeGuardarLaPlanta() {
-        service.digitalizar(DUENO, null, 5, null);
+        when(escaneoRepo.findFirstByIdUsuarioAndIdCatalogoOrderByFechaEscaneoDesc(DUENO, 5)).thenReturn(Optional.of(new EscaneoHistorial()));
+        service.digitalizar(DUENO, null, 5);
 
         org.mockito.InOrder orden = org.mockito.Mockito.inOrder(usuarioRepo, plantaRepo);
         orden.verify(usuarioRepo).bloquear(DUENO);

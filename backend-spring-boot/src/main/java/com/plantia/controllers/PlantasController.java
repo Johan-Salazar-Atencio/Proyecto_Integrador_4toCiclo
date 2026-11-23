@@ -40,7 +40,8 @@ public class PlantasController {
 
     /**
      * Digitaliza una planta en "Mi jardin" y la deja como activa.
-     * Body: { "idEscaneo": n } o { "idCatalogo": n }, y opcional "apariencia": {...} (de la IA).
+     * Body: { "idEscaneo": n } o { "idCatalogo": n } (de una especie que el usuario ya escaneo). Si la especie ya estaba
+     * en su jardin no se reinicia: responde la planta tal cual con "yaEnJardin": true.
      */
     @PostMapping
     public ResponseEntity<PlantSummaryDto> crear(
@@ -49,11 +50,11 @@ public class PlantasController {
         Integer idEscaneo = entero(body.get("idEscaneo"));
         Integer idCatalogo = entero(body.get("idCatalogo"));
         if (idEscaneo == null && idCatalogo == null) {
-            return ResponseEntity.badRequest().build();
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Falta idEscaneo o idCatalogo");
         }
-        @SuppressWarnings("unchecked")
-        Map<String, Object> apariencia = body.get("apariencia") instanceof Map<?, ?> m ? (Map<String, Object>) m : null;
-        return ResponseEntity.ok(plantasService.digitalizar(userId, idEscaneo, idCatalogo, apariencia));
+        // "apariencia" del cuerpo se ignora (QA-12): la decide el escaneo guardado en el servidor
+        return ResponseEntity.ok(plantasService.digitalizar(userId, idEscaneo, idCatalogo));
     }
 
     /** Elige la planta que se muestra en "Mi jardin". */
@@ -64,8 +65,23 @@ public class PlantasController {
         return plantasService.seleccionar(userId, idPlantaUsuario);
     }
 
+    /**
+     * Un id del cuerpo: null si no viene; 400 si no es un entero de verdad (QA-30: antes 1.9 se tomaba como 1 y 2^40 se
+     * truncaba a otro id; un texto como "1" daba 400 sin cuerpo).
+     */
     private static Integer entero(Object valor) {
-        return valor instanceof Number n ? n.intValue() : null;
+        if (valor == null) {
+            return null;
+        }
+        if (valor instanceof Integer i) {
+            return i;
+        }
+        if ((valor instanceof Long || valor instanceof java.math.BigInteger) && ((Number) valor).longValue() == ((Number) valor).doubleValue()
+                && ((Number) valor).longValue() >= Integer.MIN_VALUE && ((Number) valor).longValue() <= Integer.MAX_VALUE) {
+            return ((Number) valor).intValue();
+        }
+        throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST, "Los ids deben ser numeros enteros");
     }
 
     /** Lista todas las plantas digitales del usuario. */
@@ -84,7 +100,8 @@ public class PlantasController {
             @RequestBody Map<String, String> body) {
         String accion = body.get("accion");
         if (accion == null) {
-            return ResponseEntity.badRequest().build();
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Falta la accion: REGAR, SOL o ABONAR");
         }
         PlantSummaryDto actualizado = plantasService.cuidar(userId, idPlantaUsuario, accion);
         return ResponseEntity.ok(actualizado);
@@ -196,7 +213,7 @@ public class PlantasController {
         return ResponseEntity.ok(plantasService.golpeVisto(userId, idPlantaUsuario));
     }
 
-    /** Activa una planta digital (cambia su etapa). */
+    /** Nombre anterior de /seleccionar: ya no cambia la fase de la planta (QA-06). */
     @PostMapping("/{id}/activar")
     public ResponseEntity<PlantSummaryDto> activar(
             @RequestHeader("X-User-Id") Integer userId,

@@ -11,4 +11,6 @@ public interface CuidadoSeccionRepository extends JpaRepository<CuidadoSeccion, 
     List<CuidadoSeccion> findByIdCatalogoOrderByOrdenAsc(Integer idCatalogo);
 
     void deleteByIdCatalogo(Integer idCatalogo);
+
+    long countByIdCatalogo(Integer idCatalogo);
 }

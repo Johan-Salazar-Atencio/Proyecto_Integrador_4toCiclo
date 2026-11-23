@@ -58,6 +58,21 @@ public class ManejadorErrores {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "La operacion choca con datos existentes; vuelve a intentarlo"));
     }
 
+    /**
+     * QA-24: un @Valid que falla (correo invalido, nombre corto...) caia en {@link #inesperado} con el texto de Spring en
+     * ingles ("Invalid request content."). Ahora llega el mensaje del campo, en espanol.
+     */
+    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    ResponseEntity<Map<String, String>> datosNoValidos(org.springframework.web.bind.MethodArgumentNotValidException e) {
+        String mensaje = e.getBindingResult().getFieldErrors().stream()
+                .map(f -> f.getDefaultMessage() != null && !f.getDefaultMessage().isBlank()
+                        && !f.getDefaultMessage().matches("(?i).*(must|size must|invalid).*")
+                        ? f.getDefaultMessage() : "Dato no valido: " + f.getField())
+                .findFirst()
+                .orElse("Datos no validos");
+        return ResponseEntity.badRequest().body(Map.of("error", mensaje));
+    }
+
     /** Cuerpo ilegible (JSON mal formado) o parametro con tipo equivocado ("abc" donde va un id). */
     @ExceptionHandler({HttpMessageNotReadableException.class, TypeMismatchException.class})
     ResponseEntity<Map<String, String>> peticionMalFormada(Exception e) {

@@ -105,6 +105,21 @@ class ResultadoDesastreServiceTest {
     }
 
     @Test
+    void qa07UnEventoCanceladoAntesDeEmpezarNoDanaANadie() {
+        PlantaUsuario p = planta(7, 80, false);
+        when(plantaRepo.findAll()).thenReturn(List.of(p));
+        EventoDesastre futuro = evento("CRITICO", AHORA.plusDays(32));
+        futuro.setFechaInicio(AHORA.plusDays(30));
+
+        service.procesar(futuro, AHORA);
+
+        verify(registroRepo, org.mockito.Mockito.never()).save(org.mockito.ArgumentMatchers.any());
+        assertThat(p.getSaludPorcentaje()).isEqualTo(80);
+        assertThat(p.getRecuperacionHasta()).isNull();
+        assertThat(futuro.getProcesado()).isTrue();
+    }
+
+    @Test
     void plantaRefugiadaQuedaSalvadaSinDanoYSeLimpiaElRefugio() {
         PlantaUsuario p = planta(7, 80, true);
         p.setRefugiadaDesde(AHORA.minusHours(1));

@@ -33,7 +33,7 @@ public class IaClient {
     public IaClient(RestClient.Builder builder,
                     @Value("${app.ia.base-url:http://localhost:8000}") String baseUrl,
                     @Value("${app.ia.provider:auto}") String provider,
-                    @Value("${app.ia.timeout-seconds:60}") int timeoutSeconds) {
+                    @Value("${app.ia.timeout-seconds:75}") int timeoutSeconds) {
         ClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory() {
             @Override
             protected void prepareConnection(java.net.HttpURLConnection conn, String httpMethod) throws java.io.IOException {
@@ -107,15 +107,22 @@ public class IaClient {
             out.write(imagen);
             out.write(crlf.getBytes(StandardCharsets.UTF_8));
 
-            out.write((prefijo
-                    + "Content-Disposition: form-data; name=\"provider\"" + crlf + crlf
-                    + provider + crlf).getBytes(StandardCharsets.UTF_8));
+            // QA-15: "auto" (o vacio) no se manda: asi Django usa su IA_PROVIDER. Antes provider=auto lo anulaba.
+            if (debeEnviarProvider(provider)) {
+                out.write((prefijo
+                        + "Content-Disposition: form-data; name=\"provider\"" + crlf + crlf
+                        + provider + crlf).getBytes(StandardCharsets.UTF_8));
+            }
 
             out.write(("--" + boundary + "--" + crlf).getBytes(StandardCharsets.UTF_8));
             return out.toByteArray();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    static boolean debeEnviarProvider(String provider) {
+        return provider != null && !provider.isBlank() && !"auto".equalsIgnoreCase(provider.trim());
     }
 
     /** Resultado por defecto cuando el motor IA no responde. */

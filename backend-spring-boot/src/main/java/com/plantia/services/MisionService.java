@@ -13,6 +13,7 @@ import com.plantia.models.Mision;
 import com.plantia.models.MisionUsuario;
 import com.plantia.repositories.MisionRepository;
 import com.plantia.repositories.MisionUsuarioRepository;
+import com.plantia.repositories.UsuarioRepository;
 
 /**
  * Misiones del día. El admin decide cuáles están activas (tabla misiones); cada usuario recibe
@@ -27,17 +28,33 @@ public class MisionService {
 
     private final MisionRepository misionRepo;
     private final MisionUsuarioRepository misionUsuarioRepo;
+    private final UsuarioRepository usuarioRepo;
 
-    public MisionService(MisionRepository misionRepo, MisionUsuarioRepository misionUsuarioRepo) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public MisionService(MisionRepository misionRepo, MisionUsuarioRepository misionUsuarioRepo, UsuarioRepository usuarioRepo) {
         this.misionRepo = misionRepo;
         this.misionUsuarioRepo = misionUsuarioRepo;
+        this.usuarioRepo = usuarioRepo;
     }
 
-    /** Misiones activas de hoy para el usuario; crea el avance de las que aún no lo tienen. */
+    /** Compatibilidad para pruebas sin base de datos (no bloquea al usuario). */
+    public MisionService(MisionRepository misionRepo, MisionUsuarioRepository misionUsuarioRepo) {
+        this(misionRepo, misionUsuarioRepo, null);
+    }
+
+    /**
+     * Misiones activas de hoy para el usuario; crea el avance de las que aún no lo tienen. Para crearlas primero bloquea
+     * al usuario y vuelve a leer (QA-02): así dos GET simultáneos no insertan la misma misión (409) y el orden de
+     * candados es el mismo que en los premios (usuario y después misiones), sin deadlock con un escaneo a la vez.
+     */
     @Transactional
     public List<Asignada> asignadas(Integer userId, LocalDate hoy) {
         List<Mision> activas = misionRepo.findByActivaTrueOrderByOrdenAscIdMisionAsc();
         List<MisionUsuario> existentes = misionUsuarioRepo.findByIdUsuarioAndFecha(userId, hoy);
+        if (usuarioRepo != null && falta(activas, existentes)) {
+            usuarioRepo.bloquear(userId); // si ya lo tenia bloqueado esta transaccion (premios), no espera
+            existentes = misionUsuarioRepo.findByIdUsuarioAndFecha(userId, hoy);
+        }
         List<Asignada> resultado = new ArrayList<>();
         for (Mision mision : activas) {
             MisionUsuario estado = existentes.stream()
@@ -64,6 +81,10 @@ public class MisionService {
         List<DailyMissionDto> hoy = deHoy(userId);
         return hoy.stream().filter(m -> !m.isCompleted()).findFirst()
                 .or(() -> hoy.stream().findFirst());
+    }
+
+    private static boolean falta(List<Mision> activas, List<MisionUsuario> existentes) {
+        return activas.stream().anyMatch(m -> existentes.stream().noneMatch(mu -> mu.getIdMision().equals(m.getIdMision())));
     }
 
     private static MisionUsuario nueva(Integer userId, Mision mision, LocalDate hoy) {

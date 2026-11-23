@@ -432,6 +432,9 @@ class LogrosPostgresTest {
         String sufijo = UUID.randomUUID().toString().substring(0, 8);
         int catalogo = jdbc.queryForObject("INSERT INTO plantas_catalogo (nombre_comun, nombre_cientifico, frecuencia_riego_dias, "
                 + "frecuencia_sol_horas, sprite_base_url) VALUES ('Prueba', ?, 3, 4, 'x') RETURNING id_catalogo", Integer.class, "Planta http " + sufijo);
+        // Desde QA-05 solo se digitaliza una especie que el usuario escaneo
+        jdbc.update("INSERT INTO escaneos_historial (id_usuario, id_catalogo, imagen_foto_url, respuesta_ia_raw, fecha_escaneo) "
+                + "VALUES (?, ?, 'x', '{}'::jsonb, now())", u, catalogo);
         java.net.http.HttpResponse<String> r = post(u, "/api/v1/plantas", "{\"idCatalogo\":" + catalogo + "}");
         assertThat(r.statusCode()).as(r.body()).isEqualTo(200);
         int planta = new com.fasterxml.jackson.databind.ObjectMapper().readTree(r.body()).get("id").asInt();

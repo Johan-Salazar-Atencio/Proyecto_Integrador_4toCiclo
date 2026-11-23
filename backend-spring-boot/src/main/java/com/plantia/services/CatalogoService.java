@@ -73,39 +73,47 @@ public class CatalogoService {
     }
 
     /**
-     * Crea o actualiza la planta del catalogo a partir del resultado de la IA
-     * y reemplaza sus secciones de cuidados.
+     * Especie del catalogo para el resultado de la IA. Si ya existe NO se toca (QA-01 y QA-13): ni su nombre comun ni sus
+     * cuidados, que pudo corregir el admin y que comparten todos los usuarios; antes cada escaneo los reescribia y dos
+     * escaneos simultaneos de la misma especie se pisaban (500). Solo se le ponen cuidados si no tiene ninguno. Si no
+     * existe se crea, con un candado por nombre para que dos escaneos a la vez no choquen con el UNIQUE (409).
      */
     @Transactional
     public PlantaCatalogo upsertDesdeIa(IaResultDto ia) {
         if (ia == null || ia.nombreCientifico() == null || ia.nombreCientifico().isBlank()) {
             return null;
         }
+        String nombre = ia.nombreCientifico().trim();
+        catalogoRepo.bloquearEspecie(nombre.toLowerCase(java.util.Locale.ROOT));
 
-        PlantaCatalogo catalogo = catalogoRepo.findByNombreCientificoIgnoreCase(ia.nombreCientifico())
-                .orElseGet(() -> {
-                    PlantaCatalogo nueva = new PlantaCatalogo();
-                    nueva.setNombreCientifico(ia.nombreCientifico());
-                    nueva.setNombreComun(ia.nombreComun() != null ? ia.nombreComun() : ia.nombreCientifico());
-                    nueva.setFrecuenciaRiegoDias(7);
-                    nueva.setFrecuenciaSolHoras(4);
-                    nueva.setTemperaturaMinC(10);
-                    nueva.setTemperaturaMaxC(30);
-                    nueva.setEsToxicaMascotas(false);
-                    nueva.setSpriteBaseUrl("/sprites/default.png");
-                    nueva.setFechaCreacion(LocalDateTime.now());
-                    return nueva;
-                });
-
-        if (ia.nombreComun() != null && !ia.nombreComun().isBlank()) {
-            catalogo.setNombreComun(ia.nombreComun());
+        java.util.Optional<PlantaCatalogo> existente = catalogoRepo.findFirstByNombreCientificoIgnoreCaseOrderByIdCatalogoAsc(nombre);
+        if (existente.isPresent()) {
+            PlantaCatalogo catalogo = existente.get();
+            if (cuidadoRepo.countByIdCatalogo(catalogo.getIdCatalogo()) == 0) {
+                guardarCuidados(catalogo, ia);
+            }
+            return catalogo;
         }
+
+        PlantaCatalogo catalogo = new PlantaCatalogo();
+        catalogo.setNombreCientifico(nombre);
+        catalogo.setNombreComun(ia.nombreComun() != null && !ia.nombreComun().isBlank() ? ia.nombreComun() : nombre);
+        catalogo.setFrecuenciaRiegoDias(7);
+        catalogo.setFrecuenciaSolHoras(4);
+        catalogo.setTemperaturaMinC(10);
+        catalogo.setTemperaturaMaxC(30);
+        catalogo.setEsToxicaMascotas(false);
+        catalogo.setSpriteBaseUrl("/sprites/default.png");
+        catalogo.setFechaCreacion(LocalDateTime.now());
         catalogo.setDatosIaRaw(JsonRawUtil.seguro(ia.datosRaw()));
         catalogo.setUpdatedAt(LocalDateTime.now());
         catalogo = catalogoRepo.save(catalogo);
+        guardarCuidados(catalogo, ia);
+        return catalogo;
+    }
 
+    private void guardarCuidados(PlantaCatalogo catalogo, IaResultDto ia) {
         if (ia.cuidados() != null && !ia.cuidados().isEmpty()) {
-            cuidadoRepo.deleteByIdCatalogo(catalogo.getIdCatalogo());
             int orden = 0;
             for (IaResultDto.IaCuidadoDto cu : ia.cuidados()) {
                 CuidadoSeccion seccion = new CuidadoSeccion();
@@ -119,7 +127,6 @@ public class CatalogoService {
                 cuidadoRepo.save(seccion);
             }
         }
-        return catalogo;
     }
 
     private static String normalizarTipo(String tipo) {

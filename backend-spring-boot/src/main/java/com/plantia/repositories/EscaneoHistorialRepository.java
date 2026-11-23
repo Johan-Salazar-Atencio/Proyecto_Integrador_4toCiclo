@@ -18,6 +18,13 @@ public interface EscaneoHistorialRepository extends JpaRepository<EscaneoHistori
     /** Para saber si una especie es nueva para el usuario. */
     boolean existsByIdUsuarioAndIdCatalogo(Integer idUsuario, Integer idCatalogo);
 
+    /** [id_catalogo, foto] del escaneo mas reciente del usuario por especie, en una sola consulta (QA-23). */
+    @org.springframework.data.jpa.repository.Query(value = "SELECT DISTINCT ON (id_catalogo) id_catalogo, imagen_foto_url "
+            + "FROM escaneos_historial WHERE id_usuario = :u AND id_catalogo IN (:ids) ORDER BY id_catalogo, fecha_escaneo DESC",
+            nativeQuery = true)
+    java.util.List<Object[]> ultimasFotos(@org.springframework.data.repository.query.Param("u") Integer idUsuario,
+                                          @org.springframework.data.repository.query.Param("ids") java.util.Collection<Integer> idsCatalogo);
+
     long countByIdUsuarioAndIdCatalogoIsNotNull(Integer idUsuario);
 
     @Query("SELECT COUNT(DISTINCT e.idCatalogo) FROM EscaneoHistorial e WHERE e.idUsuario = :idUsuario AND e.idCatalogo IS NOT NULL")

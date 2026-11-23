@@ -19,10 +19,13 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${app.storage.images-dir:storage/images}")
     private String imagesDir;
 
+    @Value("${app.cors.origenes:*}")
+    private String[] origenes;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOriginPatterns("*")
+                .allowedOriginPatterns(origenes)
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*");
         registry.addMapping("/files/**")

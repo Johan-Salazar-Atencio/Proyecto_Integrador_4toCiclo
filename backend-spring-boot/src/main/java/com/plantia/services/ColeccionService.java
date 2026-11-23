@@ -40,8 +40,18 @@ public class ColeccionService {
     public List<ColeccionItemDto> listar(Integer userId) {
         List<ColeccionUsuario> filas = coleccionRepo.findByIdUsuarioOrderByUltimaVezDesc(userId);
         Map<Integer, PlantaCatalogo> catalogos = CatalogosPorId.de(catalogoRepo, filas, ColeccionUsuario::getIdCatalogo);
+        // QA-23: las fotos que faltan salen en UNA consulta (antes una por fila: 200 filas = 207 consultas)
+        List<Integer> sinFoto = filas.stream().filter(c -> c.getFotoUrl() == null && c.getIdCatalogo() != null)
+                .map(ColeccionUsuario::getIdCatalogo).distinct().toList();
+        Map<Integer, String> fotos = new java.util.HashMap<>();
+        if (!sinFoto.isEmpty()) {
+            for (Object[] fila : escaneoRepo.ultimasFotos(userId, sinFoto)) {
+                fotos.put(((Number) fila[0]).intValue(), (String) fila[1]);
+            }
+        }
         return filas.stream()
-                .map(c -> map(c, catalogos.get(c.getIdCatalogo())))
+                .map(c -> map(c, catalogos.get(c.getIdCatalogo()),
+                        c.getFotoUrl() != null || c.getIdCatalogo() == null ? c.getFotoUrl() : fotos.get(c.getIdCatalogo())))
                 .toList();
     }
 
@@ -61,11 +71,15 @@ public class ColeccionService {
     /** Guarda la planta en la coleccion con la foto del escaneo; si ya estaba, cuenta otra vista y pone la foto mas nueva. */
     @Transactional
     public ColeccionItemDto agregar(Integer userId, Integer idCatalogo, EscaneoHistorial escaneo) {
+        coleccionRepo.bloquearUsuario(userId); // antes de leer: el mismo escaneo enviado 5 veces a la vez daba un 409
         Optional<ColeccionUsuario> existente = coleccionRepo.findByIdUsuarioAndIdCatalogo(userId, idCatalogo);
         LocalDateTime ahora = LocalDateTime.now();
 
         if (existente.isPresent()) {
             ColeccionUsuario c = existente.get();
+            if (escaneo.getIdEscaneo() != null && escaneo.getIdEscaneo().equals(c.getIdEscaneo())) {
+                return map(c); // QA-25: el mismo escaneo guardado dos veces no suma otra vista
+            }
             c.setVecesVista((c.getVecesVista() != null ? c.getVecesVista() : 1) + 1);
             c.setUltimaVez(ahora);
             c.setIdEscaneo(escaneo.getIdEscaneo());
@@ -101,12 +115,16 @@ public class ColeccionService {
     }
 
     private ColeccionItemDto map(ColeccionUsuario c, PlantaCatalogo cat) {
+        return map(c, cat, fotoDe(c));
+    }
+
+    private ColeccionItemDto map(ColeccionUsuario c, PlantaCatalogo cat, String foto) {
         return new ColeccionItemDto(
                 c.getIdColeccion(),
                 c.getIdCatalogo(),
                 cat != null ? cat.getNombreComun() : null,
                 cat != null ? cat.getNombreCientifico() : null,
-                fotoDe(c),
+                foto,
                 c.getVecesVista() != null ? c.getVecesVista() : 1,
                 c.getPrimeraVez(),
                 c.getUltimaVez(),

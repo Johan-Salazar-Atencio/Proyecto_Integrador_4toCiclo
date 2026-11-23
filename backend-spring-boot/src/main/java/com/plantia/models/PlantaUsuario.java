@@ -10,8 +10,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+/**
+ * DynamicUpdate: el UPDATE lleva solo las columnas que cambiaron. Asi poner una maceta, un fondo o la planta activa
+ * no reescribe el agua o la salud que otro cuidado acaba de guardar (QA-03).
+ */
 @Entity
 @Table(name = "plantas_usuario")
+@org.hibernate.annotations.DynamicUpdate
 public class PlantaUsuario {
 
     @Id

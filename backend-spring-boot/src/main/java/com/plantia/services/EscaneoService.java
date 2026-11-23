@@ -66,6 +66,7 @@ public class EscaneoService {
      * una transaccion corta; si fallan, se borra la foto ya guardada.
      */
     public ScanResultDto escanear(Integer userId, MultipartFile foto) {
+        limitarPorUsuario(userId, System.currentTimeMillis());
         String imagenUrl = storage.save(foto);
         try {
             IaResultDto ia = identificar(foto); // fuera de la transaccion
@@ -76,10 +77,37 @@ public class EscaneoService {
         }
     }
 
+    /** Escaneos por usuario y minuto (QA-08); 0 o menos lo desactiva. */
+    @org.springframework.beans.factory.annotation.Value("${app.escaneo.max-por-minuto:10}")
+    int maxPorMinuto = 10;
+    private final java.util.concurrent.ConcurrentHashMap<Integer, java.util.ArrayDeque<Long>> recientes = new java.util.concurrent.ConcurrentHashMap<>();
+
+    void limitarPorUsuario(Integer userId, long ahoraMs) {
+        if (maxPorMinuto <= 0 || userId == null) {
+            return;
+        }
+        java.util.ArrayDeque<Long> marcas = recientes.computeIfAbsent(userId, k -> new java.util.ArrayDeque<>());
+        synchronized (marcas) {
+            while (!marcas.isEmpty() && ahoraMs - marcas.peekFirst() >= 60_000) {
+                marcas.pollFirst();
+            }
+            if (marcas.size() >= maxPorMinuto) {
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS,
+                        "Escaneaste muchas plantas seguidas. Espera un minuto y vuelve a intentarlo.");
+            }
+            marcas.addLast(ahoraMs);
+        }
+    }
+
     private IaResultDto identificar(MultipartFile foto) {
         IaResultDto ia;
         try {
             ia = iaClient.identificar(foto);
+        } catch (org.springframework.web.client.HttpClientErrorException.TooManyRequests e) {
+            // QA-08: el motor de IA esta saturado. Antes se guardaba como "Planta desconocida", sin premio ni aviso.
+            log.warn("Motor IA saturado (429)");
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS,
+                    "Hay muchas identificaciones en este momento. Intenta de nuevo en un minuto.");
         } catch (Exception e) {
             log.warn("Motor IA no disponible: {}", e.getMessage());
             ia = IaClient.fallback();
@@ -112,6 +140,8 @@ public class EscaneoService {
         escaneo.setConfianzaIa(ia.confianza() != null ? BigDecimal.valueOf(ia.confianza()) : null);
         escaneo.setRespuestaIaRaw(JsonRawUtil.seguro(ia.datosRaw() != null ? ia.datosRaw() : "{}"));
         escaneo.setFechaEscaneo(LocalDateTime.now());
+        // QA-12: la apariencia de la IA queda en el servidor; digitalizar la toma de aqui
+        escaneo.setApariencia(identificado ? com.plantia.util.AparienciaUtil.aJson(ia.apariencia()) : null);
         escaneo = escaneoRepo.save(escaneo);
 
         // Ya no insertamos automáticamente en coleccion - eso lo hace el endpoint dedicado
@@ -137,7 +167,7 @@ public class EscaneoService {
                         ? catalogoService.cuidados(catalogo.getIdCatalogo())
                         : List.<CuidadoSeccionDto>of(),
                 identificado, // nuevo campo: true solo si la IA devolvió nombre científico
-                identificado ? ia.apariencia() : null,
+                identificado ? com.plantia.util.AparienciaUtil.limpiar(ia.apariencia()) : null,
                 progreso
         );
     }

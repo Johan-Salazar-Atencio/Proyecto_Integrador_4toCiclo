@@ -48,6 +48,9 @@ public class ResultadoDesastreService {
     private final ObjectProvider<LogroService> logroService;
     private final Duration gracia;
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager em;
+
     /** Constructor que usa Spring (hay otro, de compatibilidad para pruebas: sin esta marca la app no arranca). */
     @Autowired
     public ResultadoDesastreService(EventoDesastreRepository eventoRepo,
@@ -98,7 +101,10 @@ public class ResultadoDesastreService {
      * se marca como procesado sin danar plantas: el dano solo aplica a eventos recien terminados.
      */
     void procesar(EventoDesastre e, LocalDateTime ahora) {
-        if (e.getFechaFin().isBefore(ahora.minus(gracia))) {
+        if (e.getFechaInicio() != null && (e.getFechaInicio().isAfter(ahora) || !e.getFechaInicio().isBefore(e.getFechaFin()))) {
+            // QA-07: FINALIZADO sin haber empezado = cancelado antes de tiempo. Antes danaba a todas las plantas no prevenidas.
+            log.info("Evento {} termino sin haber empezado (cancelado): se marca procesado sin danos", e.getIdDesastre());
+        } else if (e.getFechaFin().isBefore(ahora.minus(gracia))) {
             log.info("Evento {} termino hace mas de {} h: se marca procesado sin danos", e.getIdDesastre(), gracia.toHours());
         } else {
             aplicar(e, ahora);
@@ -115,7 +121,29 @@ public class ResultadoDesastreService {
         int danadas = 0;
         // Por usuario: plantas afectadas y cuantas se previnieron (para el premio de evento completo)
         Map<Integer, int[]> porUsuario = new LinkedHashMap<>();
+        // Mismo orden de candados que las acciones del usuario (QA-03): primero el usuario y luego sus plantas por id.
+        // Antes se recorrian las plantas en cualquier orden y se bloqueaba al usuario despues: con cuidados o
+        // "seleccionar" a la vez habia deadlock (500) durante el cierre del evento.
+        java.util.TreeMap<Integer, List<PlantaUsuario>> porDueno = new java.util.TreeMap<>();
         for (PlantaUsuario p : plantasAfectadas(e)) {
+            if (p.getIdUsuario() != null) {
+                porDueno.computeIfAbsent(p.getIdUsuario(), k -> new java.util.ArrayList<>()).add(p);
+            }
+        }
+        List<PlantaUsuario> enOrden = new java.util.ArrayList<>();
+        java.util.Set<Integer> bloqueados = new java.util.HashSet<>();
+        porDueno.values().forEach(lista -> {
+            lista.sort(java.util.Comparator.comparing(PlantaUsuario::getIdPlantaUsuario, java.util.Comparator.nullsFirst(Integer::compare)));
+            enOrden.addAll(lista);
+        });
+        for (PlantaUsuario p : enOrden) {
+            if (bloqueados.add(p.getIdUsuario())) {
+                progreso.bloquearUsuario(p.getIdUsuario());
+                plantaRepo.bloquearDeUsuario(p.getIdUsuario());
+            }
+            if (em != null && em.contains(p)) {
+                em.refresh(p); // valores vigentes tras el candado (un cuidado pudo cambiarla)
+            }
             if ("MUERTA".equals(p.getEtapaCrecimiento()) || Boolean.TRUE.equals(p.getEnBaul())
                     || registroRepo.existsByIdDesastreAndIdPlantaUsuario(e.getIdDesastre(), p.getIdPlantaUsuario())) {
                 continue;
