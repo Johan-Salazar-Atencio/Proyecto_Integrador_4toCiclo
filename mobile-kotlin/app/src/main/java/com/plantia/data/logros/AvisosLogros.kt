@@ -80,7 +80,7 @@ object AvisosLogros {
         )
         val (titulo, texto) = textoAviso(logros)
         val aviso = NotificationCompat.Builder(contexto, CANAL)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notificacion)
             .setContentTitle(titulo)
             .setContentText(texto)
             .setStyle(NotificationCompat.BigTextStyle().bigText(texto))

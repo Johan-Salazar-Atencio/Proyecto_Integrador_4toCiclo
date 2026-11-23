@@ -95,13 +95,40 @@ fun ScanScreen(
     var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
     var torchEnabled by remember { mutableStateOf(false) }
 
+    // true cuando Android ya no muestra el dialogo (lo negaron y no vuelve a preguntar): solo queda ir a Ajustes
+    var negadoParaSiempre by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
             hasCameraPermission = isGranted
+            val actividad = context as? android.app.Activity
+            negadoParaSiempre = !isGranted && actividad != null &&
+                !androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(actividad, Manifest.permission.CAMERA)
             Log.d("ScanScreen", "Permiso de cámara: ${if (isGranted) "CONCEDIDO" else "DENEGADO"}")
         }
     )
+    // QA-55: al volver de Ajustes se vuelve a mirar el permiso
+    val ciclo = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(ciclo) {
+        val observador = androidx.lifecycle.LifecycleEventObserver { _, evento ->
+            if (evento == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                hasCameraPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED
+            }
+        }
+        ciclo.lifecycle.addObserver(observador)
+        onDispose { ciclo.lifecycle.removeObserver(observador) }
+    }
+    val pedirPermiso = {
+        if (negadoParaSiempre) {
+            context.startActivity(
+                android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(android.net.Uri.fromParts("package", context.packageName, null))
+            )
+        } else {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
 
     // Galería: elegir una foto existente y escanearla.
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -151,7 +178,7 @@ fun ScanScreen(
         Log.d("ScanScreen", "Botón de captura presionado")
         if (!hasCameraPermission) {
             Log.w("ScanScreen", "Intento de captura sin permiso de cámara")
-            toastMessage = "Permiso de cámara requerido"
+            toastMessage = "Permite la cámara o elige una foto de la galería"
             showToast = true
             return@onCaptureClick
         }
@@ -183,7 +210,8 @@ fun ScanScreen(
             onError = onCameraError,
             lensFacing = lensFacing,
             torchEnabled = torchEnabled,
-            captureTrigger = captureTrigger
+            captureTrigger = captureTrigger,
+            hasCameraPermission = hasCameraPermission
         )
 
         // Barra superior: volver, historial y girar la camara; debajo, los tres consejos
@@ -220,14 +248,23 @@ fun ScanScreen(
         }
 
         // Marco y texto, centrados un poco por encima del medio como en la referencia
-        Column(
-            modifier = Modifier.align(Alignment.Center).offset(y = if (isLandscape) 0.dp else (-8).dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            ScanOverlay(lado = if (isLandscape) 150.dp else 224.dp)
-            Spacer(Modifier.height(if (isLandscape) 6.dp else 14.dp))
-            Text("Toma o elige una foto", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Text("Se identifica con IA", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp)
+        if (hasCameraPermission) {
+            Column(
+                modifier = Modifier.align(Alignment.Center).offset(y = if (isLandscape) 0.dp else (-8).dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                ScanOverlay(lado = if (isLandscape) 150.dp else 224.dp)
+                Spacer(Modifier.height(if (isLandscape) 6.dp else 14.dp))
+                Text("Toma o elige una foto", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Se identifica con IA", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp)
+            }
+        } else {
+            // QA-55: sin permiso se explica y se ofrece pedirlo otra vez (o ir a Ajustes) o usar la galeria
+            com.plantia.ui.scan.components.PermisoCamaraTarjeta(
+                negadoParaSiempre = negadoParaSiempre,
+                onPermitir = pedirPermiso,
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 24.dp)
+            )
         }
 
         // Controles: galeria, obturador y flash

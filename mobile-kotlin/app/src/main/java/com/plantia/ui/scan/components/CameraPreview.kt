@@ -66,7 +66,10 @@ fun CameraPreview(
     onError: ((String) -> Unit)? = null,
     captureTrigger: Int = 0,
     lensFacing: Int = CameraSelector.LENS_FACING_BACK,
-    torchEnabled: Boolean = false
+    torchEnabled: Boolean = false,
+    /** Lo decide ScanScreen (QA-55): antes cada pantalla pedia el permiso por su cuenta y esta no se enteraba
+     *  cuando se concedia, asi que quedaba "Permiso de camara requerido" hasta salir y volver. */
+    hasCameraPermission: Boolean = false
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -76,21 +79,6 @@ fun CameraPreview(
     // `takePicture` (creado con remember) siempre sean los mas recientes.
     val onErrorState = rememberUpdatedState(onError)
 
-    var hasCameraPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
-        )
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            hasCameraPermission = isGranted
-        }
-    )
 
     val imageCapture = remember { mutableStateOf<ImageCapture?>(null) }
     val previewViewRef = remember { mutableStateOf<PreviewView?>(null) }
@@ -218,14 +206,6 @@ fun CameraPreview(
         }
     }
 
-    // Solicitar permiso si no se tiene
-    LaunchedEffect(Unit) {
-        if (!hasCameraPermission) {
-            Log.d("CameraPreview", "Solicitando permiso de cámara")
-            permissionLauncher.launch(Manifest.permission.CAMERA)
-        }
-    }
-
     if (hasCameraPermission) {
         Box(modifier = modifier.fillMaxSize()) {
             AndroidView(
@@ -320,19 +300,12 @@ fun FallbackCameraPreview(modifier: Modifier = Modifier) {
             .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.PhotoCamera,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = Color.White.copy(alpha = 0.5f)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Permiso de cámara requerido",
-                fontSize = 16.sp,
-                color = Color.White.copy(alpha = 0.7f)
-            )
-        }
+        // Sin texto aqui: ScanScreen muestra la tarjeta para permitir la camara o usar la galeria (QA-55)
+        Icon(
+            imageVector = Icons.Default.PhotoCamera,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = Color.White.copy(alpha = 0.25f)
+        )
     }
 }

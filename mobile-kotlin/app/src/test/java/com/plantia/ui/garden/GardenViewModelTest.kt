@@ -328,4 +328,21 @@ class GardenViewModelTest {
 
         assertTrue(garden.golpesVistos.isEmpty())
     }
+
+    // QA-57: el segundo abono del dia se avisa DENTRO de la hoja (el snackbar quedaba debajo)
+    @Test
+    fun un_abono_rechazado_se_avisa_en_la_hoja_y_se_limpia_al_cerrarla() {
+        val tienda = FakeTiendaRepository()
+        tienda.abono = com.plantia.data.repository.AbonoResultado.Fallo("Ya usaste un abono con esta planta hoy")
+        val vm = GardenViewModel(garden, tienda)
+        vm.abrirAbonos()
+        val abono = com.plantia.data.model.TiendaItem(5, "Abono suave", com.plantia.data.model.TiendaItem.ABONO, "", 15, 1, null, emptyList(), false, false)
+
+        vm.usarAbono(abono) {}
+
+        assertEquals("Ya usaste un abono con esta planta hoy", vm.avisoAbono)
+        assertTrue(vm.eligiendoAbono)
+        vm.cerrarAbonos()
+        assertNull(vm.avisoAbono)
+    }
 }

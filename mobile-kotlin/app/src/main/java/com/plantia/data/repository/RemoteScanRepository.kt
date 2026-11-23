@@ -42,9 +42,10 @@ class RemoteScanRepository(
         } catch (e: retrofit2.HttpException) {
             throw e.conMensajeDelServidor() // la pantalla muestra el mensaje del servidor (QA-36)
         }
-        ultimo.value = resultado
+        // QA-54: el backend arma la URL con localhost; se cambia por el host que responde (como la coleccion)
+        ultimo.value = resultado.copy(imagenUrl = com.plantia.util.normalizarUrlLocal(resultado.imagenUrl))
         resultado.progreso.logrosNuevos().takeIf { it.isNotEmpty() }?.let(alDesbloquear)
-        return resultado
+        return ultimo.value ?: resultado
     }
 
     override suspend fun recientes(): List<RecentScan> = withContext(Dispatchers.IO) {

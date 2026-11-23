@@ -8,6 +8,12 @@ import com.plantia.ui.scan.ScanScreen
 
 /** Rutas de la app. Las que reciben argumentos exponen un helper para construirlas. */
 object Routes {
+    /**
+     * Pantalla con la que abre la app (QA-56): con una sesion guardada va directo al inicio; antes siempre abria la
+     * bienvenida y pedia la clave aunque la sesion siguiera valida (y tras tocar una notificacion caia ahi, QA-63).
+     */
+    fun inicial(tokenGuardado: String): String = if (tokenGuardado.isNotBlank()) HOME else WELCOME
+
     // Entrada
     const val WELCOME = "welcome"
     const val TERMINOS = "terminos"

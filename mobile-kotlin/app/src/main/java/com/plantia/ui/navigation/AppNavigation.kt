@@ -72,11 +72,27 @@ private val reSale: Exit = {
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
+    // QA-56: con sesion guardada se abre en el inicio; si el token ya no vale (401) se vuelve a la bienvenida
+    val rutaInicial = androidx.compose.runtime.remember { Routes.inicial(com.plantia.data.local.Sesion.token.value) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (rutaInicial == Routes.HOME) {
+            val codigo = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { com.plantia.data.remote.RetrofitClient.api.usuarioMe().code() }.getOrNull()
+            }
+            if (codigo == 401) {
+                com.plantia.data.local.Sesion.setToken("")
+                navController.navigate(Routes.WELCOME) { popUpTo(navController.graph.id) { inclusive = true } }
+            }
+        }
+    }
+    val redLocalNegada by com.plantia.data.local.PermisoRedLocal.negado.collectAsState()
     val entradaActual by navController.currentBackStackEntryAsState()
     val rutaActual = entradaActual?.destination?.route
 
     Scaffold(
         modifier = modifier,
+        // QA-62: si se nego "red local", la app no llega al servidor del PC: se explica y se ofrece ir a Ajustes
+        topBar = { if (redLocalNegada) com.plantia.ui.components.AvisoRedLocal() },
         bottomBar = {
             if (rutaActual in rutasConBarra) {
                 BarraInferior(
@@ -99,7 +115,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
     ) { relleno ->
     NavHost(
         navController = navController,
-        startDestination = Routes.WELCOME,
+        startDestination = rutaInicial,
         modifier = Modifier.padding(relleno).consumeWindowInsets(relleno),
         enterTransition = entra,
         exitTransition = sale,

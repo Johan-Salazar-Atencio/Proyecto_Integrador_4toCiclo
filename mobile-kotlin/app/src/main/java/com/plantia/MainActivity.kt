@@ -34,7 +34,22 @@ class MainActivity : ComponentActivity() {
     // Android 17 pide permiso para hablar con equipos de la red local (el PC con el backend).
     // Al concederlo se vuelve a buscar el mejor host para no quedarse con un intento fallido.
     private val pedirRedLocal = registerForActivityResult(ActivityResultContracts.RequestPermission()) { concedido ->
+        com.plantia.data.local.PermisoRedLocal.actualizar(Build.VERSION.SDK_INT, concedido) // QA-62: aviso si se niega
         if (concedido) RetrofitClient.reconectar()
+    }
+
+    /** Al volver (por ejemplo, de Ajustes) se mira otra vez el permiso de red local y se reconecta si ya se dio. */
+    override fun onResume() {
+        super.onResume()
+        if (Build.VERSION.SDK_INT >= com.plantia.data.local.PermisoRedLocal.SDK_CON_PERMISO) {
+            val estabaNegado = com.plantia.data.local.PermisoRedLocal.negado.value
+            val concedido = ContextCompat.checkSelfPermission(this, com.plantia.data.local.PermisoRedLocal.PERMISO) ==
+                PackageManager.PERMISSION_GRANTED
+            if (estabaNegado) {
+                com.plantia.data.local.PermisoRedLocal.actualizar(Build.VERSION.SDK_INT, concedido)
+                if (concedido) RetrofitClient.reconectar()
+            }
+        }
     }
 
     private fun pedirPermisoRedLocal() {

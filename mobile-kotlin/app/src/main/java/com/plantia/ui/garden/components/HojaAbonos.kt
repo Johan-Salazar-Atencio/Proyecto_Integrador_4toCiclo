@@ -53,6 +53,8 @@ fun HojaAbonos(
     nombrePlanta: String,
     abonos: List<TiendaItem>,
     hojas: Int?,
+    /** Por que no se pudo usar el ultimo abono elegido; null si no hubo problema (QA-57). */
+    aviso: String? = null,
     onUsar: (TiendaItem) -> Unit,
     onTienda: () -> Unit,
     onCerrar: () -> Unit
@@ -74,6 +76,16 @@ fun HojaAbonos(
                 color = TextSecondary
             )
             Spacer(Modifier.height(2.dp))
+            if (aviso != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color(0xFFFDE8EC)),
+                    border = BorderStroke(1.dp, DividerColor)
+                ) {
+                    Text(aviso, modifier = Modifier.padding(14.dp), fontSize = 14.sp, color = TextPrimary)
+                }
+            }
             if (abonos.isEmpty()) {
                 Text("No hay abonos a la venta por ahora.", fontSize = 14.sp, color = TextSecondary)
             }

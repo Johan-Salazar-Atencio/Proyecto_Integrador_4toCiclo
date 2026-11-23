@@ -73,6 +73,8 @@ fun TiendaScreen(
     onBack: () -> Unit = {},
     viewModel: TiendaViewModel = viewModel(factory = TiendaViewModel.Factory)
 ) {
+    // QA-64: antes "Comprar" cobraba al primer toque, sin confirmar
+    var porComprar by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.plantia.data.model.TiendaItem?>(null) }
     IconosOscurosEnBarraDeEstado()
     val snackbar = remember { SnackbarHostState() }
     var pestana by rememberSaveable { mutableStateOf(CAT_MACETA) }
@@ -112,12 +114,28 @@ fun TiendaScreen(
                     pestana = pestana,
                     onPestana = { pestana = it },
                     ocupado = viewModel.ocupado,
-                    onComprar = viewModel::comprar,
+                    onComprar = { porComprar = it },
                     onAbono = viewModel::usarAbono,
                     onAplicar = viewModel::abrirAplicar
                 )
             }
         }
+    }
+
+    porComprar?.let { item ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { porComprar = null },
+            title = { Text(TextosCompra.titulo(item.nombre)) },
+            text = { Text(TextosCompra.detalle(item.precio)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { porComprar = null; viewModel.comprar(item) }) {
+                    Text("Comprar", color = Primario, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { porComprar = null }) { Text("Cancelar") }
+            }
+        )
     }
 
     viewModel.aplicando?.let { maceta ->
@@ -345,4 +363,10 @@ internal fun BotonBloqueado(nivel: Int, modifier: Modifier = Modifier) {
         Spacer(Modifier.size(5.dp))
         Text("Nivel $nivel", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
     }
+}
+
+/** Textos de la confirmacion de compra (QA-64). */
+internal object TextosCompra {
+    fun titulo(nombre: String) = "¿Comprar $nombre?"
+    fun detalle(precio: Int) = "Se descuentan $precio hojas de tu saldo."
 }

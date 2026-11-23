@@ -83,7 +83,7 @@ object Recordatorios {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val aviso = NotificationCompat.Builder(contexto, CANAL)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notificacion)
             .setContentTitle("Tus plantas te esperan")
             .setContentText("Riégalas, dales luz y completa tu misión del día.")
             .setContentIntent(abrir)

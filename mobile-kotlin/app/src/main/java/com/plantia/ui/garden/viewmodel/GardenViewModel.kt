@@ -145,13 +145,19 @@ class GardenViewModel(
     var eligiendoAbono: Boolean by mutableStateOf(false)
         private set
 
+    /** Por que no se pudo usar el abono (p. ej. "Ya usaste un abono con esta planta hoy"); se ve dentro de la hoja (QA-57). */
+    var avisoAbono: String? by mutableStateOf(null)
+        private set
+
     fun abrirAbonos() {
         eligiendoAbono = true
+        avisoAbono = null
         cargarAbono()
     }
 
     fun cerrarAbonos() {
         eligiendoAbono = false
+        avisoAbono = null
     }
 
     var uiState: GardenUiState by mutableStateOf(GardenUiState.Loading)
@@ -236,7 +242,7 @@ class GardenViewModel(
                     alTerminar("${abono.nombre} aplicado: ${r.planta.name} ${crecio(actual, r.planta)} 🌿")
                     cargarAbono()
                 }
-                is AbonoResultado.Fallo -> alTerminar(r.mensaje)
+                is AbonoResultado.Fallo -> avisoAbono = r.mensaje
             }
             cuidando = false
         }

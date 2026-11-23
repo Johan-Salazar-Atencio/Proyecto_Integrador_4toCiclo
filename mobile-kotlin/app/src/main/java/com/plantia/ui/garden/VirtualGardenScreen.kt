@@ -217,6 +217,7 @@ fun VirtualGardenScreen(
                     nombrePlanta = plantaDelJardin.name,
                     abonos = viewModel.abonos,
                     hojas = viewModel.hojas,
+                    aviso = viewModel.avisoAbono,
                     onUsar = { abono ->
                         viewModel.usarAbono(abono) { mensaje ->
                             scope.launch {
