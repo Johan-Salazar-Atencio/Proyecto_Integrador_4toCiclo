@@ -99,9 +99,17 @@ class CadenaRespaldoTests(SimpleTestCase):
         self.factory._caidos.update(self._caidos)
 
     def test_cadena_auto_prioriza_webui_sobre_gemini(self):
-        with self.settings(WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+        with self.settings(IA_PROVIDER="auto", WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
             cadena = [p.name for p in self.factory.get_provider_chain("auto")]
         self.assertEqual(cadena[:2], ["webui", "gemini"])
+
+    def test_auto_del_pedido_no_pisa_un_motor_fijo_del_servidor(self):
+        """QA-15: Spring mandaba provider=auto y con IA_PROVIDER=gemini se probaba primero WebUI (15 s)."""
+        with self.settings(IA_PROVIDER="gemini", WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k",
+                           OPENAI_API_KEY=""):
+            self.assertEqual(self.factory.get_provider_chain("auto")[0].name, "gemini")
+            self.assertEqual(self.factory.get_provider_chain(None)[0].name, "gemini")
+            self.assertEqual(self.factory.get_provider_chain("webui")[0].name, "webui")
 
     def test_cadena_explicita_agrega_respaldo(self):
         with self.settings(WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
@@ -115,14 +123,14 @@ class CadenaRespaldoTests(SimpleTestCase):
         self.assertEqual(cadena, ["mock"])
 
     def test_motor_caido_se_salta_durante_el_cooldown(self):
-        with self.settings(WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+        with self.settings(IA_PROVIDER="auto", WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
             self.factory.marcar_caido("webui")
             cadena = [p.name for p in self.factory.get_provider_chain("auto")]
         self.assertNotIn("webui", cadena)
         self.assertEqual(cadena[0], "gemini")
 
     def test_todos_en_cooldown_no_cae_a_mock(self):
-        with self.settings(WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
+        with self.settings(IA_PROVIDER="auto", WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
             self.factory.marcar_caido("webui")
             self.factory.marcar_caido("gemini")
             cadena = [p.name for p in self.factory.get_provider_chain("auto")]

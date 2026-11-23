@@ -14,6 +14,7 @@ from datetime import timedelta
 
 import bcrypt
 from django.conf import settings
+from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.db.models import Count
 from django.utils import timezone
@@ -26,7 +27,7 @@ from rest_framework.views import APIView
 from . import eventos_imagen, fondos_imagen
 from .models import (
     EscaneoHistorial, EventoDesastre, FondoEscena, ItemTienda, Logro, LogroUsuario, Mision, ParametroJuego,
-    PlantaCatalogo, Region, RegistroDesastreUsuario, ReglaProgreso, TemaFondo, TipoDesastre, Usuario,
+    PlantaCatalogo, PlantaUsuario, Region, RegistroDesastreUsuario, ReglaProgreso, TemaFondo, TipoDesastre, Usuario,
 )
 
 # Hash BCrypt valido para comparar cuando el correo no existe: asi el tiempo de
@@ -34,6 +35,9 @@ from .models import (
 _HASH_FICTICIO = b"$2a$10$n7uGz2GzFEIhdSm3KDEOYO0ZMzGL132epZ61oqWefVWQYQIufMQVy"
 _CREDENCIALES_INVALIDAS = {"error": "Credenciales invalidas"}
 _DURACION_SESION = timedelta(days=30)
+# QA-27: tras 5 claves equivocadas seguidas para un correo, 15 minutos sin poder intentarlo (como Spring)
+_MAX_INTENTOS = 5
+_ESPERA_INTENTOS = 15 * 60
 
 
 def _como_aware(valor):
@@ -48,6 +52,36 @@ def _hash_token(token):
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
+# Las columnas enteras de Postgres son int4: un numero mayor revienta el UPDATE con un 500 (QA-10)
+ENTERO_MAX = 2**31 - 1
+
+
+def _es_entero(valor, minimo=None, maximo=ENTERO_MAX):
+    """True si es un int de verdad (no bool) dentro del rango."""
+    if isinstance(valor, bool) or not isinstance(valor, int):
+        return False
+    return (minimo is None or valor >= minimo) and valor <= maximo
+
+
+class _CuerpoNoObjeto(Exception):
+    pass
+
+
+class AdminAPIView(APIView):
+    """Base de todas las vistas del panel: un POST/PUT/PATCH cuyo cuerpo no es un objeto JSON ([], null, "x", 5)
+    responde 400 con {"error"} en vez de reventar en request.data.get(...) con un 500 (QA-10)."""
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        if request.method in ("POST", "PUT", "PATCH") and not isinstance(request.data, dict):
+            raise _CuerpoNoObjeto()
+
+    def handle_exception(self, exc):
+        if isinstance(exc, _CuerpoNoObjeto):
+            return Response({"error": "El cuerpo debe ser un objeto JSON"}, status=status.HTTP_400_BAD_REQUEST)
+        return super().handle_exception(exc)
+
+
 def _admin_desde_request(request):
     """Devuelve el Usuario ADMIN si X-Admin-Id y X-Admin-Token son validos; si no, None."""
     raw_id = request.headers.get("X-Admin-Id")
@@ -60,8 +94,9 @@ def _admin_desde_request(request):
         u = Usuario.objects.get(pk=uid)
     except Usuario.DoesNotExist:
         return None
-    guardado = u.session_token or ""
-    caducada = u.session_expira is None or _como_aware(u.session_expira) < timezone.now()
+    # Sesion propia del panel (V31): entrar a la app de usuario ya no cierra la del panel ni al reves (QA-19)
+    guardado = u.admin_session_token or ""
+    caducada = u.admin_session_expira is None or _como_aware(u.admin_session_expira) < timezone.now()
     if u.rol != "ADMIN" or caducada or not guardado or not token:
         return None
     if not hmac.compare_digest(guardado, _hash_token(token)):
@@ -76,39 +111,109 @@ def _password_valida(password, password_hash):
         return False
 
 
-class AdminLoginView(APIView):
+def _contar_fallo(clave):
+    if not cache.add(clave, 1, _ESPERA_INTENTOS):
+        try:
+            cache.incr(clave)
+        except ValueError:  # caduco justo entre add e incr
+            cache.add(clave, 1, _ESPERA_INTENTOS)
+
+
+class AdminLoginView(AdminAPIView):
     """POST {email, password} -> {id, nombre, email, rol, token} si es ADMIN."""
 
     def post(self, request):
-        email = (request.data.get("email") or "").strip().lower()
-        password = request.data.get("password") or ""
+        email = request.data.get("email")
+        password = request.data.get("password")
+        email = email.strip().lower() if isinstance(email, str) else ""
+        password = password if isinstance(password, str) else ""
         if not email or not password:
             return Response({"error": "Faltan credenciales"}, status=status.HTTP_400_BAD_REQUEST)
+        clave_intentos = "admin-login:" + hashlib.sha256(email.encode("utf-8")).hexdigest()
+        if cache.get(clave_intentos, 0) >= _MAX_INTENTOS:
+            return Response({"error": "Demasiados intentos fallidos. Espera unos minutos y vuelve a intentarlo."},
+                            status=status.HTTP_429_TOO_MANY_REQUESTS)
         u = Usuario.objects.filter(email=email).first()
         if u is None:
             _password_valida(password, _HASH_FICTICIO.decode())
+            _contar_fallo(clave_intentos)
             return Response(_CREDENCIALES_INVALIDAS, status=status.HTTP_401_UNAUTHORIZED)
         # Mismo mensaje para "no es admin" y "clave incorrecta": no se revela que el correo existe
         if not _password_valida(password, u.password_hash) or u.rol != "ADMIN":
+            _contar_fallo(clave_intentos)
             return Response(_CREDENCIALES_INVALIDAS, status=status.HTTP_401_UNAUTHORIZED)
+        cache.delete(clave_intentos)
         token = secrets.token_hex(16)
-        u.session_token = _hash_token(token)
-        u.session_expira = timezone.now() + _DURACION_SESION
-        u.save(update_fields=["session_token", "session_expira"])
+        u.admin_session_token = _hash_token(token)
+        u.admin_session_expira = timezone.now() + _DURACION_SESION
+        u.save(update_fields=["admin_session_token", "admin_session_expira"])
         return Response({"id": u.id_usuario, "nombre": u.nombre, "email": u.email, "rol": u.rol,
                          "token": token})
 
 
-class AdminCatalogoUpdateView(APIView):
-    """PATCH /api/admin/catalogo/<id>/  actualiza campos (incluye `publicada`)."""
+# Lo que acepta el admin al editar una especie: (tipo, minimo, maximo). Los textos se miden en caracteres.
+CAMPOS_CATALOGO = {
+    "nombre_comun": ("texto", 1, 100),
+    "nombre_cientifico": ("texto", 2, 150),
+    "frecuencia_riego_dias": ("entero", 1, 365),
+    "frecuencia_sol_horas": ("entero", 0, 24),
+    "temperatura_min_c": ("entero", -50, 60),
+    "temperatura_max_c": ("entero", -50, 60),
+    "es_toxica_mascotas": ("booleano", None, None),
+    "sprite_base_url": ("texto", 1, 255),
+    "publicada": ("booleano", None, None),
+}
+
+
+def _validar_catalogo(data, planta):
+    """Devuelve (valores, error, codigo). Antes se copiaba cualquier cosa con setattr y salian 500 (QA-10) o un
+    nombre cientifico que solo cambiaba mayusculas dejaba dos filas iguales para Spring y rompia los escaneos (QA-11)."""
+    valores = {}
+    for campo, (tipo, minimo, maximo) in CAMPOS_CATALOGO.items():
+        if campo not in data:
+            continue
+        valor = data[campo]
+        if campo == "sprite_base_url" and (valor is None or valor == ""):
+            continue  # sin imagen: se deja la que tenia (la columna no admite vacio)
+        if tipo == "texto":
+            valor = valor.strip() if isinstance(valor, str) else None
+            if not valor or not minimo <= len(valor) <= maximo:
+                return None, f"{campo} debe ser un texto de {minimo} a {maximo} caracteres", 400
+            if "\x00" in valor:
+                return None, f"{campo} tiene caracteres no validos", 400
+        elif tipo == "entero":
+            if not _es_entero(valor, minimo, maximo):
+                return None, f"{campo} debe ser un entero entre {minimo} y {maximo}", 400
+        elif not isinstance(valor, bool):
+            return None, f"{campo} debe ser verdadero o falso", 400
+        valores[campo] = valor
+    minima = valores.get("temperatura_min_c", planta.temperatura_min_c)
+    maxima = valores.get("temperatura_max_c", planta.temperatura_max_c)
+    if minima is not None and maxima is not None and minima > maxima:
+        return None, "temperatura_min_c no puede ser mayor que temperatura_max_c", 400
+    nombre = valores.get("nombre_cientifico")
+    if nombre is not None and PlantaCatalogo.objects.filter(nombre_cientifico__iexact=nombre).exclude(pk=planta.pk).exists():
+        return None, f"Ya existe otra especie con el nombre cientifico {nombre} (sin distinguir mayusculas)", 409
+    return valores, None, None
+
+
+class AdminCatalogoListView(AdminAPIView):
+    """GET /api/admin/catalogo/  todas las especies, publicadas o no (el catalogo publico solo muestra las publicadas)."""
+
+    def get(self, request):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        from .serializers import PlantaCatalogoSerializer
+        qs = PlantaCatalogo.objects.all().prefetch_related("cuidadoseccion_set").order_by("nombre_comun")
+        return Response(PlantaCatalogoSerializer(qs, many=True).data)
+
+
+class AdminCatalogoUpdateView(AdminAPIView):
+    """PATCH /api/admin/catalogo/<id>/  actualiza campos (incluye `publicada`) con validacion de tipo y rango."""
 
     parser_classes = [JSONParser]
 
-    CAMPOS = [
-        "nombre_comun", "nombre_cientifico", "frecuencia_riego_dias",
-        "frecuencia_sol_horas", "temperatura_min_c", "temperatura_max_c",
-        "es_toxica_mascotas", "sprite_base_url", "publicada",
-    ]
+    CAMPOS = list(CAMPOS_CATALOGO)
 
     def patch(self, request, pk):
         admin = _admin_desde_request(request)
@@ -118,16 +223,25 @@ class AdminCatalogoUpdateView(APIView):
             planta = PlantaCatalogo.objects.get(pk=pk)
         except PlantaCatalogo.DoesNotExist:
             return Response({"error": "Especie no encontrada"}, status=status.HTTP_404_NOT_FOUND)
-        for campo in self.CAMPOS:
-            if campo in request.data:
-                setattr(planta, campo, request.data[campo])
+        valores, error, codigo = _validar_catalogo(request.data, planta)
+        if error:
+            return Response({"error": error}, status=codigo)
+        for campo, valor in valores.items():
+            setattr(planta, campo, valor)
         planta.updated_at = timezone.now()
-        planta.save(update_fields=[c for c in self.CAMPOS if c in request.data] + ["updated_at"])
+        try:
+            planta.save(update_fields=list(valores) + ["updated_at"])
+        except IntegrityError:
+            return Response({"error": "Ya existe otra especie con ese nombre cientifico"}, status=status.HTTP_409_CONFLICT)
         return Response({"ok": True, "id_catalogo": planta.id_catalogo})
 
 
-class AdminEventoCreateView(APIView):
-    """POST /api/admin/eventos/  crea un evento ACTIVO."""
+SEVERIDADES_EVENTO = [codigo for codigo, _ in EventoDesastre.SEVERIDADES]
+
+
+class AdminEventoCreateView(AdminAPIView):
+    """POST /api/admin/eventos/  crea un evento: ACTIVO si ya empezo, PROGRAMADO si empieza mas adelante (Spring lo
+    activa a su hora). La region debe existir (QA-17) y solo puede haber un evento a la vez en la misma ventana."""
 
     def post(self, request):
         admin = _admin_desde_request(request)
@@ -136,6 +250,8 @@ class AdminEventoCreateView(APIView):
         data = request.data
         try:
             codigo_tipo = data["tipo_evento"]
+            if not isinstance(codigo_tipo, str):
+                return Response({"error": "tipo_evento debe ser un texto"}, status=status.HTTP_400_BAD_REQUEST)
             tipo = TipoDesastre.objects.filter(codigo=codigo_tipo, activo=True).first()
             if tipo is None:
                 return Response(
@@ -153,50 +269,93 @@ class AdminEventoCreateView(APIView):
             if fin <= inicio:
                 return Response({"error": "fecha_fin debe ser posterior a fecha_inicio"},
                                 status=status.HTTP_400_BAD_REQUEST)
-            # Solo un evento a la vez: hasta que el actual termine o se cancele no se lanza otro
-            vigente = EventoDesastre.objects.filter(estado="ACTIVO", fecha_fin__gt=timezone.now()).first()
+            severidad = data.get("severidad", "MODERADO")
+            if severidad not in SEVERIDADES_EVENTO:
+                return Response({"error": "severidad no valida: " + ", ".join(SEVERIDADES_EVENTO)},
+                                status=status.HTTP_400_BAD_REQUEST)
+            mensaje = data["mensaje_notificacion"]
+            if not isinstance(mensaje, str) or not mensaje.strip() or len(mensaje) > 1000:
+                return Response({"error": "mensaje_notificacion es obligatorio (maximo 1000 caracteres)"},
+                                status=status.HTTP_400_BAD_REQUEST)
+            codigo_region = data.get("region") or "GLOBAL"
+            # La region debe existir: antes un nombre escrito a mano creaba una region nueva y activa para todos (QA-17)
+            region = Region.objects.filter(codigo=codigo_region).first() if isinstance(codigo_region, str) else None
+            if region is None:
+                return Response({"error": f"Region no valida: {codigo_region}"}, status=status.HTTP_400_BAD_REQUEST)
+            # Solo un evento a la vez: ninguno ACTIVO o PROGRAMADO puede cruzarse con esta ventana
+            vigente = EventoDesastre.objects.filter(
+                estado__in=["ACTIVO", "PROGRAMADO"], fecha_fin__gt=max(inicio, _ahora_como(inicio)), fecha_inicio__lt=fin,
+            ).first()
             if vigente is not None:
                 return Response(
-                    {"error": "Ya hay un evento en curso. Cancelalo o espera a que termine antes de lanzar otro.",
+                    {"error": "Ya hay un evento en curso o programado en esas fechas. Cancelalo o elige otras fechas.",
                      "id_desastre_activo": vigente.id_desastre},
                     status=status.HTTP_409_CONFLICT,
                 )
-            codigo_region = data.get("region") or "GLOBAL"
-            # Si la region no existe todavia, se crea: el panel ofrece nombres libres
-            region, _ = Region.objects.get_or_create(codigo=codigo_region, defaults={"nombre": codigo_region})
+            # Un evento que empieza mas adelante nace PROGRAMADO: antes nacia ACTIVO y bloqueaba lanzar otro hoy (QA-18)
+            estado_inicial = "PROGRAMADO" if inicio > _ahora_como(inicio) else "ACTIVO"
             evento = EventoDesastre.objects.create(
                 id_creador=admin,
                 id_tipo_desastre=tipo,
                 id_region=region,
-                mensaje_notificacion=data["mensaje_notificacion"],
+                mensaje_notificacion=mensaje.strip(),
                 fecha_inicio=data["fecha_inicio"],
                 fecha_fin=data["fecha_fin"],
-                estado="ACTIVO",
-                severidad=data.get("severidad", "MODERADO"),
+                estado=estado_inicial,
+                severidad=severidad,
             )
         except (KeyError, ValueError, TypeError) as exc:
             return Response({"error": f"Datos invalidos: {exc}"}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"id_desastre": evento.id_desastre, "estado": evento.estado}, status=status.HTTP_201_CREATED)
 
 
-class AdminEventoFinalizarView(APIView):
-    """PATCH /api/admin/eventos/<id>/  marca el evento como FINALIZADO."""
+def _ahora_como(referencia):
+    """La hora actual con o sin zona, igual que la fecha con la que se compara (el panel manda las dos formas)."""
+    ahora = timezone.now()
+    return timezone.make_naive(ahora) if timezone.is_naive(referencia) else ahora
+
+
+class AdminEventoFinalizarView(AdminAPIView):
+    """PATCH /api/admin/eventos/<id>/  CANCELA el evento: termina ya y SIN danos (QA-07).
+
+    Antes quedaba FINALIZADO sin procesar y Spring danaba todas las plantas no prevenidas, incluso de un evento que
+    aun no habia empezado. Ahora queda FINALIZADO y procesado (Spring no aplica resultados: nadie pierde salud ni
+    gana premio) y las plantas que se habian prevenido vuelven a estar sin proteger. Solo acepta
+    {"estado": "FINALIZADO"} o cuerpo vacio."""
 
     def patch(self, request, pk):
         admin = _admin_desde_request(request)
         if admin is None:
             return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
-        try:
-            evento = EventoDesastre.objects.get(pk=pk)
-        except EventoDesastre.DoesNotExist:
-            return Response({"error": "Evento no encontrado"}, status=status.HTTP_404_NOT_FOUND)
-        evento.estado = request.data.get("estado", "FINALIZADO")
-        evento.updated_at = timezone.now()
-        evento.save(update_fields=["estado", "updated_at"])
-        return Response({"id_desastre": evento.id_desastre, "estado": evento.estado})
+        if request.data.get("estado", "FINALIZADO") != "FINALIZADO":
+            return Response({"error": "Solo se puede cancelar un evento (estado FINALIZADO)"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            evento = EventoDesastre.objects.select_for_update().filter(pk=pk).first()
+            if evento is None:
+                return Response({"error": "Evento no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+            if evento.estado == "FINALIZADO":
+                # Ya termino (o ya se cancelo): no se toca, ni se le quitan resultados que Spring ya aplico
+                return Response({"id_desastre": evento.id_desastre, "estado": evento.estado, "cancelado": False})
+            ahora = _ahora_como(evento.fecha_fin)
+            evento.estado = "FINALIZADO"
+            evento.procesado = True
+            if evento.fecha_fin > ahora:
+                evento.fecha_fin = ahora
+            if evento.fecha_inicio > evento.fecha_fin:
+                evento.fecha_inicio = evento.fecha_fin
+            evento.updated_at = timezone.now()
+            evento.save(update_fields=["estado", "procesado", "fecha_inicio", "fecha_fin", "updated_at"])
+            prevenidas = PlantaUsuario.objects.filter(esta_refugiada=True)
+            region = evento.id_region
+            if region is not None and region.codigo != "GLOBAL":
+                prevenidas = prevenidas.filter(id_usuario__id_region=region)
+            liberadas = prevenidas.update(esta_refugiada=False, refugiada_desde=None)
+        return Response({"id_desastre": evento.id_desastre, "estado": evento.estado, "cancelado": True,
+                         "plantas_sin_proteccion": liberadas})
 
 
-class AdminStatsView(APIView):
+class AdminStatsView(AdminAPIView):
     """GET /api/admin/stats/  cifras reales del dashboard (todo sale de la base de datos)."""
 
     def get(self, request):
@@ -284,18 +443,21 @@ def _validar_mision(data, parcial):
             return None, "El titulo es obligatorio (maximo 100 caracteres)"
         valores["titulo"] = titulo
     if not parcial or "tipo" in data:
-        if data.get("tipo") not in Mision.TIPOS:
+        if not isinstance(data.get("tipo"), str) or data.get("tipo") not in Mision.TIPOS:
             return None, "Tipo de mision no valido: " + ", ".join(Mision.TIPOS)
         valores["tipo"] = data["tipo"]
     enteros = (("meta", 1), ("recompensa_monedas", 0), ("recompensa_xp", 0), ("orden", 0))
     for campo, minimo in enteros:
         if campo in data or (not parcial and campo == "meta"):
             valor = data.get(campo)
-            if isinstance(valor, bool) or not isinstance(valor, int) or valor < minimo:
-                return None, f"{campo} debe ser un entero >= {minimo}"
+            if not _es_entero(valor, minimo):
+                return None, f"{campo} debe ser un entero entre {minimo} y {ENTERO_MAX}"
             valores[campo] = valor
     if "descripcion" in data:
-        valores["descripcion"] = data["descripcion"] or None
+        descripcion = data["descripcion"]
+        if descripcion is not None and not isinstance(descripcion, str):
+            return None, "descripcion debe ser un texto"
+        valores["descripcion"] = (descripcion or "").strip()[:500] or None
     if "activa" in data:
         if not isinstance(data["activa"], bool):
             return None, "activa debe ser verdadero o falso"
@@ -303,7 +465,7 @@ def _validar_mision(data, parcial):
     return valores, None
 
 
-class AdminMisionListCreateView(APIView):
+class AdminMisionListCreateView(AdminAPIView):
     """GET /api/admin/misiones/ lista todas (activas e inactivas); POST crea una mision."""
 
     def get(self, request):
@@ -321,7 +483,7 @@ class AdminMisionListCreateView(APIView):
         return Response(_mision_a_dict(mision), status=status.HTTP_201_CREATED)
 
 
-class AdminMisionDetailView(APIView):
+class AdminMisionDetailView(AdminAPIView):
     """PATCH /api/admin/misiones/<id>/ edita; para quitarla se envia {"activa": false} (no se borra,
     asi se conserva el progreso de los usuarios y se puede reactivar)."""
 
@@ -427,11 +589,11 @@ def _validar_logro(data, parcial, actual=None):
             valores[campo] = texto
     if not parcial or "rareza" in data:
         rareza = data.get("rareza", "COMUN")
-        if rareza not in Logro.RAREZAS:
+        if not isinstance(rareza, str) or rareza not in Logro.RAREZAS:
             return None, "Rareza no valida: " + ", ".join(Logro.RAREZAS)
         valores["rareza"] = rareza
     if not parcial or "condicion" in data:
-        if data.get("condicion") not in Logro.CONDICIONES:
+        if not isinstance(data.get("condicion"), str) or data.get("condicion") not in Logro.CONDICIONES:
             return None, "Condicion no valida: " + ", ".join(Logro.CONDICIONES)
         valores["condicion"] = data["condicion"]
     enteros = (("meta", 1, LIMITES_LOGRO["meta_max"]), ("recompensa_xp", 0, LIMITES_LOGRO["recompensa_xp_max"]),
@@ -460,7 +622,7 @@ def _validar_logro(data, parcial, actual=None):
     return valores, None
 
 
-class AdminLogroListCreateView(APIView):
+class AdminLogroListCreateView(AdminAPIView):
     """GET /api/admin/logros/ lista todos (activos e inactivos) con `desbloqueos`; POST crea uno."""
 
     def get(self, request):
@@ -484,7 +646,7 @@ class AdminLogroListCreateView(APIView):
         return Response(_logro_a_dict(logro), status=status.HTTP_201_CREATED)
 
 
-class AdminLogroDetailView(APIView):
+class AdminLogroDetailView(AdminAPIView):
     """PATCH /api/admin/logros/<id>/ edita; para quitarlo se envia {"activo": false}. Nunca se borra (se
     conserva el progreso de los usuarios) y no se toca logros_usuario: los ya desbloqueados siguen asi."""
 
@@ -513,7 +675,7 @@ class AdminLogroDetailView(APIView):
         return Response(cuerpo)
 
 
-class AdminLogroOpcionesView(APIView):
+class AdminLogroOpcionesView(AdminAPIView):
     """GET /api/admin/logros/opciones/ lo que necesita el formulario: condiciones (con su explicacion y
     parametro), rarezas, iconos sugeridos y limites."""
 
@@ -553,7 +715,7 @@ def _parametro_a_dict(p):
     return {"clave": p.clave, "valor": p.valor, "descripcion": p.descripcion}
 
 
-class AdminParametrosView(APIView):
+class AdminParametrosView(AdminAPIView):
     """GET /api/admin/parametros/  los valores ajustables del juego (costo de revivir, plazos...)."""
 
     def get(self, request):
@@ -563,7 +725,7 @@ class AdminParametrosView(APIView):
         return Response([_parametro_a_dict(p) for p in filas])
 
 
-class AdminParametroDetailView(APIView):
+class AdminParametroDetailView(AdminAPIView):
     """PATCH /api/admin/parametros/<clave>/  {valor} cambia un parametro dentro de su rango."""
 
     def patch(self, request, clave):
@@ -626,7 +788,7 @@ def _validar_regla(data):
     return valores, None
 
 
-class AdminReglasView(APIView):
+class AdminReglasView(AdminAPIView):
     """GET /api/admin/reglas/  lo que paga cada accion del juego, en hojas y XP."""
 
     def get(self, request):
@@ -635,7 +797,7 @@ class AdminReglasView(APIView):
         return Response([_regla_a_dict(r) for r in ReglaProgreso.objects.order_by("id_regla")])
 
 
-class AdminReglaDetailView(APIView):
+class AdminReglaDetailView(AdminAPIView):
     """PATCH /api/admin/reglas/<id>/  {xp, monedas, tope_diario, activa}. El motivo no se cambia."""
 
     def patch(self, request, pk):
@@ -667,6 +829,9 @@ def _tipo_a_dict(t):
 def _validar_tipo(data, tipo):
     """Devuelve (valores, error) con lo que se puede cambiar de un tipo de evento."""
     valores = {}
+    for campo in ("descripcion", "consejo"):
+        if campo in data and data[campo] is not None and not isinstance(data[campo], str):
+            return None, f"{campo} debe ser un texto"
     if "descripcion" in data:
         texto = str(data.get("descripcion") or "").strip()
         if len(texto) > 2000:
@@ -691,7 +856,7 @@ def _validar_tipo(data, tipo):
     return valores, None
 
 
-class AdminTiposDesastreView(APIView):
+class AdminTiposDesastreView(AdminAPIView):
     """GET /api/admin/tipos-desastre/  los tipos de evento con su texto, consejo, imagen y salud final."""
 
     def get(self, request):
@@ -700,7 +865,7 @@ class AdminTiposDesastreView(APIView):
         return Response([_tipo_a_dict(t) for t in TipoDesastre.objects.order_by("id_tipo_desastre")])
 
 
-class AdminTipoDesastreDetailView(APIView):
+class AdminTipoDesastreDetailView(AdminAPIView):
     """PATCH /api/admin/tipos-desastre/<id>/  cambia el texto, el consejo, la salud final o la imagen
     (campo `imagen`, un archivo; por eso acepta tambien formularios con archivos)."""
 
@@ -767,22 +932,25 @@ def _validar_item(data, parcial):
     """Devuelve (valores, error). Con parcial=True solo valida los campos que llegan."""
     valores = {}
     if not parcial or "nombre" in data:
-        nombre = str(data.get("nombre") or "").strip()
+        nombre = data.get("nombre")
+        nombre = nombre.strip() if isinstance(nombre, str) else ""
         if not nombre or len(nombre) > 100:
             return None, "El nombre es obligatorio (maximo 100 caracteres)"
         valores["nombre"] = nombre
     if not parcial or "precio_monedas" in data:
         precio = _entero(data.get("precio_monedas"))
-        if isinstance(precio, bool) or not isinstance(precio, int) or precio < 0:
-            return None, "El precio debe ser un entero >= 0"
+        if not _es_entero(precio, 0, 1000000):
+            return None, "El precio debe ser un entero entre 0 y 1000000"
         valores["precio_monedas"] = precio
     if "nivel_requerido" in data or not parcial:
         nivel = _entero(data.get("nivel_requerido", 1))
-        if isinstance(nivel, bool) or not isinstance(nivel, int) or nivel < 1:
-            return None, "El nivel requerido debe ser un entero >= 1"
+        if not _es_entero(nivel, 1, 1000):
+            return None, "El nivel requerido debe ser un entero entre 1 y 1000"
         valores["nivel_requerido"] = nivel
     if "descripcion" in data:
-        descripcion = str(data["descripcion"] or "").strip()
+        if data["descripcion"] is not None and not isinstance(data["descripcion"], str):
+            return None, "La descripcion debe ser un texto"
+        descripcion = (data["descripcion"] or "").strip()
         if len(descripcion) > 200:
             return None, "La descripcion admite hasta 200 caracteres"
         valores["descripcion"] = descripcion or None
@@ -838,7 +1006,7 @@ def _vista_principal(tema):
     return ""
 
 
-class AdminTiendaListCreateView(APIView):
+class AdminTiendaListCreateView(AdminAPIView):
     """GET /api/admin/tienda/ lista todos los productos (activos o no) con las escenas de cada fondo;
     POST (multipart) agrega un tema de fondo a la venta: nombre, precio_monedas, nivel_requerido, descripcion
     y las imagenes dia, tarde y noche (GIF/WebP/APNG animados o tiras PNG con cuadros_<momento>)."""
@@ -873,7 +1041,7 @@ class AdminTiendaListCreateView(APIView):
         return Response(_item_a_dict(item, _variantes_por_tema({tema.id_tema})), status=status.HTTP_201_CREATED)
 
 
-class AdminTiendaDetailView(APIView):
+class AdminTiendaDetailView(AdminAPIView):
     """PATCH /api/admin/tienda/<id>/ cambia nombre, descripcion, precio, nivel o activo, y puede reemplazar las
     imagenes de dia, tarde o noche (multipart). Quitar un producto es {"activo": false}: no se borra, asi quienes
     ya lo compraron lo conservan y se puede reactivar."""
@@ -892,8 +1060,6 @@ class AdminTiendaDetailView(APIView):
         escenas, error = _procesar_escenas(request)
         if error:
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
-        if valores.get("activo") and item.tipo == "MACETA":
-            return Response({"error": "Las macetas aun no estan disponibles"}, status=status.HTTP_400_BAD_REQUEST)
         if valores.get("activo") and item.tipo == "FONDO" and not item.id_tema:
             return Response({"error": "Este fondo no tiene escenas: no se puede poner a la venta"}, status=status.HTTP_400_BAD_REQUEST)
         if escenas and not item.id_tema:
@@ -917,7 +1083,7 @@ class AdminTiendaDetailView(APIView):
         return Response(_item_a_dict(item, _variantes_por_tema({item.id_tema} if item.id_tema else set())))
 
 
-class AdminEventoEfectosView(APIView):
+class AdminEventoEfectosView(AdminAPIView):
     """GET /api/admin/eventos/<id>/efectos/  que le paso a cada planta cuando termino el desastre:
     resumen (salvadas, danadas, destruidas, refugiadas, XP dado) y una fila por planta."""
 

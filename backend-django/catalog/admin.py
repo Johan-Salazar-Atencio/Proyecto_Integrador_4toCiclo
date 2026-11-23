@@ -87,13 +87,23 @@ class EventoDesastreAdmin(admin.ModelAdmin):
     inlines = [RegistroDesastreInline]
     actions = ["activar", "finalizar"]
 
+    # QA-21: no se borra (se perderia el historial de los usuarios); se desactiva o se cancela
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_actions(self, request):
+        acciones = super().get_actions(request)
+        acciones.pop("delete_selected", None)
+        return acciones
+
     @admin.action(description="Marcar como ACTIVO")
     def activar(self, request, queryset):
         queryset.update(estado="ACTIVO")
 
-    @admin.action(description="Marcar como FINALIZADO")
+    @admin.action(description="Cancelar (terminar sin danos)")
     def finalizar(self, request, queryset):
-        queryset.update(estado="FINALIZADO")
+        # QA-07: como el panel, cancelar = FINALIZADO y procesado, para que Spring no dane plantas
+        queryset.exclude(estado="FINALIZADO").update(estado="FINALIZADO", procesado=True)
 
 
 @admin.register(ItemTienda)
@@ -101,6 +111,15 @@ class ItemTiendaAdmin(admin.ModelAdmin):
     list_display = ("id_item", "nombre", "tipo", "precio_monedas", "nivel_requerido")
     list_filter = ("tipo",)
     search_fields = ("nombre",)
+
+    # QA-21: no se borra (se perderia el historial de los usuarios); se desactiva o se cancela
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_actions(self, request):
+        acciones = super().get_actions(request)
+        acciones.pop("delete_selected", None)
+        return acciones
 
 
 @admin.register(Logro)
@@ -267,6 +286,15 @@ class MisionAdmin(admin.ModelAdmin):
     list_display = ("id_mision", "titulo", "tipo", "meta", "recompensa_monedas", "recompensa_xp", "activa")
     list_filter = ("tipo", "activa", "predeterminada")
     search_fields = ("titulo", "descripcion")
+
+    # QA-21: no se borra (se perderia el historial de los usuarios); se desactiva o se cancela
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_actions(self, request):
+        acciones = super().get_actions(request)
+        acciones.pop("delete_selected", None)
+        return acciones
 
 
 @admin.register(ParametroJuego)

@@ -4,6 +4,7 @@ from . import admin_views
 
 urlpatterns = [
     path("login/", admin_views.AdminLoginView.as_view(), name="admin-login"),
+    path("catalogo/", admin_views.AdminCatalogoListView.as_view(), name="admin-catalogo-list"),
     path("catalogo/<int:pk>/", admin_views.AdminCatalogoUpdateView.as_view(), name="admin-catalogo-update"),
     path("eventos/", admin_views.AdminEventoCreateView.as_view(), name="admin-evento-create"),
     path("eventos/<int:pk>/", admin_views.AdminEventoFinalizarView.as_view(), name="admin-evento-finalize"),

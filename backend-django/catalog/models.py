@@ -77,6 +77,9 @@ class Usuario(models.Model):
     foto_url = models.CharField(max_length=500, null=True, blank=True)
     # SHA-256 del token de la sesion activa (Flyway V7/V11; la comparte con Spring)
     session_token = models.CharField(max_length=64, null=True, blank=True)
+    # Sesion del panel admin, aparte de la de la app (V31, QA-19)
+    admin_session_token = models.CharField(max_length=64, null=True, blank=True)
+    admin_session_expira = models.DateTimeField(null=True, blank=True)
     session_expira = models.DateTimeField(null=True, blank=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -231,7 +234,7 @@ class EventoDesastre(models.Model):
 
 
 class ItemTienda(models.Model):
-    TIPOS = [("MACETA", "Maceta"), ("FONDO", "Fondo"), ("ABONO", "Abono")]
+    TIPOS = [("MACETA", "Maceta"), ("FONDO", "Fondo"), ("ABONO", "Abono"), ("INVERNADERO", "Invernadero")]
 
     id_item = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=100)
@@ -451,6 +454,7 @@ class PlantaUsuario(models.Model):
     apodo = models.CharField(max_length=50, null=True, blank=True)
     etapa_crecimiento = models.CharField(max_length=20, default="SEMILLA")
     esta_refugiada = models.BooleanField(default=False)
+    refugiada_desde = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         managed = False
@@ -466,7 +470,8 @@ class RegistroDesastreUsuario(models.Model):
     """Resultado de un desastre para una planta (lo escribe Spring al terminar el evento)."""
 
     id_registro = models.AutoField(primary_key=True)
-    id_desastre = models.ForeignKey(EventoDesastre, on_delete=models.CASCADE, db_column="id_desastre")
+    # PROTECT como el RESTRICT de V31 (QA-21): borrar un evento no se lleva los resultados de los usuarios
+    id_desastre = models.ForeignKey(EventoDesastre, on_delete=models.PROTECT, db_column="id_desastre")
     id_planta_usuario = models.ForeignKey(PlantaUsuario, on_delete=models.CASCADE, db_column="id_planta_usuario")
     estado_final = models.CharField(max_length=30)
     dano_salud_aplicado = models.IntegerField(default=0)

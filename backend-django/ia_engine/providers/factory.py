@@ -96,9 +96,18 @@ def es_indisponibilidad(exc: Exception) -> bool:
     return False
 
 
+def _elegido(name: str | None) -> str:
+    """El motor pedido; "auto" (o nada) en el pedido no pisa un IA_PROVIDER fijo del servidor (QA-15). Antes Spring
+    mandaba provider=auto y con IA_PROVIDER=gemini se probaba primero la IA de WebUI (15 s de espera)."""
+    pedido = (name or "").strip().lower()
+    if pedido and pedido != "auto":
+        return pedido
+    return (settings.IA_PROVIDER or "auto").strip().lower()
+
+
 def get_provider(name: str | None = None) -> IaProvider:
     """Proveedor principal segun configuracion (sin cadena de respaldo)."""
-    name = (name or settings.IA_PROVIDER or "auto").strip().lower()
+    name = _elegido(name)
 
     if name != "auto":
         if name not in _REGISTRO:
@@ -121,7 +130,7 @@ def get_provider_chain(name: str | None = None) -> list[IaProvider]:
     motor no este disponible (por ejemplo, la IA local institucional caida
     -> cae a Gemini). `mock` solo entra si no hay ningun motor real.
     """
-    name = (name or settings.IA_PROVIDER or "auto").strip().lower()
+    name = _elegido(name)
 
     if name != "auto" and name not in _REGISTRO:
         raise ValueError(f"Proveedor de IA desconocido: {name}")

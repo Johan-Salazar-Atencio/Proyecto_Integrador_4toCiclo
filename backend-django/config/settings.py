@@ -142,9 +142,12 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.FormParser",
     ],
     "UNAUTHENTICATED_USER": None,
-    # Limite de uso del motor de IA (cada llamada gasta cuota del proveedor)
+    # Limite de uso del motor de IA (cada llamada gasta cuota del proveedor). Spring es el unico cliente, asi que el
+    # limite es de TODA la app (QA-08): 30/min cortaba el escaneo 31 de un salon entero. Spring ademas limita por
+    # usuario (app.escaneo.max-por-minuto) y avisa con 429 en vez de "Planta desconocida".
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.ScopedRateThrottle"],
-    "DEFAULT_THROTTLE_RATES": {"ia": os.getenv("IA_LIMITE", "30/min")},
+    "DEFAULT_THROTTLE_RATES": {"ia": os.getenv("IA_LIMITE", "120/min")},
+    "EXCEPTION_HANDLER": "config.errores.manejar_excepcion",
 }
 
 # La web llama a Django a traves del proxy de Vite (mismo origen): CORS no hace falta

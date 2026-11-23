@@ -17,8 +17,8 @@ def _usuario(rol="ADMIN", token=TOKEN, expira_en=timedelta(days=1)):
     return Usuario(
         id_usuario=8,
         rol=rol,
-        session_token=admin_views._hash_token(token) if token else None,
-        session_expira=timezone.now() + expira_en,
+        admin_session_token=admin_views._hash_token(token) if token else None,
+        admin_session_expira=timezone.now() + expira_en,
     )
 
 
@@ -69,7 +69,7 @@ class CrearEventoTiposTests(SimpleTestCase):
         ), patch.object(
             admin_views.EventoDesastre.objects, "filter", return_value=MagicMock(first=lambda: None)
         ), patch.object(
-            admin_views.Region.objects, "get_or_create", return_value=(region, region_creada)
+            admin_views.Region.objects, "filter", return_value=MagicMock(first=lambda: None if region_creada is None else region)
         ), patch.object(
             admin_views.EventoDesastre.objects, "create", return_value=MagicMock(id_desastre=5, estado="ACTIVO")
         ) as crear:
@@ -105,6 +105,38 @@ class CrearEventoTiposTests(SimpleTestCase):
         respuesta, crear = self._post(self.DATOS, tipo=None)
         self.assertEqual(respuesta.status_code, 400)
         crear.assert_not_called()
+
+    def test_region_inexistente_da_400_y_no_se_crea(self):
+        """QA-17: antes una region escrita a mano se creaba activa para todos."""
+        from .models import TipoDesastre
+
+        tipo = TipoDesastre(id_tipo_desastre=1, codigo="HUAYCO", nombre="Huayco")
+        respuesta, crear = self._post({**self.DATOS, "region": "zona inventada <b>"}, tipo=tipo, region_creada=None)
+        self.assertEqual(respuesta.status_code, 400)
+        crear.assert_not_called()
+
+    def test_severidad_o_mensaje_invalidos_dan_400(self):
+        from .models import TipoDesastre
+
+        tipo = TipoDesastre(id_tipo_desastre=1, codigo="HUAYCO", nombre="Huayco")
+        for datos in ({**self.DATOS, "severidad": "XYZ"}, {**self.DATOS, "mensaje_notificacion": []},
+                      {**self.DATOS, "tipo_evento": ["HUAYCO"]}):
+            respuesta, crear = self._post(datos, tipo=tipo)
+            self.assertEqual(respuesta.status_code, 400, datos)
+            crear.assert_not_called()
+
+    def test_un_evento_futuro_nace_programado(self):
+        """QA-18: un evento que empieza en 30 dias ya no nace ACTIVO."""
+        from datetime import timedelta
+
+        from .models import TipoDesastre
+
+        tipo = TipoDesastre(id_tipo_desastre=1, codigo="HUAYCO", nombre="Huayco")
+        inicio = timezone.now() + timedelta(days=30)
+        datos = {**self.DATOS, "fecha_inicio": inicio.isoformat(), "fecha_fin": (inicio + timedelta(hours=6)).isoformat()}
+        respuesta, crear = self._post(datos, tipo=tipo)
+        self.assertEqual(respuesta.status_code, 201)
+        self.assertEqual(crear.call_args.kwargs["estado"], "PROGRAMADO")
 
     def test_tipo_valido_guarda_solo_las_llaves(self):
         from .models import TipoDesastre
@@ -531,15 +563,16 @@ class AdminTiendaTests(SimpleTestCase):
         item.save.assert_called_once_with(update_fields=["asset_url"])
         self.assertEqual(item.asset_url, "/nueva_vista.png")
 
-    def test_una_maceta_no_se_puede_activar_todavia(self):
+    def test_una_maceta_desactivada_se_puede_volver_a_activar(self):
+        """QA-22: Spring vende macetas; antes el admin no podia reactivar una que habia desactivado."""
         from unittest.mock import MagicMock
 
         item = admin_views.ItemTienda(id_item=3, nombre="Maceta", tipo="MACETA", precio_monedas=80, activo=False)
         item.save = MagicMock()
         with patch.object(admin_views.ItemTienda.objects, "filter", return_value=MagicMock(first=lambda: item)):
             respuesta = self._llamar(admin_views.AdminTiendaDetailView, "patch", {"activo": True}, pk=3)
-        self.assertEqual(respuesta.status_code, 400)
-        item.save.assert_not_called()
+        self.assertEqual(respuesta.status_code, 200)
+        item.save.assert_called_once_with(update_fields=["activo"])
 
     def test_un_fondo_sin_tema_no_se_puede_activar(self):
         from unittest.mock import MagicMock
@@ -909,8 +942,10 @@ class EventoUnoALaVezTests(SimpleTestCase):
         vigente = mock.MagicMock(id_desastre=7)
         with mock.patch.object(admin_views, "_admin_desde_request", return_value=object()), \
              mock.patch.object(admin_views.TipoDesastre.objects, "filter") as tipo, \
+             mock.patch.object(admin_views.Region.objects, "filter") as region, \
              mock.patch.object(EventoDesastre.objects, "filter") as ev:
             tipo.return_value.first.return_value = object()
+            region.return_value.first.return_value = admin_views.Region(id_region=1, codigo="GLOBAL", nombre="Global")
             ev.return_value.first.return_value = vigente
             req = APIRequestFactory().post("/api/admin/eventos/", self._datos(), format="json")
             resp = admin_views.AdminEventoCreateView.as_view()(req)
@@ -1228,3 +1263,255 @@ class AdminLogrosTests(SimpleTestCase):
         self.assertEqual(respuesta.data["rarezas"], ["COMUN", "RARA", "EPICA", "LEGENDARIA"])
         self.assertIn("luna", respuesta.data["iconos"])
         self.assertEqual(len(respuesta.data["iconos"]), 21)
+
+
+class CuerposRarosEnElAdminTests(SimpleTestCase):
+    """QA-10: ningun endpoint del panel responde 500 con [], null, "x", 5 ni con tipos raros."""
+
+    RUTAS = [
+        (admin_views.AdminLoginView, "post", {}),
+        (admin_views.AdminMisionListCreateView, "post", {}),
+        (admin_views.AdminMisionDetailView, "patch", {"pk": 1}),
+        (admin_views.AdminLogroDetailView, "patch", {"pk": 1}),
+        (admin_views.AdminParametroDetailView, "patch", {"clave": "COSTO_REVIVIR"}),
+        (admin_views.AdminTiendaListCreateView, "post", {}),
+        (admin_views.AdminTiendaDetailView, "patch", {"pk": 10}),
+        (admin_views.AdminEventoCreateView, "post", {}),
+        (admin_views.AdminEventoFinalizarView, "patch", {"pk": 1}),
+        (admin_views.AdminReglaDetailView, "patch", {"pk": 3}),
+        (admin_views.AdminTipoDesastreDetailView, "patch", {"pk": 1}),
+        (admin_views.AdminCatalogoUpdateView, "patch", {"pk": 1}),
+    ]
+
+    def test_cuerpo_que_no_es_objeto_da_400_en_todas_las_rutas(self):
+        import json
+
+        for vista, metodo, kwargs in self.RUTAS:
+            for cuerpo in ([], None, "x", 5):
+                request = getattr(APIRequestFactory(), metodo)("/api/admin/x/", json.dumps(cuerpo), content_type="application/json")
+                with patch.object(admin_views, "_admin_desde_request", return_value=_usuario()):
+                    respuesta = vista.as_view()(request, **kwargs)
+                self.assertEqual(respuesta.status_code, 400, (vista.__name__, cuerpo))
+                self.assertIn("error", respuesta.data)
+
+    def test_login_con_correo_que_no_es_texto_da_400(self):
+        request = APIRequestFactory().post("/api/admin/login/", {"email": 5, "password": ["x"]}, format="json")
+        self.assertEqual(admin_views.AdminLoginView.as_view()(request).status_code, 400)
+
+    def test_condicion_no_hashable_en_un_logro_da_400(self):
+        from unittest.mock import MagicMock
+
+        logro = admin_views.Logro(id_logro=1, codigo="X", condicion="ESCANEOS_TOTAL", parametro=None)
+        for condicion in ([], {}):
+            request = APIRequestFactory().patch("/api/admin/logros/1/", {"condicion": condicion}, format="json")
+            with patch.object(admin_views, "_admin_desde_request", return_value=_usuario()), patch.object(
+                    admin_views.Logro.objects, "filter", return_value=MagicMock(first=lambda: logro)):
+                respuesta = admin_views.AdminLogroDetailView.as_view()(request, pk=1)
+            self.assertEqual(respuesta.status_code, 400)
+
+    def test_enteros_enormes_dan_400(self):
+        from unittest.mock import MagicMock
+
+        mision = admin_views.Mision(id_mision=1, titulo="Riego", tipo="RIEGO", meta=2, activa=True)
+        mision.save = MagicMock()
+        request = APIRequestFactory().patch("/api/admin/misiones/1/", {"meta": 2**40}, format="json")
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario()), patch.object(
+                admin_views.Mision.objects, "filter", return_value=MagicMock(first=lambda: mision)):
+            self.assertEqual(admin_views.AdminMisionDetailView.as_view()(request, pk=1).status_code, 400)
+        mision.save.assert_not_called()
+        valores, error = admin_views._validar_item({"precio_monedas": 2**40}, parcial=True)
+        self.assertIsNotNone(error)
+
+    def test_error_no_previsto_responde_json_sin_traza(self):
+        from config.errores import manejar_excepcion
+
+        respuesta = manejar_excepcion(RuntimeError("detalle interno"), {"view": None})
+        self.assertEqual(respuesta.status_code, 500)
+        self.assertEqual(respuesta.data, {"error": "Error interno del servidor"})
+
+
+class CatalogoAdminValidacionTests(SimpleTestCase):
+    """QA-10 y QA-11: editar una especie valida tipo y rango, y no deja dos nombres cientificos iguales."""
+
+    def _patch(self, datos, colision=False):
+        from unittest.mock import MagicMock
+
+        planta = admin_views.PlantaCatalogo(id_catalogo=1, nombre_comun="Rosa", nombre_cientifico="Rosa qaensis",
+                                            frecuencia_riego_dias=3, frecuencia_sol_horas=4, temperatura_min_c=10,
+                                            temperatura_max_c=30)
+        planta.save = MagicMock()
+        consulta = MagicMock()
+        consulta.exclude.return_value.exists.return_value = colision
+        request = APIRequestFactory().patch("/api/admin/catalogo/1/", datos, format="json")
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario()), patch.object(
+                admin_views.PlantaCatalogo.objects, "get", return_value=planta), patch.object(
+                admin_views.PlantaCatalogo.objects, "filter", return_value=consulta) as filtro:
+            respuesta = admin_views.AdminCatalogoUpdateView.as_view()(request, pk=1)
+        return respuesta, planta, filtro
+
+    def test_nombre_cientifico_que_solo_cambia_mayusculas_de_otra_da_409(self):
+        respuesta, planta, filtro = self._patch({"nombre_cientifico": "rosa qaensis"}, colision=True)
+        self.assertEqual(respuesta.status_code, 409)
+        planta.save.assert_not_called()
+        self.assertEqual(filtro.call_args.kwargs, {"nombre_cientifico__iexact": "rosa qaensis"})
+
+    def test_valores_raros_dan_400_y_no_guardan(self):
+        for datos in ({"nombre_cientifico": ""}, {"nombre_cientifico": None}, {"frecuencia_riego_dias": -5},
+                      {"frecuencia_riego_dias": "abc"}, {"publicada": "quizas"}, {"nombre_comun": "x" * 500},
+                      {"temperatura_min_c": 50, "temperatura_max_c": -10}, {"temperatura_min_c": 40}):
+            respuesta, planta, _ = self._patch(datos)
+            self.assertEqual(respuesta.status_code, 400, datos)
+            planta.save.assert_not_called()
+
+    def test_un_cambio_valido_se_guarda(self):
+        respuesta, planta, _ = self._patch({"nombre_comun": "  Rosa china ", "publicada": False})
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(planta.nombre_comun, "Rosa china")
+        planta.save.assert_called_once_with(update_fields=["nombre_comun", "publicada", "updated_at"])
+
+
+class CancelarEventoTests(SimpleTestCase):
+    """QA-07: cancelar desde el panel termina el evento SIN danos (procesado) y quita la prevencion."""
+
+    def _cancelar(self, evento, datos=None):
+        from unittest.mock import MagicMock
+
+        evento.save = MagicMock()
+        plantas = MagicMock()
+        plantas.filter.return_value = plantas
+        plantas.update.return_value = 3
+        request = APIRequestFactory().patch("/api/admin/eventos/5/", datos if datos is not None else {"estado": "FINALIZADO"},
+                                            format="json")
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario()), patch.object(
+                admin_views.EventoDesastre.objects, "select_for_update") as sfu, patch.object(
+                admin_views.PlantaUsuario.objects, "filter", return_value=plantas), patch.object(
+                admin_views.transaction, "atomic", return_value=MagicMock()):
+            sfu.return_value.filter.return_value.first.return_value = evento
+            respuesta = admin_views.AdminEventoFinalizarView.as_view()(request, pk=5)
+        return respuesta, plantas
+
+    def _evento(self, estado, empieza_en):
+        from datetime import timedelta
+
+        inicio = timezone.now() + empieza_en
+        return admin_views.EventoDesastre(id_desastre=5, estado=estado, procesado=False, fecha_inicio=inicio,
+                                          fecha_fin=inicio + timedelta(days=2), id_region=None)
+
+    def test_cancelar_un_evento_futuro_lo_deja_procesado_y_sin_ventana(self):
+        from datetime import timedelta
+
+        evento = self._evento("PROGRAMADO", timedelta(days=30))
+        respuesta, plantas = self._cancelar(evento)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTrue(respuesta.data["cancelado"])
+        self.assertEqual(evento.estado, "FINALIZADO")
+        self.assertTrue(evento.procesado)  # Spring no aplicara danos
+        self.assertLessEqual(evento.fecha_fin, timezone.now())
+        plantas.update.assert_called_once_with(esta_refugiada=False, refugiada_desde=None)
+
+    def test_cancelar_un_evento_en_curso_tampoco_dana(self):
+        from datetime import timedelta
+
+        evento = self._evento("ACTIVO", -timedelta(hours=1))
+        respuesta, _ = self._cancelar(evento)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTrue(evento.procesado)
+
+    def test_un_evento_ya_terminado_no_se_toca(self):
+        from datetime import timedelta
+
+        evento = self._evento("FINALIZADO", -timedelta(days=5))
+        respuesta, plantas = self._cancelar(evento)
+        self.assertFalse(respuesta.data["cancelado"])
+        self.assertFalse(evento.procesado)
+        evento.save.assert_not_called()
+        plantas.update.assert_not_called()
+
+    def test_otro_estado_da_400(self):
+        from datetime import timedelta
+
+        evento = self._evento("ACTIVO", -timedelta(hours=1))
+        respuesta, _ = self._cancelar(evento, {"estado": "XYZ"})
+        self.assertEqual(respuesta.status_code, 400)
+        evento.save.assert_not_called()
+
+
+class SesionPropiaDelPanelTests(SimpleTestCase):
+    """QA-19: el login del panel guarda su token aparte; la sesion de la app (session_token) no se toca."""
+
+    def test_login_no_pisa_la_sesion_de_la_app(self):
+        import bcrypt
+        from unittest.mock import MagicMock
+
+        clave = "clave-de-prueba-" + "x" * 4
+        u = Usuario(id_usuario=8, email="a@b.c", nombre="A", rol="ADMIN", session_token="token-de-la-app",
+                    password_hash=bcrypt.hashpw(clave.encode(), bcrypt.gensalt(4)).decode())
+        u.save = MagicMock()
+        request = APIRequestFactory().post("/api/admin/login/", {"email": "a@b.c", "password": clave}, format="json")
+        with patch.object(Usuario.objects, "filter", return_value=MagicMock(first=lambda: u)):
+            respuesta = admin_views.AdminLoginView.as_view()(request)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(u.session_token, "token-de-la-app")
+        self.assertEqual(u.admin_session_token, admin_views._hash_token(respuesta.data["token"]))
+        u.save.assert_called_once_with(update_fields=["admin_session_token", "admin_session_expira"])
+
+    def test_el_token_de_la_app_no_sirve_en_el_panel(self):
+        u = _usuario()
+        u.session_token = admin_views._hash_token("otro")
+        request = APIRequestFactory().get("/api/admin/stats/", HTTP_X_ADMIN_ID="8", HTTP_X_ADMIN_TOKEN="otro")
+        with patch.object(Usuario.objects, "get", return_value=u):
+            self.assertIsNone(admin_views._admin_desde_request(request))
+
+
+class CatalogoPublicoTests(SimpleTestCase):
+    """QA-20: el catalogo publico solo muestra especies publicadas; el panel lista todas en /api/admin/catalogo/."""
+
+    def test_lista_y_detalle_filtran_publicadas(self):
+        from unittest.mock import MagicMock
+
+        from . import views
+
+        consulta = MagicMock()
+        with patch.object(views.PlantaCatalogo.objects, "filter", return_value=consulta) as filtro:
+            vista = views.CatalogoListView()
+            vista.request = MagicMock(query_params={"q": "ro\x00sa"})
+            vista.get_queryset()
+        filtro.assert_called_once_with(publicada=True)
+        self.assertIn("publicada", str(views.CatalogoDetailView.queryset.query.where))
+
+    def test_ruta_admin_del_catalogo_registrada(self):
+        from django.urls import reverse
+
+        self.assertEqual(reverse("admin-catalogo-list"), "/api/admin/catalogo/")
+
+
+class BorradoProtegidoEnElAdminTests(SimpleTestCase):
+    """QA-21: el sitio /admin/ no deja borrar articulos, misiones ni eventos (se perdia el historial)."""
+
+    def test_sin_permiso_de_borrar_ni_accion_masiva(self):
+        from django.contrib import admin as sitio
+
+        from .models import EventoDesastre, ItemTienda, Mision, RegistroDesastreUsuario
+
+        for modelo in (ItemTienda, Mision, EventoDesastre):
+            modelo_admin = sitio.site._registry[modelo]
+            self.assertFalse(modelo_admin.has_delete_permission(None), modelo.__name__)
+        self.assertEqual(RegistroDesastreUsuario._meta.get_field("id_desastre").remote_field.on_delete.__name__, "PROTECT")
+
+
+class LimiteDeIntentosDelPanelTests(SimpleTestCase):
+    """QA-27: tras 5 claves equivocadas el login del panel responde 429."""
+
+    def test_quinto_fallo_bloquea_el_correo(self):
+        from unittest.mock import MagicMock
+
+        from django.core.cache import cache
+
+        cache.clear()
+        codigos = []
+        with patch.object(Usuario.objects, "filter", return_value=MagicMock(first=lambda: None)):
+            for i in range(6):
+                request = APIRequestFactory().post("/api/admin/login/", {"email": "x@y.z", "password": f"mala{i}"}, format="json")
+                codigos.append(admin_views.AdminLoginView.as_view()(request).status_code)
+        self.assertEqual(codigos, [401, 401, 401, 401, 401, 429])
+        cache.clear()

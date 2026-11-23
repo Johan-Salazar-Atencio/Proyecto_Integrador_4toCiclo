@@ -12,8 +12,10 @@ class CatalogoListView(generics.ListAPIView):
     serializer_class = PlantaCatalogoSerializer
 
     def get_queryset(self):
-        qs = PlantaCatalogo.objects.all().prefetch_related("cuidadoseccion_set")
-        q = self.request.query_params.get("q")
+        # Solo las publicadas, como Spring (QA-20); el panel admin lista todas en /api/admin/catalogo/
+        qs = PlantaCatalogo.objects.filter(publicada=True).prefetch_related("cuidadoseccion_set")
+        # Postgres no admite el caracter nulo en un texto: ?q=%00 daba 500 (QA-10)
+        q = (self.request.query_params.get("q") or "").replace("\x00", "").strip()
         if q:
             qs = qs.filter(nombre_comun__icontains=q) | qs.filter(
                 nombre_cientifico__icontains=q
@@ -25,7 +27,7 @@ class CatalogoListView(generics.ListAPIView):
 
 
 class CatalogoDetailView(generics.RetrieveAPIView):
-    queryset = PlantaCatalogo.objects.all().prefetch_related("cuidadoseccion_set")
+    queryset = PlantaCatalogo.objects.filter(publicada=True).prefetch_related("cuidadoseccion_set")
     serializer_class = PlantaCatalogoSerializer
 
 
