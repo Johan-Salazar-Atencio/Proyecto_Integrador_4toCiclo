@@ -325,19 +325,35 @@ public class ProgresoService {
         return hoy >= regla.getTopeDiario();
     }
 
-    /** Suma la regla al usuario y sube de nivel las veces que haga falta; devuelve {xp, monedas}. */
+    /** Tope de un premio suelto (regla, mision o logro), igual que el que acepta el admin para logros y reglas. */
+    static final int MAX_PREMIO = 100_000;
+
+    /**
+     * Suma la regla al usuario y sube de nivel las veces que haga falta; devuelve {xp, monedas}. QA-35: cada premio se
+     * recorta a [0, MAX_PREMIO] y la suma satura en Integer.MAX_VALUE. Antes una mision con 2^31-1 hojas desbordaba el
+     * int, el saldo quedaba negativo y el CHECK de la BD tumbaba el escaneo de todos los usuarios.
+     */
     private static int[] sumar(Usuario u, ReglaProgreso regla, List<Nivel> niveles) {
-        int xp = valor(regla.getXp(), 0);
-        int monedas = valor(regla.getMonedas(), 0);
-        u.setExperienciaXp(valor(u.getExperienciaXp(), 0) + xp);
+        int xp = premio(regla.getXp());
+        int monedas = premio(regla.getMonedas());
+        u.setExperienciaXp(saturar(valor(u.getExperienciaXp(), 0), xp));
         for (Nivel siguiente : niveles) {
             if (siguiente.getNivel() > valor(u.getNivel(), 1) && u.getExperienciaXp() >= siguiente.getXpRequerido()) {
                 u.setNivel(siguiente.getNivel());
-                monedas += valor(siguiente.getRecompensaMonedas(), 0);
+                monedas = saturar(monedas, premio(siguiente.getRecompensaMonedas()));
             }
         }
-        u.setMonedas(valor(u.getMonedas(), 0) + monedas);
+        u.setMonedas(saturar(valor(u.getMonedas(), 0), monedas));
         return new int[] {xp, monedas};
+    }
+
+    static int premio(Integer n) {
+        return Math.max(0, Math.min(MAX_PREMIO, valor(n, 0)));
+    }
+
+    static int saturar(int a, int b) {
+        long suma = (long) a + b;
+        return (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, suma));
     }
 
     private static HistorialProgreso movimiento(Usuario u, ReglaProgreso regla, int[] ganado,

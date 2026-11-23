@@ -348,6 +348,175 @@ class QaPostgresTest {
         assertThat(aLaVez(tareas)).allSatisfy(errores -> assertThat(errores).isEmpty());
     }
 
+    // ---------------------------------------------------------------- segunda vuelta (23/11)
+
+    @Test
+    void qa34CancelarUnEventoConUsuariosActivosNoDaDeadlockYQuitaLaPrevencion() throws Exception {
+        List<int[]> plantas = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            int u = usuarioConSesion();
+            for (int j = 0; j < 3; j++) {
+                plantas.add(new int[] {u, plantaDigitalizada(u, "Cancel" + UUID.randomUUID().toString().replace("-", "").substring(0, 6))});
+            }
+        }
+        int tipo = jdbc.queryForObject("SELECT id_tipo_desastre FROM tipos_desastre ORDER BY 1 LIMIT 1", Integer.class);
+        long fin = System.currentTimeMillis() + 6000;
+        List<Integer> eventos = java.util.Collections.synchronizedList(new ArrayList<>());
+        List<Callable<List<Integer>>> tareas = new ArrayList<>();
+        tareas.add(() -> {
+            List<Integer> errores = new ArrayList<>();
+            while (System.currentTimeMillis() < fin) {
+                // Lo que deja el panel al cancelar: FINALIZADO, sin procesar y fecha_inicio = fecha_fin
+                for (int[] up : plantas) {
+                    jdbc.update("UPDATE plantas_usuario SET esta_refugiada = TRUE, refugiada_desde = now() WHERE id_planta_usuario = ?", up[1]);
+                }
+                eventos.add(jdbc.queryForObject("INSERT INTO eventos_desastre (id_tipo_desastre, mensaje_notificacion, fecha_inicio, fecha_fin, "
+                        + "estado, severidad, procesado) VALUES (?, 'qa cancelado', now(), now(), 'FINALIZADO', 'CRITICO', FALSE) RETURNING id_desastre",
+                        Integer.class, tipo));
+                try {
+                    resultados.procesarPendientes(java.time.LocalDateTime.now());
+                } catch (RuntimeException e) {
+                    errores.add(-1);
+                }
+            }
+            return errores;
+        });
+        for (int h = 0; h < 10; h++) {
+            int n0 = h;
+            tareas.add(() -> {
+                List<Integer> codigos = new ArrayList<>();
+                int n = n0;
+                while (System.currentTimeMillis() < fin) {
+                    int[] up = plantas.get(n++ % plantas.size());
+                    HttpResponse<String> r = switch (n % 3) {
+                        case 0 -> get(up[0], "/api/v1/plantas");
+                        case 1 -> post(up[0], "/api/v1/plantas/" + up[1] + "/seleccionar", "");
+                        default -> post(up[0], "/api/v1/plantas/" + up[1] + "/cuidados", "{\"accion\":\"REGAR\"}");
+                    };
+                    if (r.statusCode() >= 500) {
+                        codigos.add(r.statusCode());
+                    }
+                }
+                return codigos;
+            });
+        }
+        assertThat(aLaVez(tareas)).allSatisfy(errores -> assertThat(errores).isEmpty());
+        resultados.procesarPendientes(java.time.LocalDateTime.now());
+
+        String ids = eventos.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM eventos_desastre WHERE id_desastre IN (" + ids + ") AND NOT procesado",
+                Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM registros_desastre_usuario WHERE id_desastre IN (" + ids + ")",
+                Integer.class)).as("cancelar no dana ni paga").isZero();
+        for (int[] up : plantas) {
+            assertThat(jdbc.queryForObject("SELECT esta_refugiada FROM plantas_usuario WHERE id_planta_usuario = ?", Boolean.class, up[1]))
+                    .as("la prevencion se quita").isFalse();
+            assertThat(jdbc.queryForObject("SELECT recuperacion_hasta IS NULL FROM plantas_usuario WHERE id_planta_usuario = ?",
+                    Boolean.class, up[1])).isTrue();
+        }
+    }
+
+    @Test
+    void qa35UnaRecompensaDeMisionEnormeNoTumbaLosEscaneos() throws Exception {
+        List<java.util.Map<String, Object>> antes = jdbc.queryForList(
+                "SELECT id_mision, recompensa_monedas, recompensa_xp FROM misiones WHERE tipo = 'ESCANEO' AND activa");
+        assertThat(antes).as("hace falta una mision ESCANEO activa").isNotEmpty();
+        try {
+            jdbc.update("UPDATE misiones SET recompensa_monedas = 2147483647, recompensa_xp = 2147483647 WHERE tipo = 'ESCANEO' AND activa");
+            for (int i = 0; i < 3; i++) {
+                int u = usuarioConSesion();
+                jdbc.update("UPDATE usuarios SET monedas = 2147483000 WHERE id_usuario = ?", u);
+                List<Integer> codigos = new ArrayList<>();
+                for (int k = 0; k < 4; k++) { // la meta de la mision puede ser de varios escaneos
+                    codigos.add(escanear(u, "sp_Desborde" + UUID.randomUUID().toString().replace("-", "").substring(0, 6) + ".png").statusCode());
+                }
+                assertThat(codigos).containsOnly(200);
+                assertThat(jdbc.queryForObject("SELECT monedas FROM usuarios WHERE id_usuario = ?", Integer.class, u)).isPositive();
+                assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM escaneos_historial WHERE id_usuario = ?", Integer.class, u)).isEqualTo(4);
+            }
+        } finally {
+            for (java.util.Map<String, Object> m : antes) {
+                jdbc.update("UPDATE misiones SET recompensa_monedas = ?, recompensa_xp = ? WHERE id_mision = ?",
+                        m.get("recompensa_monedas"), m.get("recompensa_xp"), m.get("id_mision"));
+            }
+        }
+    }
+
+    @Test
+    void qa41Qa42MensajesDeRegistroYEspecieDespublicada() throws Exception {
+        HttpResponse<String> largo = http.send(HttpRequest.newBuilder(URI.create("http://localhost:" + puerto + "/api/v1/auth/registro"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"nombre\":\"" + "a".repeat(300) + "\",\"email\":\"largo-"
+                        + UUID.randomUUID().toString().substring(0, 6) + "@plantia.test\",\"password\":\"12345678\"}")).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(largo.statusCode()).isEqualTo(400);
+        assertThat(json.readTree(largo.body()).get("error").asText()).contains("entre 2 y 100");
+
+        int u = usuarioConSesion();
+        String especie = "Retirada" + UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+        int planta = plantaDigitalizada(u, especie);
+        int cat = jdbc.queryForObject("SELECT id_catalogo FROM plantas_usuario WHERE id_planta_usuario = ?", Integer.class, planta);
+        jdbc.update("UPDATE plantas_catalogo SET publicada = FALSE WHERE id_catalogo = ?", cat);
+        // La que ya estaba en el jardin: digitalizar por idCatalogo responde la misma planta, no 404
+        HttpResponse<String> otraVez = post(u, "/api/v1/plantas", "{\"idCatalogo\":" + cat + "}");
+        assertThat(otraVez.statusCode()).as(otraVez.body()).isEqualTo(200);
+        assertThat(json.readTree(otraVez.body()).get("yaEnJardin").asBoolean()).isTrue();
+        // Un escaneo nuevo de la especie retirada: no identificada, sin premio
+        int xp = jdbc.queryForObject("SELECT experiencia_xp FROM usuarios WHERE id_usuario = ?", Integer.class, u);
+        JsonNode r = json.readTree(escanear(u, "sp_" + especie + ".png").body());
+        assertThat(r.get("identificado").asBoolean()).isFalse();
+        assertThat(r.get("idCatalogo").isNull()).isTrue();
+        assertThat(jdbc.queryForObject("SELECT experiencia_xp FROM usuarios WHERE id_usuario = ?", Integer.class, u)).isEqualTo(xp);
+    }
+
+    @Test
+    void qa45ElCierreDeUnEventoGlobalNoDejaEsperandoAUnUsuarioHastaElFinal() throws Exception {
+        // 300 usuarios x 3 plantas que el evento global golpea, mas un usuario que cuida mientras se procesa
+        String lote = UUID.randomUUID().toString().substring(0, 6);
+        jdbc.update("INSERT INTO usuarios (nombre, email, password_hash, monedas, experiencia_xp, nivel, racha_dias) "
+                + "SELECT 'Carga', 'carga-' || ? || '-' || g || '@plantia.test', 'x', 0, 0, 1, 0 FROM generate_series(1, 300) g", lote);
+        int cat = jdbc.queryForObject("INSERT INTO plantas_catalogo (nombre_comun, nombre_cientifico, frecuencia_riego_dias, frecuencia_sol_horas, "
+                + "sprite_base_url) VALUES ('Carga', ?, 3, 4, 'x') RETURNING id_catalogo", Integer.class, "Carga " + lote);
+        jdbc.update("INSERT INTO plantas_usuario (id_usuario, id_catalogo, apodo, salud_porcentaje, hidratacion_porcentaje, sol_porcentaje, "
+                + "etapa_crecimiento, fecha_plantado, updated_at) SELECT u.id_usuario, ?, 'c', 90, 60, 70, 'SEMILLA', now(), now() "
+                + "FROM usuarios u CROSS JOIN generate_series(1, 3) WHERE u.email LIKE ?", cat, "carga-" + lote + "-%");
+        // Se mide al PRIMER usuario que procesa el cierre (el de menor id con plantas): con una sola transaccion para todo
+        // el evento quedaba bloqueado desde el principio hasta el final
+        int u = jdbc.queryForObject("SELECT MIN(id_usuario) FROM plantas_usuario", Integer.class);
+        jdbc.update("UPDATE usuarios SET session_token = ?, session_expira = now() + interval '1 day' WHERE id_usuario = ?",
+                com.plantia.util.TokenSesion.hash("token-" + u), u);
+        int planta = jdbc.queryForObject("SELECT MIN(id_planta_usuario) FROM plantas_usuario WHERE id_usuario = ?", Integer.class, u);
+        jdbc.update("UPDATE plantas_usuario SET etapa_crecimiento = 'SEMILLA', salud_porcentaje = 90, en_baul = FALSE, "
+                + "recuperacion_hasta = NULL WHERE id_planta_usuario = ?", planta);
+        int tipo = jdbc.queryForObject("SELECT id_tipo_desastre FROM tipos_desastre ORDER BY 1 LIMIT 1", Integer.class);
+        jdbc.update("INSERT INTO eventos_desastre (id_tipo_desastre, mensaje_notificacion, fecha_inicio, fecha_fin, estado, severidad, procesado) "
+                + "VALUES (?, 'qa global', now() - interval '1 hour', now(), 'FINALIZADO', 'BAJO', FALSE)", tipo);
+
+        long[] cierre = new long[1];
+        Thread hilo = new Thread(() -> {
+            long t = System.nanoTime();
+            resultados.procesarPendientes(java.time.LocalDateTime.now());
+            cierre[0] = (System.nanoTime() - t) / 1_000_000;
+        });
+        hilo.start();
+        long peor = 0;
+        int cuidados = 0;
+        while (hilo.isAlive()) {
+            jdbc.update("UPDATE plantas_usuario SET hidratacion_porcentaje = 0, salud_porcentaje = 90, recuperacion_hasta = NULL "
+                    + "WHERE id_planta_usuario = ?", planta);
+            long t = System.nanoTime();
+            assertThat(post(u, "/api/v1/plantas/" + planta + "/cuidados", "{\"accion\":\"REGAR\"}").statusCode()).isEqualTo(200);
+            peor = Math.max(peor, (System.nanoTime() - t) / 1_000_000);
+            cuidados++;
+        }
+        hilo.join();
+        System.out.printf("QA-45: cierre global de %d plantas en %d ms; %d cuidados de otro usuario a la vez, el mas lento %d ms%n",
+                jdbc.queryForObject("SELECT COUNT(*) FROM plantas_usuario", Integer.class), cierre[0], cuidados, peor);
+        assertThat(cuidados).isPositive();
+        // Con una sola transaccion para todo el evento, el cuidado esperaba el cierre entero
+        assertThat(peor).isLessThan(Math.max(1500, cierre[0] / 2));
+    }
+
     // ---------------------------------------------------------------- medias y bajas por HTTP
 
     @Test

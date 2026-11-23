@@ -66,13 +66,21 @@ public class EscaneoService {
      * una transaccion corta; si fallan, se borra la foto ya guardada.
      */
     public ScanResultDto escanear(Integer userId, MultipartFile foto) {
-        limitarPorUsuario(userId, System.currentTimeMillis());
+        // QA-39: primero se valida y guarda la foto (un archivo que no es imagen da 415 y ya no gasta el tope)
         String imagenUrl = storage.save(foto);
+        Long marca;
+        try {
+            marca = limitarPorUsuario(userId, System.currentTimeMillis());
+        } catch (RuntimeException e) {
+            storage.delete(imagenUrl);
+            throw e;
+        }
         try {
             IaResultDto ia = identificar(foto); // fuera de la transaccion
             return transaccion.execute(estado -> registrar(userId, imagenUrl, ia));
         } catch (RuntimeException e) {
             storage.delete(imagenUrl);
+            devolverCupo(userId, marca); // un escaneo que fallo (IA saturada, error) no cuenta para el tope
             throw e;
         }
     }
@@ -82,9 +90,10 @@ public class EscaneoService {
     int maxPorMinuto = 10;
     private final java.util.concurrent.ConcurrentHashMap<Integer, java.util.ArrayDeque<Long>> recientes = new java.util.concurrent.ConcurrentHashMap<>();
 
-    void limitarPorUsuario(Integer userId, long ahoraMs) {
+    /** Reserva un cupo del minuto y devuelve su marca (null si no hay tope); 429 si ya no quedan. */
+    Long limitarPorUsuario(Integer userId, long ahoraMs) {
         if (maxPorMinuto <= 0 || userId == null) {
-            return;
+            return null;
         }
         java.util.ArrayDeque<Long> marcas = recientes.computeIfAbsent(userId, k -> new java.util.ArrayDeque<>());
         synchronized (marcas) {
@@ -96,6 +105,16 @@ public class EscaneoService {
                         "Escaneaste muchas plantas seguidas. Espera un minuto y vuelve a intentarlo.");
             }
             marcas.addLast(ahoraMs);
+            return ahoraMs;
+        }
+    }
+
+    void devolverCupo(Integer userId, Long marca) {
+        java.util.ArrayDeque<Long> marcas = marca == null ? null : recientes.get(userId);
+        if (marcas != null) {
+            synchronized (marcas) {
+                marcas.removeLastOccurrence(marca);
+            }
         }
     }
 
@@ -127,6 +146,12 @@ public class EscaneoService {
         PlantaCatalogo catalogo = null;
         if (identificado) {
             catalogo = catalogoService.upsertDesdeIa(ia);
+        }
+        if (catalogo != null && Boolean.FALSE.equals(catalogo.getPublicada())) {
+            // QA-42: el admin retiro la especie del catalogo: el escaneo se guarda como no identificado (sin premio y
+            // sin ofrecer digitalizar). Antes decia "identificada", pagaba y digitalizar daba 404.
+            catalogo = null;
+            identificado = false;
         }
 
         // Se mira antes de guardar el escaneo: despues, la especie ya contaria como vista

@@ -2,7 +2,6 @@ package com.plantia.services;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -48,8 +47,9 @@ public class ResultadoDesastreService {
     private final ObjectProvider<LogroService> logroService;
     private final Duration gracia;
 
-    @jakarta.persistence.PersistenceContext
-    private jakarta.persistence.EntityManager em;
+    /** Para una transaccion corta por usuario (QA-45); null en pruebas sin Spring. */
+    @Autowired(required = false)
+    private org.springframework.transaction.PlatformTransactionManager transacciones;
 
     /** Constructor que usa Spring (hay otro, de compatibilidad para pruebas: sin esta marca la app no arranca). */
     @Autowired
@@ -101,49 +101,102 @@ public class ResultadoDesastreService {
      * se marca como procesado sin danar plantas: el dano solo aplica a eventos recien terminados.
      */
     void procesar(EventoDesastre e, LocalDateTime ahora) {
+        boolean completo = true;
         if (e.getFechaInicio() != null && (e.getFechaInicio().isAfter(ahora) || !e.getFechaInicio().isBefore(e.getFechaFin()))) {
-            // QA-07: FINALIZADO sin haber empezado = cancelado antes de tiempo. Antes danaba a todas las plantas no prevenidas.
-            log.info("Evento {} termino sin haber empezado (cancelado): se marca procesado sin danos", e.getIdDesastre());
+            // QA-07: FINALIZADO sin haber empezado = cancelado (el panel deja fecha_inicio = fecha_fin). Sin danos ni premios;
+            // solo se quita la prevencion (QA-34: antes la quitaba Django sin el orden de candados y habia deadlock).
+            log.info("Evento {} cancelado o sin haber empezado: se marca procesado sin danos", e.getIdDesastre());
+            completo = porUsuario(e, ahora, true);
         } else if (e.getFechaFin().isBefore(ahora.minus(gracia))) {
             log.info("Evento {} termino hace mas de {} h: se marca procesado sin danos", e.getIdDesastre(), gracia.toHours());
         } else {
-            aplicar(e, ahora);
+            completo = porUsuario(e, ahora, false);
+        }
+        if (!completo) {
+            // Un usuario fallo: el evento queda sin procesar y se reintenta en la siguiente pasada. Los ya procesados se
+            // saltan (registros_desastre_usuario marca cada planta), asi nadie cobra ni recibe el golpe dos veces.
+            log.warn("Evento {}: quedaron usuarios sin procesar, se reintenta", e.getIdDesastre());
+            return;
         }
         e.setProcesado(true);
         e.setUpdatedAt(ahora);
         eventoRepo.save(e);
     }
 
-    private void aplicar(EventoDesastre e, LocalDateTime ahora) {
-        int saludFinal = saludFinalSegunSeveridad(e);
-        LocalDateTime limite = ahora.plusHours(parametros.horasRecuperacion());
-        int salvadas = 0;
-        int danadas = 0;
-        // Por usuario: plantas afectadas y cuantas se previnieron (para el premio de evento completo)
-        Map<Integer, int[]> porUsuario = new LinkedHashMap<>();
-        // Mismo orden de candados que las acciones del usuario (QA-03): primero el usuario y luego sus plantas por id.
-        // Antes se recorrian las plantas en cualquier orden y se bloqueaba al usuario despues: con cuidados o
-        // "seleccionar" a la vez habia deadlock (500) durante el cierre del evento.
+    /**
+     * Recorre a los usuarios afectados en orden de id y procesa a cada uno en su PROPIA transaccion corta (QA-45): antes
+     * todo el evento GLOBAL iba en una sola y retenia a todos los usuarios hasta terminar. Orden de candados igual que
+     * las acciones (QA-03): usuario y luego sus plantas por id. Devuelve false si algun usuario fallo.
+     */
+    private boolean porUsuario(EventoDesastre e, LocalDateTime ahora, boolean cancelado) {
         java.util.TreeMap<Integer, List<PlantaUsuario>> porDueno = new java.util.TreeMap<>();
         for (PlantaUsuario p : plantasAfectadas(e)) {
-            if (p.getIdUsuario() != null) {
+            if (p.getIdUsuario() != null && (!cancelado || Boolean.TRUE.equals(p.getEstaRefugiada()))) {
                 porDueno.computeIfAbsent(p.getIdUsuario(), k -> new java.util.ArrayList<>()).add(p);
             }
         }
-        List<PlantaUsuario> enOrden = new java.util.ArrayList<>();
-        java.util.Set<Integer> bloqueados = new java.util.HashSet<>();
-        porDueno.values().forEach(lista -> {
-            lista.sort(java.util.Comparator.comparing(PlantaUsuario::getIdPlantaUsuario, java.util.Comparator.nullsFirst(Integer::compare)));
-            enOrden.addAll(lista);
-        });
-        for (PlantaUsuario p : enOrden) {
-            if (bloqueados.add(p.getIdUsuario())) {
-                progreso.bloquearUsuario(p.getIdUsuario());
-                plantaRepo.bloquearDeUsuario(p.getIdUsuario());
+        int saludFinal = cancelado ? 0 : saludFinalSegunSeveridad(e);
+        LocalDateTime limite = ahora.plusHours(parametros.horasRecuperacion());
+        int[] total = new int[2];
+        boolean completo = true;
+        for (Map.Entry<Integer, List<PlantaUsuario>> dueno : porDueno.entrySet()) {
+            Integer idUsuario = dueno.getKey();
+            try {
+                int[] r = enTransaccion(() -> cancelado
+                        ? quitarPrevencion(idUsuario, dueno.getValue())
+                        : aplicarAUsuario(e, idUsuario, dueno.getValue(), saludFinal, limite, ahora));
+                total[0] += r[0];
+                total[1] += r[1];
+                if (!cancelado) {
+                    evaluarLogrosSeguro(idUsuario, ahora);
+                }
+            } catch (RuntimeException ex) {
+                completo = false;
+                log.error("Evento {}: no se pudo procesar al usuario {}", e.getIdDesastre(), idUsuario, ex);
             }
-            if (em != null && em.contains(p)) {
-                em.refresh(p); // valores vigentes tras el candado (un cuidado pudo cambiarla)
+        }
+        log.info("Evento {} procesado: {} plantas salvadas, {} golpeadas{}", e.getIdDesastre(), total[0], total[1],
+                cancelado ? " (cancelado: solo se quito la prevencion)" : "");
+        return completo;
+    }
+
+    private int[] enTransaccion(java.util.function.Supplier<int[]> trabajo) {
+        if (transacciones == null) {
+            return trabajo.get(); // pruebas sin Spring
+        }
+        org.springframework.transaction.support.TransactionTemplate t =
+                new org.springframework.transaction.support.TransactionTemplate(transacciones);
+        t.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return t.execute(estado -> trabajo.get());
+    }
+
+    /** Bloquea al usuario y sus plantas y devuelve sus plantas afectadas leidas de nuevo (valores vigentes). */
+    private List<PlantaUsuario> bloquearYLeer(Integer idUsuario, List<PlantaUsuario> afectadas) {
+        progreso.bloquearUsuario(idUsuario);
+        plantaRepo.bloquearDeUsuario(idUsuario);
+        List<PlantaUsuario> plantas = new java.util.ArrayList<>(transacciones == null ? afectadas
+                : plantaRepo.findAllById(afectadas.stream().map(PlantaUsuario::getIdPlantaUsuario).toList()));
+        plantas.sort(java.util.Comparator.comparing(PlantaUsuario::getIdPlantaUsuario, java.util.Comparator.nullsFirst(Integer::compare)));
+        return plantas;
+    }
+
+    private int[] quitarPrevencion(Integer idUsuario, List<PlantaUsuario> afectadas) {
+        for (PlantaUsuario p : bloquearYLeer(idUsuario, afectadas)) {
+            if (Boolean.TRUE.equals(p.getEstaRefugiada())) {
+                p.setEstaRefugiada(false);
+                p.setRefugiadaDesde(null);
+                plantaRepo.save(p);
             }
+        }
+        return new int[2];
+    }
+
+    private int[] aplicarAUsuario(EventoDesastre e, Integer idUsuario, List<PlantaUsuario> afectadas, int saludFinal,
+                                  LocalDateTime limite, LocalDateTime ahora) {
+        int afectadasAhora = 0;
+        int prevenidas = 0;
+        int danadas = 0;
+        for (PlantaUsuario p : bloquearYLeer(idUsuario, afectadas)) {
             if ("MUERTA".equals(p.getEtapaCrecimiento()) || Boolean.TRUE.equals(p.getEnBaul())
                     || registroRepo.existsByIdDesastreAndIdPlantaUsuario(e.getIdDesastre(), p.getIdPlantaUsuario())) {
                 continue;
@@ -152,9 +205,7 @@ public class ResultadoDesastreService {
             r.setIdDesastre(e.getIdDesastre());
             r.setIdPlantaUsuario(p.getIdPlantaUsuario());
             r.setFechaProcesado(ahora);
-
-            int[] cuenta = porUsuario.computeIfAbsent(p.getIdUsuario(), k -> new int[2]);
-            cuenta[0]++;
+            afectadasAhora++;
             boolean prevenida = Boolean.TRUE.equals(p.getEstaRefugiada());
             r.setEstabaRefugiada(prevenida);
             if (prevenida) {
@@ -163,8 +214,7 @@ public class ResultadoDesastreService {
                 p.setRefugiadaDesde(null);
                 // El premio por haber prevenido a tiempo se da al terminar el evento
                 r.setXpOtorgado(progreso.otorgarSinRacha(p.getIdUsuario(), "REFUGIO", e.getIdDesastre(), ahora).xpGanado());
-                cuenta[1]++;
-                salvadas++;
+                prevenidas++;
             } else {
                 int salud = p.getSaludPorcentaje() == null ? 100 : p.getSaludPorcentaje();
                 int nueva = Math.min(salud, saludFinal);
@@ -180,13 +230,10 @@ public class ResultadoDesastreService {
             plantaRepo.save(p);
             registroRepo.save(r);
         }
-        porUsuario.forEach((idUsuario, cuenta) -> {
-            if (cuenta[0] > 0 && cuenta[0] == cuenta[1]) {
-                progreso.otorgarSinRacha(idUsuario, "EVENTO_COMPLETO", e.getIdDesastre(), ahora);
-            }
-            evaluarLogrosSeguro(idUsuario, ahora);
-        });
-        log.info("Evento {} procesado: {} plantas salvadas, {} golpeadas", e.getIdDesastre(), salvadas, danadas);
+        if (afectadasAhora > 0 && afectadasAhora == prevenidas) {
+            progreso.otorgarSinRacha(idUsuario, "EVENTO_COMPLETO", e.getIdDesastre(), ahora);
+        }
+        return new int[] {prevenidas, danadas};
     }
 
     private void evaluarLogrosSeguro(Integer userId, LocalDateTime ahora) {

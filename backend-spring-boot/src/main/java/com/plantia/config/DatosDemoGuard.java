@@ -53,5 +53,13 @@ public class DatosDemoGuard implements ApplicationRunner {
         if (cuentas > 0 || eventos > 0) {
             log.warn("Produccion: {} cuenta(s) de demostracion deshabilitadas y {} evento(s) de demostracion cancelados", cuentas, eventos);
         }
+        // QA-40: sin admin nadie entra al panel. Se crea a proposito, sin clave fija:
+        // python manage.py crear_admin --email ... (clave por PLANTIA_ADMIN_PASSWORD o por teclado)
+        Integer admins = jdbc.queryForObject("SELECT COUNT(*) FROM usuarios WHERE rol = 'ADMIN' AND password_hash <> ?",
+                Integer.class, CLAVE_INUTILIZABLE);
+        if (admins == null || admins == 0) {
+            log.warn("Produccion: no hay ningun administrador con clave valida. Crealo con "
+                    + "'python manage.py crear_admin --email <correo>' en backend-django (ver GUIA-INICIO.md)");
+        }
     }
 }

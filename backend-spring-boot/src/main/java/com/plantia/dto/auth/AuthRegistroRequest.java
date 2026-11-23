@@ -6,12 +6,12 @@ import jakarta.validation.constraints.Size;
 
 public record AuthRegistroRequest(
         @NotBlank(message = "El nombre es obligatorio")
-        @Size(min = 2, max = 100, message = "El nombre debe tener al menos 2 caracteres")
+        @Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres")
         String nombre,
 
         @NotBlank(message = "El correo es obligatorio")
         @Email(message = "Correo inválido")
-        @Size(max = 150)
+        @Size(max = 150, message = "El correo no puede pasar de 150 caracteres")
         String email,
 
         @NotBlank(message = "La contraseña es obligatoria")

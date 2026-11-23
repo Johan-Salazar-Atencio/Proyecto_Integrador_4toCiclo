@@ -123,7 +123,6 @@ public class PlantasService {
             throw new IllegalArgumentException("Falta idEscaneo o idCatalogo");
         }
         PlantaCatalogo catalogo = catalogoRepo.findById(idCatalogo)
-                .filter(c -> !Boolean.FALSE.equals(c.getPublicada()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Especie no encontrada"));
 
         List<PlantaUsuario> suyas = plantaRepo.findByIdUsuarioOrderByFechaPlantadoDesc(userId);
@@ -143,6 +142,10 @@ public class PlantasService {
             suyas.forEach(p -> p.setEsActiva(p == existente));
             plantaRepo.saveAll(suyas);
             return map(existente, catalogo).conYaEnJardin();
+        }
+        // Una especie despublicada por el admin no se digitaliza de nuevo (la que ya estaba se conserva: arriba). QA-42
+        if (Boolean.FALSE.equals(catalogo.getPublicada())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Especie no encontrada");
         }
         // Un jardin lleno no recibe plantas nuevas: hay que mandar una al baul
         int tope = parametros.maxPlantasActivas();

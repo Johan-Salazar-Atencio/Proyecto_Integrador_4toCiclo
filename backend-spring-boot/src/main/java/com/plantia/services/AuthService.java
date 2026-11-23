@@ -75,6 +75,12 @@ public class AuthService {
 
     @Transactional
     public AuthUsuarioResponse login(AuthLoginRequest request) {
+        return login(request, "desconocida");
+    }
+
+    /** Login; {@code ip} es la direccion del cliente (para el freno de intentos por correo + IP). */
+    @Transactional
+    public AuthUsuarioResponse login(AuthLoginRequest request, String ip) {
         String emailNormalizado = normalizarEmail(request.email());
         String password = request.password() == null ? "" : request.password();
 
@@ -82,12 +88,11 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
         }
 
-        intentos.exigirPermitido(emailNormalizado);
+        intentos.intentar(emailNormalizado, ip); // se cuenta antes de mirar la clave (QA-37)
         Usuario usuario = usuarioRepo.findByEmail(emailNormalizado)
                 .orElse(null);
 
         if (usuario == null) {
-            intentos.fallo(emailNormalizado);
             // Comparamos contra un hash valido para no revelar (por tiempo) si
             // el email existe. Siempre lanzamos el mismo error.
             passwordEncoder.matches(password, DUMMY_HASH);
@@ -95,10 +100,9 @@ public class AuthService {
         }
 
         if (!passwordEncoder.matches(password, usuario.getPasswordHash())) {
-            intentos.fallo(emailNormalizado);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
         }
-        intentos.exito(emailNormalizado);
+        intentos.exito(emailNormalizado, ip);
 
         String token = abrirSesion(usuario);
         usuarioRepo.save(usuario);
@@ -106,8 +110,8 @@ public class AuthService {
         return new AuthUsuarioResponse(usuario.getIdUsuario(), usuario.getNombre(), usuario.getEmail(), usuario.getRol(), token);
     }
 
-    /** QA-27: tras 5 claves equivocadas seguidas para un correo, 15 minutos sin poder intentarlo (429). */
-    private final com.plantia.util.IntentosLogin intentos = new com.plantia.util.IntentosLogin(5, java.time.Duration.ofMinutes(15));
+    /** QA-27/QA-37: 5 intentos por correo + IP y 100 por IP cada 15 minutos; pasado eso, 429. */
+    private final com.plantia.util.IntentosLogin intentos = new com.plantia.util.IntentosLogin(5, 100, java.time.Duration.ofMinutes(15));
 
     /** Genera un token nuevo, guarda solo su hash con fecha de caducidad y devuelve el token. */
     private String abrirSesion(Usuario usuario) {

@@ -105,6 +105,26 @@ class ResultadoDesastreServiceTest {
     }
 
     @Test
+    void qa34UnEventoCanceladoDesdeElPanelSoloQuitaLaPrevencion() {
+        PlantaUsuario prevenida = planta(7, 80, true);
+        prevenida.setRefugiadaDesde(AHORA.minusHours(1));
+        PlantaUsuario otra = planta(8, 70, false);
+        when(plantaRepo.findAll()).thenReturn(List.of(prevenida, otra));
+        EventoDesastre cancelado = evento("CRITICO", AHORA.minusMinutes(1));
+        cancelado.setFechaInicio(AHORA.minusMinutes(1)); // el panel deja inicio = fin
+
+        service.procesar(cancelado, AHORA);
+
+        verify(registroRepo, org.mockito.Mockito.never()).save(org.mockito.ArgumentMatchers.any());
+        assertThat(prevenida.getEstaRefugiada()).isFalse();
+        assertThat(prevenida.getRefugiadaDesde()).isNull();
+        assertThat(prevenida.getSaludPorcentaje()).isEqualTo(80);
+        assertThat(otra.getSaludPorcentaje()).isEqualTo(70);
+        assertThat(usuario.getExperienciaXp() == null ? 0 : usuario.getExperienciaXp()).isZero();
+        assertThat(cancelado.getProcesado()).isTrue();
+    }
+
+    @Test
     void qa07UnEventoCanceladoAntesDeEmpezarNoDanaANadie() {
         PlantaUsuario p = planta(7, 80, false);
         when(plantaRepo.findAll()).thenReturn(List.of(p));

@@ -118,4 +118,43 @@ class QaCorreccionesTest {
         verify(cuidadoRepo, never()).deleteByIdCatalogo(any());
         verify(cuidadoRepo, never()).save(any());
     }
+
+    // ---------------------------------------------------------------- QA-35 y QA-39
+
+    @Test
+    void qa35LosPremiosSeRecortanYLaSumaNoDesborda() {
+        assertThat(ProgresoService.premio(Integer.MAX_VALUE)).isEqualTo(ProgresoService.MAX_PREMIO);
+        assertThat(ProgresoService.premio(-5)).isZero();
+        assertThat(ProgresoService.premio(null)).isZero();
+        assertThat(ProgresoService.saturar(Integer.MAX_VALUE - 10, 100_000)).isEqualTo(Integer.MAX_VALUE);
+        assertThat(ProgresoService.saturar(5, 7)).isEqualTo(12);
+    }
+
+    @Test
+    void qa39UnaFotoInvalidaNoGastaElTopeYUnEscaneoFallidoDevuelveSuCupo() {
+        StorageService storage = mock(StorageService.class);
+        when(storage.save(any())).thenThrow(new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "no es imagen"));
+        EscaneoService invalidas = escaneoCon(mock(IaClient.class), storage);
+        invalidas.maxPorMinuto = 2;
+        for (int i = 0; i < 5; i++) {
+            assertThatThrownBy(() -> invalidas.escanear(1, new MockMultipartFile("foto", "x.txt", "text/plain", new byte[] {1})))
+                    .isInstanceOfSatisfying(ResponseStatusException.class,
+                            e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE));
+        }
+        invalidas.limitarPorUsuario(1, System.currentTimeMillis()); // el cupo sigue entero
+        invalidas.limitarPorUsuario(1, System.currentTimeMillis());
+
+        IaClient ia = mock(IaClient.class);
+        when(ia.identificar(any())).thenThrow(HttpClientErrorException.create(HttpStatus.TOO_MANY_REQUESTS, "x", null, null, null));
+        StorageService ok = mock(StorageService.class);
+        when(ok.save(any())).thenReturn("/files/f.png");
+        EscaneoService saturada = escaneoCon(ia, ok);
+        saturada.maxPorMinuto = 2;
+        for (int i = 0; i < 4; i++) {
+            assertThatThrownBy(() -> saturada.escanear(1, new MockMultipartFile("foto", "f.png", "image/png", new byte[] {1})))
+                    .isInstanceOf(ResponseStatusException.class);
+        }
+        saturada.limitarPorUsuario(1, System.currentTimeMillis()); // los fallidos devolvieron su cupo
+        saturada.limitarPorUsuario(1, System.currentTimeMillis());
+    }
 }
