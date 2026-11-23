@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import EncabezadoAdmin from '../../../components/admin/EncabezadoAdmin'
 import IconoAdmin from '../../../components/admin/IconoAdmin'
 import { AVISO_EVENTOS, cancelarEvento, crearEvento, listarEventos, listarRegiones } from '../../../services/admin/eventos'
+import { CONFIRMAR_CANCELAR } from '../../../services/admin/respuestas.js'
 import { listarTiposEvento } from '../../../services/admin/tiposEvento'
 import EfectoEvento from './EfectoEvento'
 import EventoEnCurso from './EventoEnCurso'
@@ -59,10 +60,7 @@ export default function Eventos() {
 
   const cancelar = async (evento) => {
     // QA-07: antes cancelaba sin preguntar (y ademas danaba las plantas no prevenidas)
-    const seguro = window.confirm(
-      '¿Cancelar esta emergencia?\n\nTermina ahora mismo y ninguna planta recibe daño ni premio. '
-      + 'Las plantas que se habían prevenido quedan sin protección. No se puede deshacer.',
-    )
+    const seguro = window.confirm(CONFIRMAR_CANCELAR)
     if (!seguro) return
     setCancelando(true)
     try {

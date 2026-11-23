@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { cuidadosDe, guardarEspecie } from '../../../services/admin/catalogo'
+import { cambiosDeEspecie } from '../../../services/admin/respuestas.js'
 import { estiloDe } from '../../user/planta/mapeo'
 import { Alternador, Campo, Icono, PENDIENTE } from '../misiones/kit'
 
@@ -33,7 +34,7 @@ export default function PanelEspecie({ especie, onCerrar, onCambio }) {
     try {
       // Solo lo que cambio: Django valida tipo y rango de cada campo (QA-10/QA-11)
       const limpio = { ...form, nombreComun: form.nombreComun.trim(), nombreCientifico: form.nombreCientifico.trim() }
-      await guardarEspecie(especie.id, Object.fromEntries(CAMPOS.filter((c) => limpio[c] !== especie[c]).map((c) => [c, limpio[c]])))
+      await guardarEspecie(especie.id, cambiosDeEspecie(limpio, especie, CAMPOS))
       setAviso({ texto: 'Guardado en la base de datos', error: false })
       onCambio()
     } catch (err) {

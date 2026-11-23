@@ -1,4 +1,5 @@
 import { cabecerasAdmin } from './auth'
+import { errorDeRespuesta } from './respuestas.js'
 
 // Eventos climaticos (tabla eventos_desastre).
 // Lectura:  GET /django/api/catalog/eventos/  (real)
@@ -64,11 +65,7 @@ export async function crearEvento({ tipo, region, severidad, mensaje, horas, min
       fecha_fin: fin.toISOString(),
     }),
   })
-  if (!respuesta.ok) {
-    let mensaje = ''
-    try { mensaje = (await respuesta.json()).error } catch { /* sin cuerpo JSON */ }
-    throw new Error(mensaje || `Error ${respuesta.status}`)
-  }
+  if (!respuesta.ok) throw await errorDeRespuesta(respuesta) // {"error"} de Django, no el JSON crudo
   return await respuesta.json()
 }
 
@@ -79,12 +76,7 @@ export async function cancelarEvento(id) {
     headers: { 'Content-Type': 'application/json', ...cabecerasAdmin() },
     body: JSON.stringify({ estado: 'FINALIZADO' }),
   })
-  if (!respuesta.ok) {
-    // Django responde {"error": "..."}: se muestra ese texto, no el JSON crudo
-    let mensaje = ''
-    try { mensaje = (await respuesta.json()).error } catch { /* sin cuerpo JSON */ }
-    throw new Error(mensaje || `Error ${respuesta.status}`)
-  }
+  if (!respuesta.ok) throw await errorDeRespuesta(respuesta) // {"error"} de Django, no el JSON crudo
   return await respuesta.json()
 }
 
@@ -92,11 +84,6 @@ export async function cancelarEvento(id) {
 // GET /django/api/admin/eventos/{id}/efectos/  ->  { resumen: {...}, registros: [...] }
 export async function efectosEvento(id) {
   const respuesta = await fetch(`/django/api/admin/eventos/${id}/efectos/`, { headers: cabecerasAdmin() })
-  if (!respuesta.ok) {
-    // Django responde {"error": "..."}: se muestra ese texto, no el JSON crudo
-    let mensaje = ''
-    try { mensaje = (await respuesta.json()).error } catch { /* sin cuerpo JSON */ }
-    throw new Error(mensaje || `Error ${respuesta.status}`)
-  }
+  if (!respuesta.ok) throw await errorDeRespuesta(respuesta) // {"error"} de Django, no el JSON crudo
   return await respuesta.json()
 }

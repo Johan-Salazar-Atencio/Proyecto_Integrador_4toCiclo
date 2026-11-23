@@ -1,4 +1,5 @@
 import { cabecerasAdmin } from './auth'
+import { errorDeRespuesta } from './respuestas.js'
 
 // Catalogo de especies para el panel. Lectura y escritura son REALES contra Django.
 // GET  /django/api/admin/catalogo/       -> lista de especies, publicadas o no (requiere admin; QA-20)
@@ -63,12 +64,7 @@ export async function guardarEspecie(id, campos) {
     headers: { 'Content-Type': 'application/json', ...cabecerasAdmin() },
     body: JSON.stringify(aDjango(campos)),
   })
-  if (!respuesta.ok) {
-    // Django responde {"error": "..."}: se muestra ese texto, no el JSON crudo
-    let mensaje = ''
-    try { mensaje = (await respuesta.json()).error } catch { /* sin cuerpo JSON */ }
-    throw new Error(mensaje || `Error ${respuesta.status}`)
-  }
+  if (!respuesta.ok) throw await errorDeRespuesta(respuesta) // {"error"} de Django, no el JSON crudo
   return respuesta.json()
 }
 
