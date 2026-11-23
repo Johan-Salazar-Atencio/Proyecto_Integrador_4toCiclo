@@ -1,7 +1,7 @@
 import { cabecerasAdmin } from './auth'
 
 // Catalogo de especies para el panel. Lectura y escritura son REALES contra Django.
-// GET  /django/api/catalog/              -> lista de especies
+// GET  /django/api/admin/catalogo/       -> lista de especies, publicadas o no (requiere admin; QA-20)
 // GET  /django/api/catalog/{id}/cuidados -> cuidados de una especie (Spring, via proxy /api)
 // PATCH /django/api/admin/catalogo/{id}/ { ...campos, publicada }  (requiere X-Admin-Id)
 
@@ -35,7 +35,8 @@ const aDjango = (campos) => {
 }
 
 export async function listarEspecies() {
-  const respuesta = await fetch('/django/api/catalog/')
+  // El catalogo publico (/django/api/catalog/) ya solo trae las publicadas: el panel usa el suyo para ver todas
+  const respuesta = await fetch('/django/api/admin/catalogo/', { headers: cabecerasAdmin() })
   if (!respuesta.ok) throw new Error(`Django respondio ${respuesta.status}`)
   const lista = await respuesta.json()
   const especies = lista
@@ -63,8 +64,10 @@ export async function guardarEspecie(id, campos) {
     body: JSON.stringify(aDjango(campos)),
   })
   if (!respuesta.ok) {
-    const texto = await respuesta.text()
-    throw new Error(texto || `Error ${respuesta.status}`)
+    // Django responde {"error": "..."}: se muestra ese texto, no el JSON crudo
+    let mensaje = ''
+    try { mensaje = (await respuesta.json()).error } catch { /* sin cuerpo JSON */ }
+    throw new Error(mensaje || `Error ${respuesta.status}`)
   }
   return respuesta.json()
 }

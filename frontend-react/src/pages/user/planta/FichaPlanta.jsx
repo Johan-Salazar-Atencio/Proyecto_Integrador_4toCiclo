@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Boton from '../../../components/Boton'
 import { RUTAS } from '../../../routes/rutas'
 import { agregarColeccion } from '../../../services/coleccion'
 import { urlImagen } from '../../../services/home'
-import { digitalizarPlanta } from '../../../services/jardin'
+import { digitalizarPlanta, listarPlantasDigitales } from '../../../services/jardin'
+import { avisoAntes, avisoDespues, plantaDeLaEspecie } from './yaEnJardin'
 import { estiloDe, etiquetaPrecision, identificacionFallida, tarjetasCuidado, textoDiagnostico } from './mapeo'
 import './ficha.css'
 
@@ -18,6 +19,7 @@ export default function FichaPlanta({ resultado, mostrarGuardar = true, mostrarA
   const [guardando, setGuardando] = useState(false)
   const [errorGuardar, setErrorGuardar] = useState('')
   const [largo, setLargo] = useState(false)
+  const [yaEnJardin, setYaEnJardin] = useState(null) // planta de la misma especie que ya esta en el jardin (QA-04)
 
   const fallida = identificacionFallida(resultado)
   const cuidados = tarjetasCuidado(resultado)
@@ -26,14 +28,26 @@ export default function FichaPlanta({ resultado, mostrarGuardar = true, mostrarA
   const foto = urlImagen(resultado.imagenUrl)
   const diagnosticoLargo = diagnostico && diagnostico.length > LARGO_DIAGNOSTICO
 
+  // Antes de digitalizar se mira si la especie ya esta en el jardin, para avisarlo con claridad
+  const cientifico = resultado.nombreCientifico
+  useEffect(() => {
+    if (!mostrarAcciones || !cientifico) return undefined
+    let vivo = true
+    listarPlantasDigitales()
+      .then((plantas) => { if (vivo) setYaEnJardin(plantaDeLaEspecie(plantas, { nombreCientifico: cientifico })) })
+      .catch(() => {})
+    return () => { vivo = false }
+  }, [cientifico, mostrarAcciones])
+
   const alDigitalizar = async () => {
     if (guardando) return
     setGuardando(true)
     setErrorGuardar('')
     try {
-      await digitalizarPlanta(resultado)
-      // El jardin recibe la planta con la secuencia de digitalizacion
-      irA(RUTAS.JARDIN, { state: { digitalizada: true } })
+      const planta = await digitalizarPlanta(resultado)
+      // Si ya estaba, no se reinicio: el jardin lo avisa y no repite la secuencia de digitalizacion
+      const aviso = avisoDespues(planta)
+      irA(RUTAS.JARDIN, { state: aviso ? { aviso } : { digitalizada: true } })
     } catch (e) {
       setErrorGuardar(e?.message || 'No se pudo digitalizar la planta.')
       setGuardando(false)
@@ -130,7 +144,9 @@ export default function FichaPlanta({ resultado, mostrarGuardar = true, mostrarA
 
           {mostrarAcciones && (
             <div className={`ficha-acciones ${mostrarGuardar ? '' : 'ficha-acciones-sola'}`}>
-              <Boton onClick={alDigitalizar} disabled={guardando}>🪴 Digitalizar</Boton>
+              <Boton onClick={alDigitalizar} disabled={guardando || yaEnJardin?.enBaul}>
+                {yaEnJardin ? '🪴 Ver en mi jardín' : '🪴 Digitalizar'}
+              </Boton>
               {mostrarGuardar && (
                 <Boton onClick={alGuardar} disabled={guardando}>
                   {guardando ? 'Guardando…' : '💾 Guardar en colección'}
@@ -141,6 +157,7 @@ export default function FichaPlanta({ resultado, mostrarGuardar = true, mostrarA
                   Cancelar
                 </button>
               )}
+              {yaEnJardin && <p className="ficha-nota" role="status">{avisoAntes(yaEnJardin)}</p>}
               {errorGuardar && <div className="ficha-error" role="alert">{errorGuardar}</div>}
             </div>
           )}

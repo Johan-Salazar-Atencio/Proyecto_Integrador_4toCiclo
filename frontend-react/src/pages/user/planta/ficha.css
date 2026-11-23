@@ -37,6 +37,17 @@
 .ficha-acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ficha-acciones-sola { grid-template-columns: 1fr; }
 .ficha-acciones .boton { text-decoration: none; }
+/* Aviso de "ya esta en tu jardin" (QA-04): ocupa toda la fila bajo los botones */
+.ficha-nota {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--linea);
+  border-radius: 16px;
+  background: var(--tinte);
+  color: var(--texto);
+  font-size: 0.9rem;
+}
 
 @media (max-width: 560px) {
   .ficha-resumen { grid-template-columns: 1fr; }

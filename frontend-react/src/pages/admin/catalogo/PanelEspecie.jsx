@@ -31,7 +31,9 @@ export default function PanelEspecie({ especie, onCerrar, onCambio }) {
     setGuardando(true)
     setAviso({ texto: '', error: false })
     try {
-      await guardarEspecie(especie.id, { ...form, nombreComun: form.nombreComun.trim(), nombreCientifico: form.nombreCientifico.trim() })
+      // Solo lo que cambio: Django valida tipo y rango de cada campo (QA-10/QA-11)
+      const limpio = { ...form, nombreComun: form.nombreComun.trim(), nombreCientifico: form.nombreCientifico.trim() }
+      await guardarEspecie(especie.id, Object.fromEntries(CAMPOS.filter((c) => limpio[c] !== especie[c]).map((c) => [c, limpio[c]])))
       setAviso({ texto: 'Guardado en la base de datos', error: false })
       onCambio()
     } catch (err) {

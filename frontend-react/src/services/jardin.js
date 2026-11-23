@@ -9,12 +9,13 @@ export const obtenerPlantaJardin = () => llamar('/plantas/activa')
 // GET /plantas -> todas las plantas digitales del usuario
 export const listarPlantasDigitales = () => llamar('/plantas')
 
-// POST /plantas -> digitaliza desde un escaneo propio o desde una especie de la coleccion
+// POST /plantas -> digitaliza desde un escaneo propio o desde una especie de la coleccion. La apariencia ya no se
+// envia: Spring usa la del escaneo guardado (QA-12). Si la especie ya estaba en el jardin, responde la misma planta
+// sin reiniciarla y con yaEnJardin: true (QA-04).
 export function digitalizarPlanta(resultado) {
   const cuerpo = resultado.idEscaneo > 0
     ? { idEscaneo: resultado.idEscaneo }
     : { idCatalogo: resultado.idCatalogo }
-  if (resultado.apariencia) cuerpo.apariencia = resultado.apariencia
   return llamar('/plantas', { metodo: 'POST', cuerpo })
 }
 

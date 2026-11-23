@@ -72,7 +72,7 @@ export async function crearEvento({ tipo, region, severidad, mensaje, horas, min
   return await respuesta.json()
 }
 
-// REAL: marca el evento como FINALIZADO en la BD.
+// REAL: cancela el evento: termina ya y SIN danos para nadie (Django lo deja FINALIZADO y procesado, QA-07).
 export async function cancelarEvento(id) {
   const respuesta = await fetch(`/django/api/admin/eventos/${id}/`, {
     method: 'PATCH',
@@ -80,8 +80,10 @@ export async function cancelarEvento(id) {
     body: JSON.stringify({ estado: 'FINALIZADO' }),
   })
   if (!respuesta.ok) {
-    const texto = await respuesta.text()
-    throw new Error(texto || `Error ${respuesta.status}`)
+    // Django responde {"error": "..."}: se muestra ese texto, no el JSON crudo
+    let mensaje = ''
+    try { mensaje = (await respuesta.json()).error } catch { /* sin cuerpo JSON */ }
+    throw new Error(mensaje || `Error ${respuesta.status}`)
   }
   return await respuesta.json()
 }
@@ -91,8 +93,10 @@ export async function cancelarEvento(id) {
 export async function efectosEvento(id) {
   const respuesta = await fetch(`/django/api/admin/eventos/${id}/efectos/`, { headers: cabecerasAdmin() })
   if (!respuesta.ok) {
-    const texto = await respuesta.text()
-    throw new Error(texto || `Error ${respuesta.status}`)
+    // Django responde {"error": "..."}: se muestra ese texto, no el JSON crudo
+    let mensaje = ''
+    try { mensaje = (await respuesta.json()).error } catch { /* sin cuerpo JSON */ }
+    throw new Error(mensaje || `Error ${respuesta.status}`)
   }
   return await respuesta.json()
 }

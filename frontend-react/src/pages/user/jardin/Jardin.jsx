@@ -102,11 +102,17 @@ export default function Jardin() {
     return () => clearTimeout(id)
   }, [golpeTipo, plantaId])
 
-  const avisar = (texto) => {
+  const avisar = (texto, ms = MS_AVISO) => {
     setAviso(texto)
     clearTimeout(temporizador.current)
-    temporizador.current = setTimeout(() => setAviso(''), MS_AVISO)
+    temporizador.current = setTimeout(() => setAviso(''), ms)
   }
+
+  // Se vuelve de digitalizar una especie que ya estaba en el jardin: no se reinicio y se avisa (QA-04)
+  const avisoAlLlegar = lugar.state?.aviso
+  useEffect(() => {
+    if (avisoAlLlegar) avisar(avisoAlLlegar, MS_AVISO * 2)
+  }, [avisoAlLlegar])
 
   const alDigitalizar = () => {
     setLlegando(false)

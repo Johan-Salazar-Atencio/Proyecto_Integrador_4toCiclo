@@ -58,12 +58,18 @@ export default function Eventos() {
   }
 
   const cancelar = async (evento) => {
+    // QA-07: antes cancelaba sin preguntar (y ademas danaba las plantas no prevenidas)
+    const seguro = window.confirm(
+      '¿Cancelar esta emergencia?\n\nTermina ahora mismo y ninguna planta recibe daño ni premio. '
+      + 'Las plantas que se habían prevenido quedan sin protección. No se puede deshacer.',
+    )
+    if (!seguro) return
     setCancelando(true)
     try {
       await cancelarEvento(evento.id_desastre)
       await cargar()
       avisarMenu()
-      avisar('Emergencia cancelada')
+      avisar('Emergencia cancelada: ninguna planta recibió daño')
     } catch (err) {
       avisar(err.message || 'No se pudo cancelar el evento')
     } finally {
