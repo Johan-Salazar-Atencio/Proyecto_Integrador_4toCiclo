@@ -26,6 +26,8 @@ public class DatosDemoGuard implements ApplicationRunner {
     static final List<String> CUENTAS_DEMO = List.of("admin@plantia.test", "johan@plantia.test", "lucia@plantia.test");
     /** Texto del evento que siembra V3 (asi se distingue de uno que lanzo el admin). */
     static final String MENSAJE_EVENTO_DEMO = "Resguarda las macetas de terraza para evitar exceso de lluvia y danos.";
+    /** El mismo texto con tilde (V32, QA-61). */
+    static final String MENSAJE_EVENTO_DEMO_V32 = "Resguarda las macetas de terraza para evitar exceso de lluvia y daños.";
     /** No es un hash BCrypt: ningun login (Spring ni Django) lo acepta. */
     static final String CLAVE_INUTILIZABLE = "!deshabilitada-en-produccion";
 
@@ -49,7 +51,7 @@ public class DatosDemoGuard implements ApplicationRunner {
                     CLAVE_INUTILIZABLE, correo, CLAVE_INUTILIZABLE);
         }
         int eventos = jdbc.update("UPDATE eventos_desastre SET estado = 'FINALIZADO', procesado = TRUE, updated_at = now() "
-                + "WHERE mensaje_notificacion = ? AND estado <> 'FINALIZADO'", MENSAJE_EVENTO_DEMO);
+                + "WHERE mensaje_notificacion IN (?, ?) AND estado <> 'FINALIZADO'", MENSAJE_EVENTO_DEMO, MENSAJE_EVENTO_DEMO_V32);
         if (cuentas > 0 || eventos > 0) {
             log.warn("Produccion: {} cuenta(s) de demostracion deshabilitadas y {} evento(s) de demostracion cancelados", cuentas, eventos);
         }

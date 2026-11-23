@@ -517,6 +517,17 @@ class QaPostgresTest {
         assertThat(peor).isLessThan(Math.max(1500, cierre[0] / 2));
     }
 
+    @Test
+    void qa61V32PoneTildesEnLosTextosSembradosQueVeElUsuario() {
+        assertThat(jdbc.queryForObject("SELECT success FROM flyway_schema_history WHERE version = '32'", Boolean.class)).isTrue();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM items_tienda WHERE nombre = 'Abono organico' "
+                + "OR descripcion LIKE '%medio dia %' OR descripcion LIKE '%El mas caro%' OR descripcion LIKE '%maximo un abono al dia%' "
+                + "OR descripcion LIKE '%Petalos%' OR descripcion LIKE '% dia%' OR descripcion LIKE '%Ceramica%' OR descripcion LIKE '%orquideas%'",
+                Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM items_tienda WHERE descripcion = "
+                + "'Suma medio día de crecimiento. Dos abonos suaves hacen 1 día.'", Integer.class)).isEqualTo(1);
+    }
+
     // ---------------------------------------------------------------- medias y bajas por HTTP
 
     @Test

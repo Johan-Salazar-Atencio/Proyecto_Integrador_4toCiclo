@@ -30,6 +30,6 @@ class DatosDemoGuardTest {
                     eq(DatosDemoGuard.CLAVE_INUTILIZABLE), eq(correo), eq(DatosDemoGuard.CLAVE_INUTILIZABLE));
         }
         verify(jdbc, times(1)).update(org.mockito.ArgumentMatchers.startsWith("UPDATE eventos_desastre SET estado = 'FINALIZADO', procesado = TRUE"),
-                eq(DatosDemoGuard.MENSAJE_EVENTO_DEMO));
+                eq(DatosDemoGuard.MENSAJE_EVENTO_DEMO), eq(DatosDemoGuard.MENSAJE_EVENTO_DEMO_V32));
     }
 }
