@@ -118,11 +118,13 @@ fun ColeccionVirtual(
 
     val alcance = rememberCoroutineScope()
     val total = paginas.size + 1
-    val enPaginaBaul = pager.currentPage >= paginas.size
     Column(modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         BarraSuperior(
             consulta, { consulta = it }, invernadero, invernaderosPropios, onElegirInvernadero,
-            paginaActual = pager.currentPage, totalInvernaderos = paginas.size
+            paginaActual = pager.currentPage, totalInvernaderos = paginas.size,
+            guardadas = enBaul.size,
+            onBaul = { alcance.launch { pager.animateScrollToPage(paginas.size) } },
+            onPagina = { alcance.launch { pager.animateScrollToPage(it) } }
         )
 
         Box(
@@ -145,18 +147,17 @@ fun ColeccionVirtual(
                     PaginaBaul(enBaul, onSacarDelBaul)
                 }
             }
-            if (total > 1) {
+            // Sin vuelta al principio: el baúl es la última pantalla y el invernadero la primera.
+            if (pager.currentPage > 0) {
                 FlechaPagina(Icons.Filled.ChevronLeft, "Página anterior", Modifier.align(Alignment.CenterStart).padding(start = 8.dp)) {
-                    alcance.launch { pager.animateScrollToPage((pager.currentPage - 1 + total) % total) }
-                }
-                FlechaPagina(Icons.Filled.ChevronRight, "Página siguiente", Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)) {
-                    alcance.launch { pager.animateScrollToPage((pager.currentPage + 1) % total) }
+                    alcance.launch { pager.animateScrollToPage(pager.currentPage - 1) }
                 }
             }
-        }
-
-        TarjetaBaul(enBaul.size, volver = enPaginaBaul) {
-            alcance.launch { pager.animateScrollToPage(if (enPaginaBaul) 0 else paginas.size) }
+            if (pager.currentPage < total - 1) {
+                FlechaPagina(Icons.Filled.ChevronRight, "Página siguiente", Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)) {
+                    alcance.launch { pager.animateScrollToPage(pager.currentPage + 1) }
+                }
+            }
         }
         Spacer(Modifier.height(4.dp))
     }
@@ -198,7 +199,10 @@ private fun BarraSuperior(
     propios: List<TiendaItem>,
     onElegir: (TiendaItem) -> Unit,
     paginaActual: Int,
-    totalInvernaderos: Int
+    totalInvernaderos: Int,
+    guardadas: Int,
+    onBaul: () -> Unit,
+    onPagina: (Int) -> Unit
 ) {
     var buscando by rememberSaveable { mutableStateOf(consulta.isNotEmpty()) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -212,11 +216,11 @@ private fun BarraSuperior(
             val enBaul = paginaActual >= totalInvernaderos
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
-                    if (enBaul) "Baúl" else "Invernadero ${paginaActual + 1} de $totalInvernaderos",
+                    if (enBaul) "Baúl" else "Página ${paginaActual + 1} de $totalInvernaderos",
                     fontSize = 11.sp, color = TextSecondary
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                    repeat(totalInvernaderos + 1) { i ->
+                    repeat(totalInvernaderos) { i ->
                         val activa = i == paginaActual
                         Box(
                             Modifier
@@ -224,9 +228,32 @@ private fun BarraSuperior(
                                 .width(if (activa) 18.dp else 7.dp)
                                 .clip(CircleShape)
                                 .background(if (activa) Primario else DividerColor)
+                                .clickable(onClickLabel = "Ir a la página ${i + 1}") { onPagina(i) }
                         )
                     }
                 }
+            }
+            // El baúl va después de las páginas del invernadero: su propio botón, con las plantas que guarda.
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(if (enBaul) Primario else SuperficieElevada)
+                    .border(1.dp, if (enBaul) Primario else DividerColor, RoundedCornerShape(50))
+                    .clickable(onClickLabel = if (enBaul) "Volver al invernadero" else "Abrir el baúl") {
+                        if (enBaul) onPagina(0) else onBaul()
+                    }
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Inventory2, contentDescription = null,
+                    tint = if (enBaul) SobrePrimario else TextSecondary, modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    "$guardadas", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold,
+                    color = if (enBaul) SobrePrimario else TextPrimary
+                )
             }
             Box(
                 Modifier
@@ -292,31 +319,6 @@ private fun MenuInvernadero(actual: String, propios: List<TiendaItem>, onElegir:
     }
 }
 
-/** Tarjeta de abajo: lleva al baul (o de vuelta al invernadero si ya se esta en el baul). */
-@Composable
-private fun TarjetaBaul(guardadas: Int, volver: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().tarjeta().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Box(Modifier.size(34.dp).clip(CircleShape).background(SuperficieElevada), contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Inventory2, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
-        }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                "Baúl · $guardadas guardada${if (guardadas == 1) "" else "s"}",
-                fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary
-            )
-            Text(
-                if (volver) "Toca para volver al invernadero" else "Las plantas guardadas quedan congeladas",
-                fontSize = 11.sp, color = TextSecondary
-            )
-        }
-        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
-    }
-}
-
 @Composable
 private fun PaginaInvernadero(
     codigo: String,
@@ -326,17 +328,18 @@ private fun PaginaInvernadero(
     onMenu: (PlantSummary) -> Unit,
     onScan: () -> Unit
 ) {
-    // La escena ocupa todo el ancho (68 x 102 pixeles de cuadricula). En horizontal el alto falta: la escena queda
-    // angosta (con su proporcion), centrada, y la pagina se desplaza hacia abajo.
+    // La escena (68 x 102 pixeles de cuadricula) se ve ENTERA, sin recortes: en vertical se ajusta al ancho y al
+    // alto disponibles (la que mas limite) y queda centrada; en horizontal falta alto, asi que queda angosta,
+    // centrada, y la pagina se desplaza hacia abajo para verla completa.
     BoxWithConstraints(Modifier.fillMaxSize().clipToBounds()) {
         val horizontal = maxWidth > maxHeight
-        val ancho = if (horizontal) minOf(maxWidth, 420.dp) else maxWidth
+        val ancho = if (horizontal) minOf(maxWidth, 420.dp) else minOf(maxWidth, maxHeight * (ANCHO_PAGINA / ALTO_PAGINA))
         val u = ancho / ANCHO_PAGINA
         val libre = if (plantas.size < PLANTAS_POR_PAGINA) plantas.size else null
-        val alto = if (!horizontal && maxHeight > u * ALTO_PAGINA) maxHeight else u * ALTO_PAGINA
+        val alto = u * ALTO_PAGINA
         Box(
             Modifier.fillMaxSize().then(if (horizontal) Modifier.verticalScroll(rememberScrollState()) else Modifier),
-            contentAlignment = Alignment.TopCenter
+            contentAlignment = if (horizontal) Alignment.TopCenter else Alignment.Center
         ) {
             Box(Modifier.width(ancho).height(alto)) {
                 FondoInvernadero(codigo, Modifier.fillMaxSize(), huecoLibre = libre)
