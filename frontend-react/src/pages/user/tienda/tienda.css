@@ -1,4 +1,4 @@
-.tienda { display: flex; flex-direction: column; gap: 14px; max-width: 1180px; margin: 0 auto; }
+.tienda { display: flex; flex-direction: column; gap: 14px; max-width: 1500px; margin: 0 auto; }
 .icono { flex: none; }
 
 /* Titulo con la pildora de hojas y las categorias como chips */
@@ -15,7 +15,7 @@
 
 /* Cuadricula: 4 columnas en pantallas anchas, 2 en angostas */
 .tienda-grilla { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-@media (min-width: 900px) { .tienda-grilla { grid-template-columns: repeat(4, 1fr); gap: 16px; } }
+@media (min-width: 900px) { .tienda-grilla { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; } }
 
 .tienda-prod { display: flex; flex-direction: column; gap: 8px; padding: 10px 10px 14px; background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); box-shadow: var(--sombra); }
 .tienda-prod > b { padding: 0 4px; font-size: 1rem; font-weight: 800; }

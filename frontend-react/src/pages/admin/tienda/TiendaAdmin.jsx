@@ -8,6 +8,7 @@ import { Aviso, BotonIcono, Chip, Icono, Interruptor, PENDIENTE } from '../misio
 import { motivoSinVenta } from './venta'
 import MacetaPixel from '../../../components/MacetaPixel'
 import Invernadero from '../../../components/Invernadero'
+import HojaAbono from '../../../components/HojaAbono'
 import './tienda-admin.css'
 
 const COLOR_TIPO = { MACETA: 'var(--luz)', INVERNADERO: 'var(--primario)', FONDO: 'var(--agua)', ABONO: 'var(--abono)' }
@@ -20,6 +21,8 @@ function Vista({ p }) {
   // Macetas e invernaderos no tienen imagen subida: se dibujan en pixel art por su codigo, como en la tienda del usuario
   if (p.tipo === 'MACETA' && p.codigo) return <span className="ak-tienda-th ak-tienda-th-dibujo"><MacetaPixel codigo={p.codigo} /></span>
   if (p.tipo === 'INVERNADERO' && p.codigo) return <span className="ak-tienda-th ak-tienda-th-dibujo"><Invernadero tema={p.codigo} momento="DIA" /></span>
+  // Los abonos tampoco tienen imagen propia: se muestra la hoja de su color (suave, organico, reforzado)
+  if (p.tipo === 'ABONO') return <span className="ak-tienda-th ak-tienda-th-dibujo"><HojaAbono codigo={p.codigo} tam={44} /></span>
   return (
     <span className="ak-tienda-th">
       {imagen ? <img src={urlImagen(imagen)} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} /> : <span>{p.nombre.charAt(0)}</span>}

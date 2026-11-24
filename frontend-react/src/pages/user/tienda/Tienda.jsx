@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RUTAS } from '../../../routes/rutas'
-import { listarPlantasDigitales, obtenerPlantaJardin, ponerMaceta } from '../../../services/jardin'
+import { listarPlantasDigitales, ponerMaceta } from '../../../services/jardin'
 import { comprarAbono, comprarItem, obtenerTienda } from '../../../services/tienda'
+import HojaAbono from '../../../components/HojaAbono'
+import { estiloAbono, ordenarAbonos, textoTienes } from '../../../components/abonoEstilo'
 import Invernadero from '../../../components/Invernadero'
 import MacetaPixel from '../../../components/MacetaPixel'
 import { paletaDeMaceta } from '../../../components/macetas'
@@ -20,6 +22,7 @@ export default function Tienda() {
   const [pestana, setPestana] = useState('MACETA')
   const [aviso, setAviso] = useState('')
   const [ocupado, setOcupado] = useState(false)
+  const [comprandoId, setComprandoId] = useState(null) // abono que se esta comprando: solo su tarjeta muestra el progreso
   const [aplicando, setAplicando] = useState(null) // maceta a la que se le eligen plantas
   const [porComprar, setPorComprar] = useState(null) // { item, exito } esperando la confirmacion
   const temporizador = useRef(null)
@@ -57,19 +60,30 @@ export default function Tienda() {
     }
   }
 
-  // Se envia el abono elegido: antes iba sin idItem y Spring aplicaba siempre el mas barato
-  const usarAbono = (abono) => accion(async () => {
-    const planta = await obtenerPlantaJardin()
-    if (!planta) throw new Error('Primero digitaliza una planta para abonarla.')
-    await comprarAbono(planta.id, abono.id)
-    return null
-  }, `¡${abono.nombre} aplicado a tu planta! 🌱`)
+  // El abono se compra y suma al contador (no se usa aqui). Solo su tarjeta muestra el progreso;
+  // las demas siguen igual, y mientras hay una compra en curso se ignoran los toques nuevos.
+  const comprarUnAbono = async (abono) => {
+    if (ocupado) return
+    setOcupado(true)
+    setComprandoId(abono.id)
+    try {
+      const inventario = await comprarAbono(abono.id)
+      await cargar()
+      const ahora = inventario?.abonos?.find((a) => a.idItem === abono.id)?.cantidad
+      avisar(`Compraste «${abono.nombre}».${ahora != null ? ` Ahora tienes ${ahora}.` : ''} Úsalo desde tu jardín`)
+    } catch (err) {
+      avisar(err.estado === 402 ? 'No te alcanzan las hojas.' : err.message || 'No se pudo comprar el abono.')
+    } finally {
+      setComprandoId(null)
+      setOcupado(false)
+    }
+  }
 
   // QA-64: cada compra se confirma con su nombre y precio antes de cobrar
   const confirmarCompra = () => {
     const { item, exito } = porComprar
     setPorComprar(null)
-    if (item.tipo === 'ABONO') usarAbono(item)
+    if (item.tipo === 'ABONO') comprarUnAbono(item)
     else accion(() => comprarItem(item.id), exito)
   }
 
@@ -86,7 +100,7 @@ export default function Tienda() {
 
   const { monedas, items } = estado.tienda
   const fondos = items.filter((i) => i.tipo === 'FONDO')
-  const abonos = items.filter((i) => i.tipo === 'ABONO')
+  const abonos = ordenarAbonos(items.filter((i) => i.tipo === 'ABONO'))
   const macetas = items.filter((i) => i.tipo === 'MACETA')
   const invernaderos = items.filter((i) => i.tipo === 'INVERNADERO')
 
@@ -191,18 +205,27 @@ export default function Tienda() {
           <p className="historial-vacio">El abono no está disponible por ahora.</p>
         ) : (
           <>
-            <p className="tienda-nota">Se aplica a la planta de tu <Link to={RUTAS.JARDIN}>jardín</Link>. Máximo un abono al día por planta.</p>
+            <p className="tienda-nota">Compra abonos y se suman a tu contador. Los usas desde tu <Link to={RUTAS.JARDIN}>jardín</Link>: máximo un abono al día por planta.</p>
             <div className="tienda-grilla">
-              {abonos.map((a) => (
-                <article key={a.id} className="tienda-prod aparece">
-                  <div className="tienda-pv tienda-pv-abono"><Icono n="leaf" tam={44} /></div>
-                  <b>{a.nombre}</b>
-                  <p>{a.descripcion}</p>
-                  <button className={`tienda-btn ${a.bloqueado ? 'tienda-btn-bloq' : ''}`} disabled={ocupado || monedas < a.precio || a.bloqueado} onClick={() => setPorComprar({ item: a })}>
-                    {a.bloqueado ? <><Icono n="lock" tam={16} />Nivel {a.nivelRequerido}</> : <>Usar en mi planta · {a.precio} <Icono n="leaf" tam={16} /></>}
-                  </button>
-                </article>
-              ))}
+              {abonos.map((a) => {
+                const { color } = estiloAbono(a.codigo)
+                const cantidad = a.cantidad || 0
+                return (
+                  <article key={a.id} className={`abono-tarjeta aparece ${cantidad > 0 ? 'abono-tarjeta-con' : ''}`} style={{ '--abono-color': color }}>
+                    <HojaAbono codigo={a.codigo} />
+                    <b>{a.nombre}</b>
+                    <p>{a.descripcion}</p>
+                    <span className="abono-contador">{textoTienes(cantidad)}</span>
+                    {a.bloqueado ? (
+                      <button className="tienda-btn tienda-btn-bloq" disabled><Icono n="lock" tam={16} />Nivel {a.nivelRequerido}</button>
+                    ) : (
+                      <button className="abono-boton" disabled={comprandoId === a.id || monedas < a.precio} onClick={() => { if (!ocupado) setPorComprar({ item: a }) }}>
+                        {comprandoId === a.id ? <span className="abono-cargando" aria-label="Comprando" /> : <>Comprar · {a.precio} <Icono n="leaf" tam={16} /></>}
+                      </button>
+                    )}
+                  </article>
+                )
+              })}
             </div>
           </>
         )

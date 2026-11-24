@@ -1,0 +1,16 @@
+/* Abonos: hoja de color por tipo, tarjeta y contador (mismo estilo que el movil). Cada tarjeta se anima sola. */
+.abono-disco { display: inline-grid; place-items: center; flex: none; border-radius: 50%; background: color-mix(in srgb, var(--abono-color) 22%, var(--superficie)); }
+.abono-tarjeta { --abono-color: var(--primario); display: flex; flex-direction: column; gap: 8px; padding: 14px 12px; border: 1.5px solid var(--linea); border-radius: 24px; background: var(--superficie); box-shadow: var(--sombra); transition: transform var(--transicion), box-shadow var(--transicion); }
+.abono-tarjeta-con { border-color: var(--abono-color); background: color-mix(in srgb, var(--abono-color) 12%, var(--superficie)); }
+.abono-tarjeta:hover { transform: translateY(-3px); }
+.abono-tarjeta:active { transform: scale(0.96); }
+.abono-tarjeta .abono-disco { align-self: center; }
+.abono-tarjeta > b { font-size: 1rem; font-weight: 800; text-align: center; }
+.abono-tarjeta > p { flex: 1; min-height: 34px; color: var(--texto-suave); font-size: 0.8rem; line-height: 1.35; text-align: center; }
+.abono-contador { align-self: center; padding: 3px 12px; border-radius: 999px; background: color-mix(in srgb, var(--abono-color) 17%, transparent); color: var(--abono-color); font-size: 0.8rem; font-weight: 800; }
+.abono-boton { display: flex; justify-content: center; align-items: center; gap: 6px; min-height: 40px; padding: 10px 8px; border: 0; border-radius: 15px; background: var(--abono-color); color: #fff; font: inherit; font-size: 0.82rem; font-weight: 800; cursor: pointer; transition: filter var(--transicion); }
+.abono-boton:hover:not(:disabled) { filter: brightness(1.08); }
+.abono-boton:disabled { opacity: 0.5; cursor: not-allowed; }
+.abono-cargando { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255, 255, 255, 0.4); border-top-color: #fff; border-radius: 50%; animation: abono-giro 0.7s linear infinite; }
+@keyframes abono-giro { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .abono-tarjeta, .abono-cargando { transition: none; animation: none; } }

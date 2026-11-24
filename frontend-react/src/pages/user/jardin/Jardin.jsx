@@ -3,7 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { RUTAS } from '../../../routes/rutas'
 import { obtenerEventoActivo, urlImagen } from '../../../services/home'
 import { cuidarPlanta, golpeVisto, obtenerPlantaJardin, prevenirPlanta, revivirPlanta } from '../../../services/jardin'
-import { comprarAbono, obtenerTienda } from '../../../services/tienda'
+import { obtenerAbonos, usarAbono } from '../../../services/tienda'
+import HojaAbono from '../../../components/HojaAbono'
+import { estiloAbono, ordenarAbonos, textoTienes } from '../../../components/abonoEstilo'
 import Digitalizacion from '../../../components/Digitalizacion'
 import PlantaPixel from '../../../components/PlantaPixel'
 import EscenaPixel from '../../../components/EscenaPixel'
@@ -52,7 +54,8 @@ export default function Jardin() {
   const [cuidando, setCuidando] = useState(false)
   const [fondosAbierto, setFondosAbierto] = useState(false)
   const [claveEscena, setClaveEscena] = useState(0) // cambia al poner otro fondo: la escena se vuelve a armar
-  const [abonos, setAbonos] = useState([]) // abonos de la tienda (medio dia, 1 y 3 dias), del mas barato al mas caro
+  const [abonos, setAbonos] = useState([]) // inventario de abonos (suave, organico, reforzado) con su contador
+  const [usandoId, setUsandoId] = useState(null) // abono que se esta usando: solo su tarjeta muestra el progreso
   const [evento, setEvento] = useState(null) // evento activo (o null): con el aparece "Prevenir evento"
   const [golpe, setGolpe] = useState(null) // tipo de evento que arraso con la planta, mientras se muestra
   const [escudo, setEscudo] = useState(0) // sube cada vez que se previene: dispara el escudo
@@ -73,11 +76,12 @@ export default function Jardin() {
   }, [])
 
   useEffect(() => { cargar() }, [cargar])
-  useEffect(() => {
-    obtenerTienda()
-      .then((t) => setAbonos(t.items.filter((i) => i.tipo === 'ABONO').sort((a, b) => a.precio - b.precio)))
+  const cargarAbonos = useCallback(() => {
+    obtenerAbonos()
+      .then((r) => setAbonos(ordenarAbonos(r?.abonos)))
       .catch(() => setAbonos([]))
   }, [])
+  useEffect(() => { cargarAbonos() }, [cargarAbonos])
   useEffect(() => () => clearTimeout(temporizador.current), [])
 
   // Un evento que lanza el admin aparece solo: se consulta mientras el jardin esta a la vista
@@ -178,14 +182,16 @@ export default function Jardin() {
     }
   }
 
-  // Abono de la tienda: cuesta monedas y suma medio dia, 1 o 3 dias de crecimiento (maximo uno al dia por planta)
-  const abonarConTienda = async (abono) => {
+  // Abono del inventario: descuenta 1 del contador y suma medio dia, 1 o 3 dias de crecimiento (maximo uno al dia por planta)
+  const abonarConInventario = async (abono) => {
     if (cuidando) return
     setCuidando(true)
+    setUsandoId(abono.idItem)
     try {
-      const planta = await comprarAbono(estado.planta.id, abono.id)
+      const planta = await usarAbono(estado.planta.id, abono.idItem)
       const antes = etapaDe(estado.planta)
       const despues = etapaDe(planta)
+      setAbonos((lista) => lista.map((a) => (a.idItem === abono.idItem ? { ...a, cantidad: Math.max(0, a.cantidad - 1) } : a)))
       setEstado((e) => ({ ...e, planta }))
       setEfecto({ tipo: 'ABONAR', id: Date.now() })
       avisar(despues.indice > antes.indice
@@ -193,7 +199,9 @@ export default function Jardin() {
         : `${abono.nombre} aplicado: ${planta.name} ${diasGanados(estado.planta, planta)} 🌿`)
     } catch (err) {
       avisar(err.message || 'No se pudo usar el abono.')
+      cargarAbonos() // el contador pudo cambiar (409): se vuelve a leer
     } finally {
+      setUsandoId(null)
       setCuidando(false)
     }
   }
@@ -314,20 +322,25 @@ export default function Jardin() {
             )}
             {abonos.length > 0 && (
               <div className="jardin-abonos aparece" style={{ animationDelay: '0.26s' }}>
-                <p className="jardin-abonos-titulo">🌿 Abonos · máximo 1 al día</p>
-                {abonos.map((abono) => (
-                  <button
-                    key={abono.id}
-                    className="jardin-abono"
-                    onClick={() => abonarConTienda(abono)}
-                    disabled={cuidando || abono.bloqueado}
-                    title={abono.bloqueado ? `Se desbloquea en el nivel ${abono.nivelRequerido}` : undefined}
-                  >
-                    <b>{abono.nombre}</b>
-                    <span className="jardin-abono-desc">{abono.descripcion}</span>
-                    <small>{abono.bloqueado ? `🔒 Nivel ${abono.nivelRequerido}` : `${abono.precio} 🍃`}</small>
-                  </button>
-                ))}
+                <p className="jardin-abonos-titulo">🌿 Abonos para {planta.name} · máximo 1 al día</p>
+                {abonos.map((abono) => {
+                  const { color } = estiloAbono(abono.codigo)
+                  const hay = abono.cantidad > 0
+                  return (
+                    <div
+                      key={abono.idItem}
+                      className={`abono-tarjeta jardin-abono ${hay ? 'abono-tarjeta-con' : ''}`}
+                      style={{ '--abono-color': color }}
+                    >
+                      <HojaAbono codigo={abono.codigo} tam={44} />
+                      <b>{abono.nombre}</b>
+                      <span className="abono-contador">{textoTienes(abono.cantidad)}</span>
+                      <button className="abono-boton" onClick={() => abonarConInventario(abono)} disabled={!hay || usandoId === abono.idItem}>
+                        {usandoId === abono.idItem ? <span className="abono-cargando" aria-label="Usando" /> : 'Usar'}
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </>
