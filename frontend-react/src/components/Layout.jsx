@@ -4,6 +4,7 @@ import { RUTAS } from '../routes/rutas'
 import { useSesion } from '../store/Sesion'
 import { avisarSiToca } from '../store/preferencias'
 import { obtenerUsuario, urlImagen } from '../services/home'
+import { AVISO_SALDO } from '../services/saldo'
 import { iniciales, porcentajeXp } from '../pages/user/home/xp'
 import Boton from './Boton'
 import Icono from './Icono'
@@ -42,11 +43,13 @@ export default function Layout() {
     const id = setInterval(() => avisarSiToca(), 60000)
     return () => clearInterval(id)
   }, [])
-  // Hojas y XP de la barra: se refrescan al cambiar de pagina (comprar o cuidar las cambia)
+  // Hojas y XP de la barra: se refrescan al cambiar de pagina y tras cada compra, cuidado o escaneo
   useEffect(() => {
     let vivo = true
-    obtenerUsuario().then((u) => { if (vivo && u) setPerfil(u) }).catch(() => {})
-    return () => { vivo = false }
+    const refrescar = () => obtenerUsuario().then((u) => { if (vivo && u) setPerfil(u) }).catch(() => {})
+    refrescar()
+    window.addEventListener(AVISO_SALDO, refrescar)
+    return () => { vivo = false; window.removeEventListener(AVISO_SALDO, refrescar) }
   }, [pathname])
   const titulo = TITULOS.find(([ruta]) => pathname.startsWith(ruta))?.[1] || MENU.find((m) => pathname.startsWith(m.ruta))?.texto || 'Plantia'
 

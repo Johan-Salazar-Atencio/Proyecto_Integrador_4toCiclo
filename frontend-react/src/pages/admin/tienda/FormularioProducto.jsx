@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { urlImagen } from '../../../services/home'
 import { MOMENTOS_FONDO } from '../../../services/admin/tienda'
 import { Alternador, Campo, Icono, PENDIENTE } from '../misiones/kit'
+import { motivoSinVenta } from './venta'
 
 export const TIPOS_PRODUCTO = [
   { valor: 'MACETA', texto: 'Maceta' },
@@ -53,7 +54,7 @@ export default function FormularioProducto({ producto, onGuardar, onCancelar }) 
     setGuardando(true)
     try {
       const { activo, ...base } = datos
-      const cuerpo = producto ? { ...base, ...(producto.tipo === 'MACETA' && !producto.activo ? {} : { activo }) } : { ...base, activo }
+      const cuerpo = producto ? { ...base, ...(motivoSinVenta(producto) ? {} : { activo }) } : { ...base, activo }
       if (subidas.length === 0 && producto) {
         await onGuardar(cuerpo) // solo datos: JSON
       } else {
@@ -151,7 +152,7 @@ export default function FormularioProducto({ producto, onGuardar, onCancelar }) 
 
       <Alternador
         titulo="A la venta" detalle="Visible en la tienda" activo={datos.activo} onChange={(v) => cambiar('activo', v)}
-        disabled={producto?.tipo === 'MACETA' && !producto.activo} tituloBoton={producto?.tipo === 'MACETA' && !producto.activo ? 'Las macetas aún no están disponibles' : undefined}
+        disabled={Boolean(motivoSinVenta(producto))} tituloBoton={motivoSinVenta(producto) || undefined}
       />
 
       {sinSoporte && <p className="ak-error" role="status">Crear {TIPOS_PRODUCTO.find((t) => t.valor === tipo)?.texto.toLowerCase()}s está pendiente de backend: por ahora solo se pueden agregar fondos.</p>}

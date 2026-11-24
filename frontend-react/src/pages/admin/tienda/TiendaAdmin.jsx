@@ -5,6 +5,7 @@ import {
 } from '../../../services/admin/tienda'
 import FormularioProducto, { TIPOS_PRODUCTO } from './FormularioProducto'
 import { Aviso, BotonIcono, Chip, Icono, Interruptor, PENDIENTE } from '../misiones/kit'
+import { motivoSinVenta } from './venta'
 import './tienda-admin.css'
 
 const COLOR_TIPO = { MACETA: 'var(--luz)', INVERNADERO: 'var(--primario)', FONDO: 'var(--agua)', ABONO: 'var(--abono)' }
@@ -73,7 +74,7 @@ export default function TiendaAdmin() {
       <span>Nivel {p.nivel_requerido}</span>
       <Interruptor
         activo={p.activo} onChange={() => alternar(p)} etiqueta={`${p.nombre}: a la venta`}
-        disabled={p.tipo === 'MACETA' && !p.activo} titulo={p.tipo === 'MACETA' && !p.activo ? 'Las macetas aún no están disponibles' : undefined}
+        disabled={Boolean(motivoSinVenta(p))} titulo={motivoSinVenta(p) || undefined}
       />
       <span className="ak-ra">
         <BotonIcono icono="edit" etiqueta={`Editar ${p.nombre}`} onClick={() => setPanel(p)} />

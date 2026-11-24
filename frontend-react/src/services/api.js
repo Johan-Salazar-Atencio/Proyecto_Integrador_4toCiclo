@@ -1,5 +1,6 @@
 import { RUTAS } from '../routes/rutas'
 import { borrarSesion, obtenerUsuarioId, obtenerToken } from '../store/sesionGuardada'
+import { avisarSaldo, cambiaElSaldo } from './saldo'
 
 const BASE = '/api/v1'
 
@@ -19,7 +20,10 @@ export async function llamar(ruta, { metodo = 'GET', cuerpo, formData, senal } =
   }
 
   const respuesta = await fetch(`${BASE}${ruta}`, { method: metodo, headers: cabeceras, body, signal: senal })
-  if (respuesta.status === 204) return null
+  if (respuesta.status === 204) {
+    if (cambiaElSaldo(metodo)) avisarSaldo()
+    return null
+  }
 
   const datos = leerJson(await respuesta.text())
   if (!respuesta.ok) {
@@ -29,6 +33,7 @@ export async function llamar(ruta, { metodo = 'GET', cuerpo, formData, senal } =
     error.estado = respuesta.status
     throw error
   }
+  if (cambiaElSaldo(metodo)) avisarSaldo() // la barra refresca hojas y XP
   return datos
 }
 

@@ -8,6 +8,7 @@ import MacetaPixel from '../../../components/MacetaPixel'
 import { paletaDeMaceta } from '../../../components/macetas'
 import VistasDelTema from '../../../components/VistasDelTema'
 import Icono from './Icono'
+import { textosCompra } from './confirmacion'
 import './tienda.css'
 
 const MS_AVISO = 3000
@@ -20,6 +21,7 @@ export default function Tienda() {
   const [aviso, setAviso] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const [aplicando, setAplicando] = useState(null) // maceta a la que se le eligen plantas
+  const [porComprar, setPorComprar] = useState(null) // { item, exito } esperando la confirmacion
   const temporizador = useRef(null)
 
   const cargar = useCallback(async () => {
@@ -55,12 +57,21 @@ export default function Tienda() {
     }
   }
 
-  const usarAbono = () => accion(async () => {
+  // Se envia el abono elegido: antes iba sin idItem y Spring aplicaba siempre el mas barato
+  const usarAbono = (abono) => accion(async () => {
     const planta = await obtenerPlantaJardin()
     if (!planta) throw new Error('Primero digitaliza una planta para abonarla.')
-    await comprarAbono(planta.id)
+    await comprarAbono(planta.id, abono.id)
     return null
-  }, '¡Abono aplicado! Tu planta ganó un día de crecimiento 🌱')
+  }, `¡${abono.nombre} aplicado a tu planta! 🌱`)
+
+  // QA-64: cada compra se confirma con su nombre y precio antes de cobrar
+  const confirmarCompra = () => {
+    const { item, exito } = porComprar
+    setPorComprar(null)
+    if (item.tipo === 'ABONO') usarAbono(item)
+    else accion(() => comprarItem(item.id), exito)
+  }
 
   if (estado.cargando) return <div className="home-cargando"><span className="home-giro" aria-label="Cargando" /></div>
   if (estado.error) {
@@ -84,7 +95,7 @@ export default function Tienda() {
     item.bloqueado ? (
       <button className="tienda-btn tienda-btn-bloq" disabled><Icono n="lock" tam={16} />Nivel {item.nivelRequerido}</button>
     ) : (
-      <button className="tienda-btn" disabled={ocupado || monedas < item.precio} onClick={() => accion(() => comprarItem(item.id), exito)}>
+      <button className="tienda-btn" disabled={ocupado || monedas < item.precio} onClick={() => setPorComprar({ item, exito })}>
         Comprar · {item.precio} <Icono n="leaf" tam={16} />
       </button>
     )
@@ -187,7 +198,7 @@ export default function Tienda() {
                   <div className="tienda-pv tienda-pv-abono"><Icono n="leaf" tam={44} /></div>
                   <b>{a.nombre}</b>
                   <p>{a.descripcion}</p>
-                  <button className={`tienda-btn ${a.bloqueado ? 'tienda-btn-bloq' : ''}`} disabled={ocupado || monedas < a.precio || a.bloqueado} onClick={usarAbono}>
+                  <button className={`tienda-btn ${a.bloqueado ? 'tienda-btn-bloq' : ''}`} disabled={ocupado || monedas < a.precio || a.bloqueado} onClick={() => setPorComprar({ item: a })}>
                     {a.bloqueado ? <><Icono n="lock" tam={16} />Nivel {a.nivelRequerido}</> : <>Usar en mi planta · {a.precio} <Icono n="leaf" tam={16} /></>}
                   </button>
                 </article>
@@ -206,7 +217,24 @@ export default function Tienda() {
         />
       )}
 
+      {porComprar && <ConfirmarCompra textos={textosCompra(porComprar.item)} onCancelar={() => setPorComprar(null)} onConfirmar={confirmarCompra} />}
+
       {aviso && <div className="jardin-aviso" role="status">{aviso}</div>}
+    </div>
+  )
+}
+
+function ConfirmarCompra({ textos, onCancelar, onConfirmar }) {
+  return (
+    <div className="layout-fondo" onClick={onCancelar}>
+      <div className="layout-dialogo aparece" role="dialog" aria-modal="true" aria-labelledby="tienda-confirmar-titulo" onClick={(e) => e.stopPropagation()}>
+        <h2 id="tienda-confirmar-titulo">{textos.titulo}</h2>
+        <p>{textos.detalle}</p>
+        <div className="layout-dialogo-botones">
+          <button type="button" className="boton boton-suave" onClick={onCancelar}>Cancelar</button>
+          <button type="button" className="boton boton-principal" onClick={onConfirmar} autoFocus>{textos.boton}</button>
+        </div>
+      </div>
     </div>
   )
 }
