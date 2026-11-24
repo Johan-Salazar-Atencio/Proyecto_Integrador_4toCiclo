@@ -12,6 +12,23 @@ export function cambiosDeEspecie(form, especie, campos) {
   return Object.fromEntries(campos.filter((c) => form[c] !== especie[c]).map((c) => [c, form[c]]))
 }
 
+// Cuerpo del POST de una especie nueva: nombres recortados y sin imagen si se deja vacia (Django pone la de defecto)
+export function cuerpoEspecieNueva(form) {
+  const cuerpo = {
+    nombreComun: String(form.nombreComun ?? '').trim(),
+    nombreCientifico: String(form.nombreCientifico ?? '').trim(),
+    riegoDias: form.riegoDias,
+    solHoras: form.solHoras,
+    tempMin: form.tempMin,
+    tempMax: form.tempMax,
+    toxica: Boolean(form.toxica),
+    publicada: Boolean(form.publicada),
+  }
+  const imagen = String(form.imagen ?? '').trim()
+  if (imagen) cuerpo.imagen = imagen
+  return cuerpo
+}
+
 // Texto de la confirmacion antes de cancelar una emergencia (QA-07)
 export const CONFIRMAR_CANCELAR = '¿Cancelar esta emergencia?\n\nTermina ahora mismo y ninguna planta recibe daño ni premio. '
   + 'Las plantas que se habían prevenido quedan sin protección. No se puede deshacer.'

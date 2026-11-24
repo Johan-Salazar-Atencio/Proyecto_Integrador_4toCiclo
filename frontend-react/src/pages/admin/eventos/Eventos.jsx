@@ -3,14 +3,13 @@ import EncabezadoAdmin from '../../../components/admin/EncabezadoAdmin'
 import IconoAdmin from '../../../components/admin/IconoAdmin'
 import { AVISO_EVENTOS, cancelarEvento, crearEvento, listarEventos, listarRegiones } from '../../../services/admin/eventos'
 import { CONFIRMAR_CANCELAR } from '../../../services/admin/respuestas.js'
-import { listarTiposEvento } from '../../../services/admin/tiposEvento'
+import { cambiarActivoTipo, listarTiposEvento } from '../../../services/admin/tiposEvento'
 import EfectoEvento from './EfectoEvento'
 import EventoEnCurso from './EventoEnCurso'
 import FormularioTipo from './FormularioTipo'
 import HistorialEventos from './HistorialEventos'
 import ModalLanzar from './ModalLanzar'
 import TarjetaTipo from './TarjetaTipo'
-import { PENDIENTE } from './util'
 import './eventos.css'
 
 const MS_AVISO = 3500
@@ -22,6 +21,7 @@ export default function Eventos() {
   const [vista, setVista] = useState({ modo: 'lista', tipo: null }) // lista | formulario
   const [aLanzar, setALanzar] = useState(null)
   const [cancelando, setCancelando] = useState(false)
+  const [cambiandoId, setCambiandoId] = useState(null)
   const [aviso, setAviso] = useState('')
   const [verEfecto, setVerEfecto] = useState(null)
   const temporizador = useRef(null)
@@ -75,10 +75,27 @@ export default function Eventos() {
     }
   }
 
-  const guardado = (tipo) => {
-    setEstado((e) => ({ ...e, tipos: e.tipos.map((x) => (x.id_tipo_desastre === tipo.id_tipo_desastre ? tipo : x)) }))
+  const guardado = (tipo, esNuevo) => {
+    setEstado((e) => ({
+      ...e,
+      tipos: esNuevo ? [...e.tipos, tipo] : e.tipos.map((x) => (x.id_tipo_desastre === tipo.id_tipo_desastre ? tipo : x)),
+    }))
     setVista({ modo: 'lista', tipo: null })
-    avisar(`${tipo.nombre} guardado`)
+    avisar(esNuevo ? `${tipo.nombre} creado` : `${tipo.nombre} guardado`)
+  }
+
+  // Interruptor de la tarjeta: se guarda en Django y la tarjeta cambia con lo que responde el servidor
+  const alternar = async (tipo) => {
+    setCambiandoId(tipo.id_tipo_desastre)
+    try {
+      const nuevo = await cambiarActivoTipo(tipo.id_tipo_desastre, !tipo.activo)
+      setEstado((e) => ({ ...e, tipos: e.tipos.map((x) => (x.id_tipo_desastre === nuevo.id_tipo_desastre ? nuevo : x)) }))
+      avisar(nuevo.activo ? `${nuevo.nombre} activado` : `${nuevo.nombre} desactivado: ya no se puede lanzar`)
+    } catch (err) {
+      avisar(err.message || 'No se pudo cambiar el estado del tipo de evento')
+    } finally {
+      setCambiandoId(null)
+    }
   }
 
   const { cargando, eventos, tipos, error } = estado
@@ -125,12 +142,12 @@ export default function Eventos() {
             {activo && <div className="ad-aviso"><IconoAdmin n="alert" /><span>Ya hay un evento en curso. Solo puede haber uno a la vez: cancélalo o espera a que termine.</span></div>}
             <div className="ev-rejilla">
               {tipos.map((t) => (
-                <TarjetaTipo key={t.id_tipo_desastre} tipo={t} hayActivo={Boolean(activo)} onLanzar={setALanzar} onEditar={(x) => setVista({ modo: 'formulario', tipo: x })} />
+                <TarjetaTipo key={t.id_tipo_desastre} tipo={t} hayActivo={Boolean(activo)} cambiando={cambiandoId === t.id_tipo_desastre} onAlternar={alternar} onLanzar={setALanzar} onEditar={(x) => setVista({ modo: 'formulario', tipo: x })} />
               ))}
               <button type="button" className="ev-nuevo" onClick={() => setVista({ modo: 'formulario', tipo: null })}>
                 <span><IconoAdmin n="plus" /></span>
                 Crear nuevo tipo de evento
-                <small className="ad-small">Con imagen, texto y salud por severidad · {PENDIENTE}</small>
+                <small className="ad-small">Con imagen, texto y salud por severidad</small>
               </button>
             </div>
           </section>

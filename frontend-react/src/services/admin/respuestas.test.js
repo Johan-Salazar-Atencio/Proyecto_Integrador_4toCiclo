@@ -1,7 +1,13 @@
 // Pruebas del panel admin (QA-33): `npm test`, sin navegador.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { CONFIRMAR_CANCELAR, cambiosDeEspecie, errorDeRespuesta } from './respuestas.js'
+import { CONFIRMAR_CANCELAR, cambiosDeEspecie, cuerpoEspecieNueva, errorDeRespuesta } from './respuestas.js'
+
+test('la especie nueva recorta los nombres y omite la imagen vacía', () => {
+  const form = { nombreComun: ' Menta ', nombreCientifico: ' Mentha spicata ', riegoDias: 3, solHoras: 5, tempMin: 10, tempMax: 30, toxica: false, publicada: true, imagen: '  ' }
+  assert.deepEqual(cuerpoEspecieNueva(form), { nombreComun: 'Menta', nombreCientifico: 'Mentha spicata', riegoDias: 3, solHoras: 5, tempMin: 10, tempMax: 30, toxica: false, publicada: true })
+  assert.equal(cuerpoEspecieNueva({ ...form, imagen: ' /sprites/menta.png ' }).imagen, '/sprites/menta.png')
+})
 
 const respuesta = (status, cuerpo) => ({
   status,

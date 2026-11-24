@@ -76,3 +76,20 @@
   .ad-dos { grid-template-columns: 1fr; }
   .ev-encurso-info { flex-direction: column; align-items: flex-start; }
 }
+
+/* Tarjeta de tipo: cada una reacciona sola (hover, foco y pulsación) y un tipo desactivado se atenúa sin bloquearse */
+.ev-tipo { transition: transform var(--transicion, 0.2s ease), box-shadow var(--transicion, 0.2s ease), border-color var(--transicion, 0.2s ease); }
+.ev-tipo:hover, .ev-tipo:focus-within { transform: translateY(-4px); border-color: color-mix(in srgb, var(--primario) 55%, var(--linea)); box-shadow: 0 10px 24px color-mix(in srgb, var(--primario) 18%, transparent); }
+.ev-tipo:active { transform: translateY(-1px) scale(0.99); }
+.ev-tipo-foto { position: relative; overflow: hidden; }
+.ev-tipo-foto img { transition: transform 0.35s ease, filter 0.25s ease; }
+.ev-tipo:hover .ev-tipo-foto img { transform: scale(1.07); }
+.ev-tipo-chip { position: absolute; top: 8px; left: 8px; padding: 3px 9px; border-radius: 99px; background: color-mix(in srgb, var(--superficie) 88%, transparent); color: var(--texto-suave); font-size: 0.62rem; font-weight: 800; }
+.ev-tipo-off .ev-tipo-foto img, .ev-tipo-off .ev-sinimg { filter: grayscale(0.85); opacity: 0.55; }
+.ev-tipo-off .ev-tipo-cuerpo > b, .ev-tipo-off .ev-tipo-fila > b, .ev-tipo-off .ev-salud { opacity: 0.6; }
+.ev-nuevo { transition: transform var(--transicion, 0.2s ease), background var(--transicion, 0.2s ease); }
+.ev-nuevo:hover { transform: translateY(-4px); }
+@media (prefers-reduced-motion: reduce) {
+  .ev-tipo, .ev-tipo-foto img, .ev-nuevo { transition: none; }
+  .ev-tipo:hover, .ev-tipo:focus-within, .ev-nuevo:hover, .ev-tipo:hover .ev-tipo-foto img { transform: none; }
+}

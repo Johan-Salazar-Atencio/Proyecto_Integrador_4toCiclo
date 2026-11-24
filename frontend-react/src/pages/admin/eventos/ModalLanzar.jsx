@@ -11,7 +11,12 @@ const mensajeSugerido = (tipo) => (TIPOS.find((t) => t.valor === tipo.codigo)?.m
 
 // Ventana "¿Lanzar el evento?": region, severidad, duracion (que es tambien el tiempo limite del refugio) y mensaje push
 export default function ModalLanzar({ tipo, regiones, onCerrar, onLanzar }) {
-  const [datos, setDatos] = useState({ region: 'GLOBAL', severidad: 'MODERADO', minutos: 30, mensaje: mensajeSugerido(tipo) })
+  const [datos, setDatos] = useState(() => ({
+    region: regiones.some((r) => r.codigo === tipo.region_defecto) ? tipo.region_defecto : 'GLOBAL',
+    severidad: 'MODERADO',
+    minutos: Math.max(PASO, Math.min(MAX_MIN, tipo.duracion_defecto_min || 30)),
+    mensaje: (tipo.mensaje_push || mensajeSugerido(tipo)).slice(0, MAX_MENSAJE),
+  }))
   const [lanzando, setLanzando] = useState(false)
   const [error, setError] = useState('')
 

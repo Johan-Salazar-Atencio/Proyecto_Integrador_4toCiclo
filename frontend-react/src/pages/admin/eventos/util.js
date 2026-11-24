@@ -8,8 +8,6 @@ export const SEV = {
   CRITICO: { texto: 'Crítica', color: 'var(--peligro)', clase: 'k' },
 }
 
-export const PENDIENTE = 'Pendiente de backend'
-
 export const tipoDe = (tipos, codigo) => tipos.find((t) => t.codigo === codigo)
 export const nombreDe = (tipos, codigo) => tipoDe(tipos, codigo)?.nombre || etiquetaTipo(codigo)
 export const imagenDe = (tipo) => urlImagen(tipo?.imagen_url)
