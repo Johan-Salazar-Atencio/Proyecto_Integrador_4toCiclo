@@ -1,4 +1,5 @@
 .jardin { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 960px; margin: 0 auto; }
+@media (min-width: 1400px) { .jardin { max-width: 1240px; gap: 28px; } }
 .jardin-panel { display: flex; flex-direction: column; gap: 16px; }
 
 /* Marco de la planta: cuadrado como la escena (96x96 pixeles) y nunca mas alto que la pantalla */
@@ -55,10 +56,8 @@
 /* Abono de la tienda */
 .jardin-abonos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .jardin-abonos-titulo { grid-column: 1 / -1; margin: 0; font-weight: 800; color: var(--texto); }
-.jardin-abono { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; border: 2px dashed var(--primario); border-radius: var(--radio); background: var(--tinte); color: var(--texto); font: inherit; text-align: center; cursor: pointer; }
-.jardin-abono-desc { font-size: 0.75rem; line-height: 1.3; opacity: 0.8; }
-.jardin-abono small { margin-top: auto; color: var(--primario); font-weight: 800; }
-.jardin-abono:disabled { opacity: 0.6; cursor: wait; }
+.jardin-abono { align-items: center; gap: 6px; padding: 12px 8px; }
+.jardin-abono .abono-boton { align-self: stretch; }
 @media (max-width: 480px) { .jardin-abonos { grid-template-columns: 1fr; } }
 .jardin-tienda-enlace { align-self: center; color: var(--primario); font-weight: 800; }
 

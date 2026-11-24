@@ -1,6 +1,7 @@
 import AlertaClima from './components/AlertaClima'
 import MisionDiaria from './components/MisionDiaria'
 import SinEvento from './components/SinEvento'
+import SinPlantas from './components/SinPlantas'
 import TarjetaPlanta from './components/TarjetaPlanta'
 import TarjetaUsuario from './components/TarjetaUsuario'
 import useHome from './useHome'
@@ -26,10 +27,13 @@ export default function Home() {
 
       <div className="home-cols">
         {usuario && <div className="home-area-usuario"><TarjetaUsuario usuario={usuario} /></div>}
-        {planta && (
+        {planta ? (
           <div className="home-area-planta">
             <TarjetaPlanta planta={planta} plantas={plantas} ocupado={ocupado} onMover={mover} onElegir={seleccionar} onCuidar={cuidar} />
           </div>
+        ) : !error && (
+          // Sin plantas el Inicio no queda vacio: invita a escanear la primera
+          <div className="home-area-planta"><SinPlantas /></div>
         )}
         <div className="home-area-evento">{alerta ? <AlertaClima alerta={alerta} /> : <SinEvento />}</div>
         {misiones.length > 0 && <div className="home-area-misiones"><MisionDiaria misiones={misiones} /></div>}

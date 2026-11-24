@@ -44,7 +44,8 @@
 
 /* Invernadero (pixel art): una columna en angosto; en ancho, escena grande + columna lateral */
 .virtual { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 460px; margin-inline: auto; }
-.virtual-ancho { display: grid; grid-template-columns: 1.7fr 1fr; align-items: start; gap: 18px; max-width: none; margin-inline: 0; }
+/* El invernadero (68 x 102) nunca pasa del alto de la ventana: se centra con su columna lateral al lado */
+.virtual-ancho { --ancho-inv: max(380px, calc((100vh - 240px) * 0.6667)); display: grid; grid-template-columns: min(var(--ancho-inv), 62%) minmax(300px, 480px); justify-content: center; align-items: start; gap: 24px; max-width: none; margin-inline: 0; }
 .virtual-barra { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .virtual-tema { position: relative; }
 .virtual-chip { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border: 1px solid var(--linea); border-radius: 999px; background: var(--superficie); color: var(--primario); font-size: 0.85rem; font-weight: 800; cursor: pointer; }

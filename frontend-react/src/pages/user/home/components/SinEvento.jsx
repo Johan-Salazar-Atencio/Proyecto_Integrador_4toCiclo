@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import Icono from '../../../../components/Icono'
+import escena1 from '../../../../assets/escenas/sin_evento_1.webp'
+import escena2 from '../../../../assets/escenas/sin_evento_2.webp'
+import escena3 from '../../../../assets/escenas/sin_evento_3.webp'
+import escena4 from '../../../../assets/escenas/sin_evento_4.webp'
 
 // Consejos fijos del juego (los mismos textos del movil; no son datos del usuario); cambian cada 6 segundos junto con la escena
 export const CONSEJOS = [
@@ -15,36 +19,41 @@ export const CONSEJOS = [
   'Algunas plantas son tóxicas para las mascotas: revisa su ficha antes de dejarlas al alcance.',
 ]
 
-// Escenas del campo hechas con CSS: amanecer, dia y noche
-const ESCENAS = ['amanecer', 'dia', 'noche']
+// Las mismas escenas del campo peruano que el movil (ilustraciones: dia, lluvia en los andenes, atardecer y noche)
+const ESCENAS = [escena1, escena2, escena3, escena4]
 const CADA_MS = 6000
 
-// Tarjeta de Inicio cuando no hay ningun evento: escenas que rotan solas y un consejo que cambia cada 6 segundos
+// Tarjeta de Inicio cuando no hay ningun evento: carrusel de escenas que pasan solas (o con los puntos) y un consejo
+// que cambia con cada escena, como en el movil
 export default function SinEvento() {
   const [paso, setPaso] = useState(0)
+  // Si la persona elige una escena con los puntos, la cuenta de 6 segundos vuelve a empezar desde ahi
   useEffect(() => {
-    const id = setInterval(() => setPaso((p) => p + 1), CADA_MS)
-    return () => clearInterval(id)
-  }, [])
+    const id = setTimeout(() => setPaso((p) => p + 1), CADA_MS)
+    return () => clearTimeout(id)
+  }, [paso])
   const activa = paso % ESCENAS.length
 
   return (
     <section className="tarjeta calmo aparece" style={{ animationDelay: '0.05s' }}>
-      <div className="calmo-escenas" aria-hidden="true">
-        {ESCENAS.map((nombre, i) => (
-          <div key={nombre} className={`calmo-escena calmo-${nombre} ${i === activa ? 'activa' : ''}`}>
-            <div className="calmo-astro" />
-            <div className="calmo-colinas" />
-            <div className="calmo-cesped" />
-          </div>
+      <div className="calmo-escenas">
+        {ESCENAS.map((src, i) => (
+          <img key={src} className={`calmo-escena ${i === activa ? 'activa' : ''}`} src={src} alt="" aria-hidden="true" loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
         ))}
-        <div className="calmo-puntos">
-          {ESCENAS.map((nombre, i) => <i key={nombre} className={i === activa ? 'activa' : ''} />)}
+        <div className="calmo-puntos" role="group" aria-label="Escenas del campo">
+          {ESCENAS.map((src, i) => (
+            <button key={src} type="button" className={i === activa ? 'activa' : ''} onClick={() => setPaso(i + Math.floor(paso / ESCENAS.length) * ESCENAS.length)} aria-label={`Escena ${i + 1}`} aria-pressed={i === activa} />
+          ))}
         </div>
       </div>
       <div className="calmo-cuerpo">
-        <h2>No hay eventos por el momento</h2>
-        <p>Tu campo está tranquilo. Te avisaremos apenas haya un desastre en tu región.</p>
+        <div className="calmo-titulo">
+          <span className="calmo-sol"><Icono nombre="sun" /></span>
+          <div>
+            <h2>No hay eventos por el momento</h2>
+            <p>Sigue cuidando tus plantas y mantente alerta a los posibles eventos.</p>
+          </div>
+        </div>
         <div className="calmo-consejo" role="status">
           <Icono nombre="bulb" />
           <span>{CONSEJOS[paso % CONSEJOS.length]}</span>
