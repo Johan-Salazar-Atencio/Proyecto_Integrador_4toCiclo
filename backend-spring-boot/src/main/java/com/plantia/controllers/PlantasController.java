@@ -108,15 +108,17 @@ public class PlantasController {
     }
 
     /**
-     * Compra un abono de la tienda y lo usa (medio dia, 1 o 3 dias de crecimiento segun el abono).
-     * Body opcional: { "idItem": n }; sin body se usa el abono mas barato. 409 si no corresponde, 402 sin monedas.
+     * Usa un abono del inventario en la planta: descuenta 1 y suma medio dia, 1 o 3 dias de crecimiento segun el abono.
+     * Body: { "idItem": n } (400 si falta). 409 si no le quedan de ese tipo, ya uso un abono hoy con esta planta, esta
+     * en el baul, muerta o marchita, o ya crecio del todo. Responde la planta actualizada.
+     * {@code /abono-tienda} es el nombre antiguo y hace lo mismo (ya no compra).
      */
-    @PostMapping("/{id}/abono-tienda")
-    public ResponseEntity<PlantSummaryDto> abonoDeTienda(
+    @PostMapping({"/{id}/abono", "/{id}/abono-tienda"})
+    public ResponseEntity<PlantSummaryDto> usarAbono(
             @RequestHeader("X-User-Id") Integer userId,
             @PathVariable("id") Integer idPlantaUsuario,
             @RequestBody(required = false) Map<String, Integer> body) {
-        abonoService.abonar(userId, idPlantaUsuario, body != null ? body.get("idItem") : null);
+        abonoService.usar(userId, idPlantaUsuario, body != null ? body.get("idItem") : null);
         return ResponseEntity.ok(plantasService.resumen(userId, idPlantaUsuario));
     }
 

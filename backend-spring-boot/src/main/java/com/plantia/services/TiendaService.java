@@ -21,6 +21,7 @@ import com.plantia.models.FondoEscena;
 import com.plantia.models.InventarioUsuario;
 import com.plantia.models.ItemTienda;
 import com.plantia.models.Usuario;
+import com.plantia.repositories.AbonoUsuarioRepository;
 import com.plantia.repositories.FondoEscenaRepository;
 import com.plantia.repositories.InventarioUsuarioRepository;
 import com.plantia.repositories.ItemTiendaRepository;
@@ -28,8 +29,8 @@ import com.plantia.repositories.UsuarioRepository;
 
 /**
  * Tienda: lista lo que el admin tiene activo y vende temas de fondo (una sola vez por usuario). Poner un
- * fondo a una planta se hace desde el jardin (FondosPlantaService). El abono no pasa por el inventario:
- * se compra y se usa en el momento desde la planta (AbonoService).
+ * fondo a una planta se hace desde el jardin (FondosPlantaService). El abono es un inventario con
+ * contador: se compra aqui (AbonoService.comprar) y se usa desde la planta (AbonoService.usar).
  */
 @Service
 public class TiendaService {
@@ -58,6 +59,10 @@ public class TiendaService {
         this.logroService = logroService;
     }
 
+    /** Contador de abonos del usuario (opcional: sin el, la tienda muestra 0 abonos). */
+    @Autowired(required = false)
+    private AbonoUsuarioRepository abonoRepo;
+
     /** Compatibilidad para pruebas y usos sin logros. */
     public TiendaService(ItemTiendaRepository itemRepo, InventarioUsuarioRepository inventarioRepo,
                          FondoEscenaRepository fondoRepo, UsuarioRepository usuarioRepo) {
@@ -79,12 +84,17 @@ public class TiendaService {
         Map<Integer, List<TemaFondoDto.Variante>> variantes = variantesDe(
                 items.stream().map(ItemTienda::getIdTema).filter(Objects::nonNull).distinct().toList());
         int nivel = valor(u.getNivel(), 1);
+        Map<Integer, Integer> abonos = new java.util.HashMap<>();
+        if (abonoRepo != null) {
+            abonoRepo.findByIdUsuario(userId).forEach(a -> abonos.put(a.getIdItem(), valor(a.getCantidad(), 0)));
+        }
         return new TiendaDto(valor(u.getMonedas(), 0), nivel, items.stream()
                 .map(i -> new TiendaDto.Item(i.getIdItem(), i.getNombre(), i.getTipo(),
                         i.getDescripcion() != null ? i.getDescripcion() : "",
                         valor(i.getPrecioMonedas(), 0), valor(i.getNivelRequerido(), 1), i.getAssetUrl(),
                         i.getIdTema() != null ? variantes.getOrDefault(i.getIdTema(), List.of()) : List.of(),
-                        esSuyo(i, comprados), valor(i.getNivelRequerido(), 1) > nivel, i.getCodigo()))
+                        esSuyo(i, comprados), valor(i.getNivelRequerido(), 1) > nivel, i.getCodigo(),
+                        abonos.getOrDefault(i.getIdItem(), 0)))
                 .toList());
     }
 
@@ -107,7 +117,7 @@ public class TiendaService {
         boolean fondoConTema = FONDO.equals(item.getTipo()) && item.getIdTema() != null;
         if (!fondoConTema && !MACETA.equals(item.getTipo()) && !INVERNADERO.equals(item.getTipo())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "ABONO".equals(item.getTipo()) ? "El abono se usa desde la planta del jardin" : "Este articulo aun no esta a la venta");
+                    "ABONO".equals(item.getTipo()) ? "El abono se compra con POST /api/v1/abonos/{id}/comprar" : "Este articulo aun no esta a la venta");
         }
         Usuario u = usuario(userId);
         List<Integer> comprados = inventarioRepo.findByIdUsuario(userId).stream().map(InventarioUsuario::getIdItem).toList();

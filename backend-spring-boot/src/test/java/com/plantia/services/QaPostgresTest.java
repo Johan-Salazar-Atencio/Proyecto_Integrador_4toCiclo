@@ -289,15 +289,30 @@ class QaPostgresTest {
     // ---------------------------------------------------------------- QA-16
 
     @Test
-    void qa16NoSeCompraAbonoParaUnaPlantaDelBaul() throws Exception {
+    void qa16NoSeUsaAbonoEnUnaPlantaDelBaul() throws Exception {
         int u = usuarioConSesion();
         int planta = plantaDigitalizada(u, "Baul" + UUID.randomUUID().toString().substring(0, 6));
         jdbc.update("UPDATE usuarios SET monedas = 500 WHERE id_usuario = ?", u);
+        int abono = jdbc.queryForObject("SELECT id_item FROM items_tienda WHERE codigo = 'ABONO_1'", Integer.class);
+        // Compra por HTTP (V35): suma al contador y cobra, sin usarlo
+        assertThat(post(u, "/api/v1/abonos/" + abono + "/comprar", "{\"cantidad\":2}").statusCode()).isEqualTo(200);
+        assertThat(jdbc.queryForObject("SELECT monedas FROM usuarios WHERE id_usuario = ?", Integer.class, u)).isEqualTo(440);
         assertThat(post(u, "/api/v1/plantas/" + planta + "/baul", "").statusCode()).isEqualTo(200);
-        int antes = jdbc.queryForObject("SELECT monedas FROM usuarios WHERE id_usuario = ?", Integer.class, u);
 
-        assertThat(post(u, "/api/v1/plantas/" + planta + "/abono-tienda", "").statusCode()).isEqualTo(409);
-        assertThat(jdbc.queryForObject("SELECT monedas FROM usuarios WHERE id_usuario = ?", Integer.class, u)).isEqualTo(antes);
+        String cuerpo = "{\"idItem\":" + abono + "}";
+        assertThat(post(u, "/api/v1/plantas/" + planta + "/abono", cuerpo).statusCode()).isEqualTo(409);
+        assertThat(jdbc.queryForObject("SELECT cantidad FROM abonos_usuario WHERE id_usuario = ? AND id_item = ?",
+                Integer.class, u, abono)).isEqualTo(2);
+
+        // Fuera del baul se usa: descuenta 1 y la planta responde con sus dias
+        assertThat(post(u, "/api/v1/plantas/" + planta + "/sacar-del-baul", "").statusCode()).isEqualTo(200);
+        assertThat(post(u, "/api/v1/plantas/" + planta + "/abono", cuerpo).statusCode()).isEqualTo(200);
+        assertThat(jdbc.queryForObject("SELECT cantidad FROM abonos_usuario WHERE id_usuario = ? AND id_item = ?",
+                Integer.class, u, abono)).isEqualTo(1);
+        // Segundo abono el mismo dia: 409 y sigue 1
+        assertThat(post(u, "/api/v1/plantas/" + planta + "/abono", cuerpo).statusCode()).isEqualTo(409);
+        assertThat(jdbc.queryForObject("SELECT cantidad FROM abonos_usuario WHERE id_usuario = ? AND id_item = ?",
+                Integer.class, u, abono)).isEqualTo(1);
     }
 
     @Autowired private ResultadoDesastreService resultados;
