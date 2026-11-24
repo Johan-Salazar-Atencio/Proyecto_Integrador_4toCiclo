@@ -4,6 +4,7 @@ import com.google.gson.JsonParser
 import com.plantia.BuildConfig
 import com.plantia.data.mapper.logrosNuevos
 import com.plantia.data.mapper.toDomain
+import com.plantia.data.model.AbonoInventario
 import com.plantia.data.model.LogroNuevo
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.TemaFondo
@@ -29,6 +30,11 @@ sealed interface AbonoResultado {
     data class Fallo(val mensaje: String) : AbonoResultado
 }
 
+sealed interface InventarioResultado {
+    data class Con(val monedas: Int, val abonos: List<AbonoInventario>) : InventarioResultado
+    data class Fallo(val mensaje: String) : InventarioResultado
+}
+
 sealed interface FondosResultado {
     data class Con(val temas: List<TemaFondo>) : FondosResultado
     data class Fallo(val mensaje: String) : FondosResultado
@@ -43,8 +49,14 @@ interface TiendaRepository {
 
     suspend fun comprar(idItem: Int): TiendaResultado
 
-    /** Compra el abono `idItem` (null = el mas barato) y lo usa en la planta (maximo uno al dia por planta). */
-    suspend fun usarAbono(idPlanta: Int, idItem: Int? = null): AbonoResultado
+    /** Inventario de abonos: cuantos tiene el usuario de cada uno (del mas barato al mas caro). */
+    suspend fun inventarioAbonos(): InventarioResultado
+
+    /** Compra un abono: suma al contador y descuenta hojas; no lo usa. Devuelve la tienda ya actualizada. */
+    suspend fun comprarAbono(idItem: Int): TiendaResultado
+
+    /** Usa un abono del inventario en la planta (descuenta 1; maximo uno al dia por planta). */
+    suspend fun usarAbono(idPlanta: Int, idItem: Int): AbonoResultado
 
     /** Temas que se le pueden poner a esa planta (el de siempre y los comprados), con el que tiene puesto. */
     suspend fun fondosDePlanta(idPlanta: Int): FondosResultado
@@ -69,9 +81,38 @@ class RemoteTiendaRepository(
     override suspend fun comprar(idItem: Int): TiendaResultado =
         tienda { api().comprarItem(idItem) }.also { if (it is TiendaResultado.Con) alComprar() }
 
-    override suspend fun usarAbono(idPlanta: Int, idItem: Int?): AbonoResultado = withContext(Dispatchers.IO) {
+    override suspend fun inventarioAbonos(): InventarioResultado = withContext(Dispatchers.IO) {
         try {
-            val respuesta = api().abonoTienda(idPlanta, if (idItem != null) mapOf("idItem" to idItem) else emptyMap())
+            val respuesta = api().abonos()
+            val cuerpo = respuesta.body()
+            if (respuesta.isSuccessful && cuerpo != null) {
+                InventarioResultado.Con(
+                    cuerpo.monedas,
+                    cuerpo.abonos.map { AbonoInventario(it.idItem, it.codigo, it.nombre, it.descripcion, it.precio, it.cantidad) }
+                )
+            } else InventarioResultado.Fallo(mensajeDe(respuesta))
+        } catch (e: Exception) {
+            InventarioResultado.Fallo(e.message ?: SIN_CONEXION)
+        }
+    }
+
+    override suspend fun comprarAbono(idItem: Int): TiendaResultado {
+        val compra = withContext(Dispatchers.IO) {
+            try {
+                val respuesta = api().comprarAbono(idItem, emptyMap())
+                if (respuesta.isSuccessful) null else mensajeDe(respuesta)
+            } catch (e: Exception) {
+                e.message ?: SIN_CONEXION
+            }
+        }
+        if (compra != null) return TiendaResultado.Fallo(compra)
+        alComprar()
+        return cargar()
+    }
+
+    override suspend fun usarAbono(idPlanta: Int, idItem: Int): AbonoResultado = withContext(Dispatchers.IO) {
+        try {
+            val respuesta = api().usarAbono(idPlanta, mapOf("idItem" to idItem))
             val cuerpo = respuesta.body()
             if (respuesta.isSuccessful && cuerpo != null) {
                 cuerpo.progreso.logrosNuevos().takeIf { it.isNotEmpty() }?.let(alDesbloquear)
@@ -118,7 +159,7 @@ class RemoteTiendaRepository(
     private fun mensajeDe(respuesta: Response<*>): String {
         val texto = runCatching { respuesta.errorBody()?.string() }.getOrNull()
         val error = runCatching { JsonParser.parseString(texto).asJsonObject.get("error").asString }.getOrNull()
-        return error ?: "El servidor respondio ${respuesta.code()}"
+        return error ?: "El servidor respondió ${respuesta.code()}"
     }
 
     private fun TiendaDto.aTienda(): Tienda {
@@ -132,7 +173,7 @@ class RemoteTiendaRepository(
                     nivelRequerido = it.nivelRequerido,
                     previewUrl = it.previewUrl?.takeIf { url -> url.isNotBlank() }?.let { url -> absoluta(base, url) },
                     variantes = it.variantes.aVariantes(base),
-                    comprado = it.comprado, bloqueado = it.bloqueado, codigo = it.codigo
+                    comprado = it.comprado, bloqueado = it.bloqueado, codigo = it.codigo, cantidad = it.cantidad
                 )
             }
         )

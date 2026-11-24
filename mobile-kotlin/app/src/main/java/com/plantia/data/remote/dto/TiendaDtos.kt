@@ -21,7 +21,24 @@ data class TiendaItemDto(
     val comprado: Boolean = false,
     val bloqueado: Boolean = false,
     /** Macetas e invernaderos: el identificador con el que la app los dibuja. */
-    val codigo: String? = null
+    val codigo: String? = null,
+    /** Solo abonos: cuántos tiene guardados el usuario. */
+    val cantidad: Int = 0
+)
+
+/** GET /api/v1/abonos: el inventario de abonos del usuario. */
+data class AbonosDto(
+    val monedas: Int = 0,
+    val abonos: List<AbonoDto> = emptyList()
+)
+
+data class AbonoDto(
+    val idItem: Int = 0,
+    val codigo: String = "",
+    val nombre: String = "",
+    val descripcion: String = "",
+    val precio: Int = 0,
+    val cantidad: Int = 0
 )
 
 /** Escena de un momento del dia (DIA, TARDE o NOCHE) con su vista previa. */

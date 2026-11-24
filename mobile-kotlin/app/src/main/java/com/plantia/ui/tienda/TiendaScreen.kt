@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,8 +51,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.data.model.Tienda
 import com.plantia.data.model.TiendaItem
+import com.plantia.ui.components.AbonoEstilo
+import com.plantia.ui.components.IconoAbono
+import com.plantia.ui.components.pulsoAlTocar
 import com.plantia.ui.components.tarjeta
-import com.plantia.ui.theme.Abono
 import com.plantia.ui.theme.DividerColor
 import com.plantia.ui.theme.FondoDegradado
 import com.plantia.ui.theme.Primario
@@ -114,8 +117,8 @@ fun TiendaScreen(
                     pestana = pestana,
                     onPestana = { pestana = it },
                     ocupado = viewModel.ocupado,
+                    comprandoId = viewModel.comprandoId,
                     onComprar = { porComprar = it },
-                    onAbono = viewModel::usarAbono,
                     onAplicar = viewModel::abrirAplicar
                 )
             }
@@ -155,8 +158,8 @@ private fun Contenido(
     pestana: String,
     onPestana: (String) -> Unit,
     ocupado: Boolean,
+    comprandoId: Int?,
     onComprar: (TiendaItem) -> Unit,
-    onAbono: (TiendaItem) -> Unit,
     onAplicar: (TiendaItem) -> Unit
 ) {
     val horizontal = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -209,7 +212,7 @@ private fun Contenido(
                     CAT_MACETA -> "Las macetas se ven en tu colección y bajo tu planta."
                     CAT_INVERNADERO -> "El invernadero es el fondo de tu colección. Elige el que quieras desde su píldora."
                     CAT_FONDO -> "Los fondos son la escena que se ve detrás de cada planta en tu jardín."
-                    else -> "El abono se aplica a la planta de tu jardín. Máximo uno al día por planta."
+                    else -> "Compra abonos y se guardan en tu inventario; úsalos desde tu jardín. Máximo uno al día por planta."
                 },
                 fontSize = 11.5.sp,
                 color = TextSecondary,
@@ -251,7 +254,7 @@ private fun Contenido(
                     item { Text("El abono no está disponible por ahora.", color = TextSecondary, fontSize = 14.sp) }
                 }
                 items(tienda.abonos, key = { "a${it.id}" }) { abono ->
-                    TarjetaAbono(abono, tienda.monedas, ocupado) { onAbono(abono) }
+                    TarjetaAbono(abono, tienda.monedas, ocupado, comprando = comprandoId == abono.id) { onComprar(abono) }
                 }
             }
         }
@@ -316,34 +319,62 @@ private fun TarjetaFondo(
     }
 }
 
+/**
+ * Abono: solo precio y "Comprar" (suma al contador); el contador se ve en la tarjeta. Cada tarjeta tiene su propia
+ * fuente de interacción y solo la que se está comprando muestra el progreso: las demás no reaccionan.
+ */
 @Composable
-private fun TarjetaAbono(abono: TiendaItem, monedas: Int, ocupado: Boolean, onAbono: () -> Unit) {
+private fun TarjetaAbono(abono: TiendaItem, monedas: Int, ocupado: Boolean, comprando: Boolean, onComprar: () -> Unit) {
+    val color = AbonoEstilo.color(abono.codigo)
+    val fuente = remember { MutableInteractionSource() }
     Column(
-        Modifier.fillMaxWidth().tarjeta().padding(16.dp),
+        Modifier.fillMaxWidth().pulsoAlTocar(fuente).tarjeta().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(52.dp).clip(CircleShape).background(Abono.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-                Text("🌿", fontSize = 26.sp)
-            }
-            Column {
+            IconoAbono(abono.codigo)
+            Column(Modifier.weight(1f)) {
                 Text(abono.nombre, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
                 Text(abono.descripcion, fontSize = 12.sp, lineHeight = 16.sp, color = TextSecondary)
             }
+            Text(
+                "Tienes ${abono.cantidad}",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = color,
+                maxLines = 1,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(color.copy(alpha = 0.16f))
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            )
         }
         if (abono.bloqueado) {
             BotonBloqueado(abono.nivelRequerido)
         } else {
             Button(
-                onClick = onAbono,
-                enabled = !ocupado && monedas >= abono.precio,
-                modifier = Modifier.fillMaxWidth(),
+                onClick = onComprar,
+                // Con otra compra en curso el botón NO se apaga (antes se apagaban todas las tarjetas a la vez);
+                // el ViewModel ignora el toque mientras hay una compra en curso.
+                enabled = comprando || monedas >= abono.precio,
+                interactionSource = fuente,
+                modifier = Modifier.fillMaxWidth().height(36.dp),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primario, contentColor = SobrePrimario)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = color,
+                    contentColor = Color.White,
+                    disabledContainerColor = SuperficieElevada,
+                    disabledContentColor = TextSecondary
+                ),
+                contentPadding = PaddingValues(horizontal = 8.dp)
             ) {
-                Text("Usar en mi planta · ${abono.precio}", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-                Spacer(Modifier.size(5.dp))
-                Icon(Icons.Filled.Eco, contentDescription = null, modifier = Modifier.size(14.dp))
+                if (comprando) {
+                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                } else {
+                    Text("Comprar · ${abono.precio}", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1)
+                    Spacer(Modifier.size(5.dp))
+                    Icon(Icons.Filled.Eco, contentDescription = null, modifier = Modifier.size(14.dp))
+                }
             }
         }
     }

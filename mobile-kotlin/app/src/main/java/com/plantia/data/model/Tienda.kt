@@ -27,7 +27,9 @@ data class TiendaItem(
     val comprado: Boolean,
     val bloqueado: Boolean,
     /** Macetas e invernaderos: el identificador con el que la app los dibuja (AZUL, VICTORIANO...). */
-    val codigo: String? = null
+    val codigo: String? = null,
+    /** Solo abonos: cuántos tiene el usuario guardados (inventario). */
+    val cantidad: Int = 0
 ) {
     companion object {
         const val FONDO = "FONDO"
@@ -36,6 +38,17 @@ data class TiendaItem(
         const val INVERNADERO = "INVERNADERO"
     }
 }
+
+/** Un abono del inventario del usuario (`GET /api/v1/abonos`): solo importa cuántos tiene de cada uno. */
+data class AbonoInventario(
+    val idItem: Int,
+    /** ABONO_MEDIO, ABONO_1 o ABONO_3: decide el color y el dibujo. */
+    val codigo: String,
+    val nombre: String,
+    val descripcion: String,
+    val precio: Int,
+    val cantidad: Int
+)
 
 /** Escena de un momento del dia (DIA, TARDE o NOCHE) con su vista previa (URL absoluta). */
 data class VarianteFondo(val momento: String, val vistaUrl: String)

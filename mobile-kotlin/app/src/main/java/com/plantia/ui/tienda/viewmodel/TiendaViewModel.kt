@@ -10,9 +10,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.Tienda
 import com.plantia.data.model.TiendaItem
-import com.plantia.data.repository.AbonoResultado
 import com.plantia.data.repository.GardenRepository
-import com.plantia.data.repository.PlantaActivaResultado
 import com.plantia.data.repository.PlantasResultado
 import com.plantia.data.repository.TiendaRepository
 import com.plantia.data.repository.TiendaResultado
@@ -25,7 +23,7 @@ sealed interface TiendaUiState {
     data class Error(val mensaje: String) : TiendaUiState
 }
 
-/** Tienda: lista lo que el admin tiene a la venta; comprar, equipar y usar el abono pasan por el servidor. */
+/** Tienda: lista lo que el admin tiene a la venta; comprar y equipar pasan por el servidor. El abono se compra aquí y se usa en el jardín. */
 class TiendaViewModel(
     private val tienda: TiendaRepository,
     private val garden: GardenRepository
@@ -65,14 +63,29 @@ class TiendaViewModel(
         aviso = null
     }
 
-    /** Compra un articulo; cada tipo se usa en un lugar distinto y el aviso lo dice. */
+    /** Artículo que se está comprando ahora: solo su tarjeta muestra el progreso, las demás no reaccionan. */
+    var comprandoId: Int? by mutableStateOf(null)
+        private set
+
+    /** Compra un articulo; cada tipo se usa en un lugar distinto y el aviso lo dice. El abono suma al contador. */
     fun comprar(item: TiendaItem) = accion {
-        val donde = when (item.tipo) {
-            TiendaItem.MACETA -> "Ponla a tus plantas con «Poner a mis plantas»"
-            TiendaItem.INVERNADERO -> "Elígelo desde el chip de tu colección"
-            else -> "Ponlo desde el icono de fondos de tu jardín"
+        comprandoId = item.id
+        try {
+            if (item.tipo == TiendaItem.ABONO) {
+                val resultado = tienda.comprarAbono(item.id)
+                val ahora = ((resultado as? TiendaResultado.Con)?.tienda?.items?.firstOrNull { it.id == item.id })?.cantidad
+                aplicar(resultado, "Compraste «${item.nombre}»" + (ahora?.let { ". Ahora tienes $it" } ?: "") + ". Úsalo desde tu jardín")
+            } else {
+                val donde = when (item.tipo) {
+                    TiendaItem.MACETA -> "Ponla a tus plantas con «Poner a mis plantas»"
+                    TiendaItem.INVERNADERO -> "Elígelo desde el chip de tu colección"
+                    else -> "Ponlo desde el icono de fondos de tu jardín"
+                }
+                aplicar(tienda.comprar(item.id), "Compraste «${item.nombre}». $donde")
+            }
+        } finally {
+            comprandoId = null
         }
-        aplicar(tienda.comprar(item.id), "Compraste «${item.nombre}». $donde")
     }
 
     /** Abre la hoja para elegir a cuales plantas se les pone la maceta. */
@@ -107,25 +120,6 @@ class TiendaViewModel(
                 }
                 is PlantasResultado.Fallo -> aviso = r.mensaje
             }
-        }
-    }
-
-    /** Compra el abono elegido y lo usa en la planta del jardin. */
-    fun usarAbono(abono: TiendaItem) = accion {
-        when (val activa = garden.plantaActiva()) {
-            is PlantaActivaResultado.ConPlanta -> {
-                val id = activa.planta.id
-                if (id == null) {
-                    aviso = "No se encontro tu planta"
-                } else when (val r = tienda.usarAbono(id, abono.id)) {
-                    is AbonoResultado.Con -> {
-                        aplicar(tienda.cargar(), "¡Abono aplicado! ${r.planta.name} creció 🌱")
-                    }
-                    is AbonoResultado.Fallo -> aviso = r.mensaje
-                }
-            }
-            PlantaActivaResultado.SinPlanta -> aviso = "Primero digitaliza una planta para abonarla"
-            is PlantaActivaResultado.Fallo -> aviso = activa.mensaje
         }
     }
 

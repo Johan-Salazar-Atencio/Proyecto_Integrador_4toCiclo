@@ -1,5 +1,6 @@
 package com.plantia.data.remote
 
+import com.plantia.data.remote.dto.AbonosDto
 import com.plantia.data.remote.dto.AnimacionDto
 import com.plantia.data.remote.dto.AuthLoginRequestDto
 import com.plantia.data.remote.dto.AuthRegistroRequestDto
@@ -128,9 +129,17 @@ interface PlantiaApi {
     @PUT("api/v1/plantas/{id}/fondo")
     suspend fun ponerFondo(@Path("id") idPlanta: Int, @Body body: Map<String, Int>): Response<List<TemaFondoDto>>
 
-    /** Compra y usa un abono (medio dia, 1 o 3 dias de crecimiento; maximo uno al dia). Body: { "idItem": n }; vacio = el mas barato. */
-    @POST("api/v1/plantas/{id}/abono-tienda")
-    suspend fun abonoTienda(@Path("id") idPlanta: Int, @Body body: Map<String, Int>): Response<PlantSummaryDto>
+    /** Inventario de abonos del usuario: cuántos tiene de cada uno. */
+    @GET("api/v1/abonos")
+    suspend fun abonos(): Response<AbonosDto>
+
+    /** Compra un abono: suma al contador y descuenta hojas (402 sin hojas, 409 por nivel o tope de 99). Body opcional { "cantidad": 1..10 }. */
+    @POST("api/v1/abonos/{idItem}/comprar")
+    suspend fun comprarAbono(@Path("idItem") idItem: Int, @Body body: Map<String, Int>): Response<AbonosDto>
+
+    /** Usa un abono del inventario (medio dia, 1 o 3 dias de crecimiento; maximo uno al dia por planta). Body: { "idItem": n } (obligatorio). */
+    @POST("api/v1/plantas/{id}/abono")
+    suspend fun usarAbono(@Path("id") idPlanta: Int, @Body body: Map<String, Int>): Response<PlantSummaryDto>
 
     /** Animaciones de desastre (aviso y pico) con sus frames. */
     @GET("api/v1/animaciones")

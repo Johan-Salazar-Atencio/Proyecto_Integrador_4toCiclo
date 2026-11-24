@@ -74,7 +74,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.PlantSummary
-import com.plantia.data.model.TiendaItem
+import com.plantia.data.model.AbonoInventario
 import com.plantia.data.model.WeatherAlert
 import com.plantia.ui.components.rememberCuentaRegresiva
 import com.plantia.ui.garden.components.AnimatedStatBar
@@ -216,7 +216,7 @@ fun VirtualGardenScreen(
                 HojaAbonos(
                     nombrePlanta = plantaDelJardin.name,
                     abonos = viewModel.abonos,
-                    hojas = viewModel.hojas,
+                    usandoId = viewModel.usandoAbono,
                     aviso = viewModel.avisoAbono,
                     onUsar = { abono ->
                         viewModel.usarAbono(abono) { mensaje ->
@@ -314,7 +314,7 @@ fun VirtualGardenScreen(
 internal fun JardinContenido(
     planta: PlantSummary,
     escena: Escena? = null,
-    abonos: List<TiendaItem> = emptyList(),
+    abonos: List<AbonoInventario> = emptyList(),
     /** Evento activo (o null): con el aparece el boton "Prevenir evento" junto a los cuidados. */
     evento: WeatherAlert? = null,
     previniendo: Boolean = false,

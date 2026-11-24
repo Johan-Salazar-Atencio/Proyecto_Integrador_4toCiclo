@@ -1,10 +1,11 @@
 package com.plantia.ui.tienda
 
+import com.plantia.data.model.AbonoInventario
 import com.plantia.data.model.Tienda
 import com.plantia.data.model.TiendaItem
 import com.plantia.data.repository.AbonoResultado
 import com.plantia.data.repository.FondosResultado
-import com.plantia.data.repository.PlantaActivaResultado
+import com.plantia.data.repository.InventarioResultado
 import com.plantia.data.repository.PlantasResultado
 import com.plantia.data.repository.TiendaRepository
 import com.plantia.data.repository.TiendaResultado
@@ -38,8 +39,17 @@ internal class FakeTiendaRepository : TiendaRepository {
         compras += idItem
         return respuesta
     }
-    override suspend fun usarAbono(idPlanta: Int, idItem: Int?): AbonoResultado {
-        usosDeAbono += idPlanta
+    var inventario: InventarioResultado = InventarioResultado.Con(
+        300, listOf(AbonoInventario(1, "ABONO_MEDIO", "Abono suave", "", 15, 2))
+    )
+    val abonosComprados = mutableListOf<Int>()
+    override suspend fun inventarioAbonos() = inventario
+    override suspend fun comprarAbono(idItem: Int): TiendaResultado {
+        abonosComprados += idItem
+        return respuesta
+    }
+    override suspend fun usarAbono(idPlanta: Int, idItem: Int): AbonoResultado {
+        usosDeAbono += idItem
         return abono
     }
     override suspend fun fondosDePlanta(idPlanta: Int) = fondos
@@ -96,34 +106,29 @@ class TiendaViewModelTest {
     }
 
     @Test
-    fun el_abono_se_usa_en_la_planta_del_jardin() {
+    fun comprar_un_abono_suma_al_contador_y_no_lo_usa() {
         val vm = TiendaViewModel(repo, garden)
+        repo.respuesta = TiendaResultado.Con(Tienda(270, 2, listOf(item(1, TiendaItem.ABONO, 30).copy(cantidad = 3))))
 
-        vm.usarAbono(item(1, TiendaItem.ABONO, 30))
+        vm.comprar(item(1, TiendaItem.ABONO, 30))
 
-        assertEquals(listOf(1), repo.usosDeAbono)
-        assertTrue(vm.aviso!!.startsWith("¡Abono aplicado!"))
-    }
-
-    @Test
-    fun sin_planta_no_se_cobra_el_abono() {
-        garden.activa = PlantaActivaResultado.SinPlanta
-        val vm = TiendaViewModel(repo, garden)
-
-        vm.usarAbono(item(1, TiendaItem.ABONO, 30))
-
+        assertEquals(listOf(1), repo.abonosComprados)
         assertTrue(repo.usosDeAbono.isEmpty())
-        assertEquals("Primero digitaliza una planta para abonarla", vm.aviso)
+        assertTrue(repo.compras.isEmpty())
+        assertEquals(3, (vm.uiState as TiendaUiState.Listo).tienda.abono?.cantidad)
+        assertTrue(vm.aviso!!.contains("Ahora tienes 3"))
+        assertNull(vm.comprandoId)
     }
 
     @Test
-    fun el_error_del_abono_es_el_del_servidor() {
-        repo.abono = AbonoResultado.Fallo("Ya usaste un abono con esta planta hoy")
+    fun el_error_de_comprar_un_abono_es_el_del_servidor() {
         val vm = TiendaViewModel(repo, garden)
+        repo.respuesta = TiendaResultado.Fallo("No te alcanzan las monedas")
 
-        vm.usarAbono(item(1, TiendaItem.ABONO, 30))
+        vm.comprar(item(1, TiendaItem.ABONO, 30))
 
-        assertEquals("Ya usaste un abono con esta planta hoy", vm.aviso)
+        assertEquals("No te alcanzan las monedas", vm.aviso)
+        assertTrue(vm.uiState is TiendaUiState.Listo)
     }
 
     @Test

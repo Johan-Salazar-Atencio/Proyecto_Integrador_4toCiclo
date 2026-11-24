@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.plantia.data.model.AbonoInventario
 import com.plantia.data.model.AccionCuidado
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.TemaFondo
@@ -16,8 +17,8 @@ import com.plantia.data.repository.AlertaResultado
 import com.plantia.data.repository.HomeRepository
 import com.plantia.data.repository.AbonoResultado
 import com.plantia.data.repository.FondosResultado
+import com.plantia.data.repository.InventarioResultado
 import com.plantia.data.repository.TiendaRepository
-import com.plantia.data.repository.TiendaResultado
 import com.plantia.data.repository.GardenRepository
 import com.plantia.data.repository.PlantaActivaResultado
 import com.plantia.data.repository.PlantaResultado
@@ -133,12 +134,12 @@ class GardenViewModel(
         }
     }
 
-    /** Abonos de la tienda a la venta (medio dia, 1 dia, 3 dias), del mas barato al mas caro; vacio si no hay. */
-    var abonos: List<TiendaItem> by mutableStateOf(emptyList())
+    /** Inventario de abonos (suave, orgánico, reforzado) con cuántos tiene el usuario de cada uno; vacío si no hay. */
+    var abonos: List<AbonoInventario> by mutableStateOf(emptyList())
         private set
 
-    /** Hojas del usuario segun la ultima consulta de la tienda; null si todavia no se sabe. */
-    var hojas: Int? by mutableStateOf(null)
+    /** Abono que se está usando ahora (solo su tarjeta muestra el progreso); null si ninguno. */
+    var usandoAbono: Int? by mutableStateOf(null)
         private set
 
     /** La hoja de abonos esta abierta. */
@@ -180,10 +181,7 @@ class GardenViewModel(
     private fun cargarAbono() {
         val repo = tienda ?: return
         viewModelScope.launch {
-            (repo.cargar() as? TiendaResultado.Con)?.tienda?.let {
-                abonos = it.abonos
-                hojas = it.monedas
-            }
+            (repo.inventarioAbonos() as? InventarioResultado.Con)?.let { abonos = it.abonos }
         }
     }
 
@@ -227,23 +225,30 @@ class GardenViewModel(
         }
     }
 
-    /** Compra el abono elegido y lo usa en la planta del jardin; el servidor valida hojas, nivel y el tope diario. */
-    fun usarAbono(abono: TiendaItem, alTerminar: (String) -> Unit) {
+    /** Usa un abono del inventario en la planta del jardin; el servidor valida las existencias y el tope diario. */
+    fun usarAbono(abono: AbonoInventario, alTerminar: (String) -> Unit) {
         val repo = tienda ?: return
         val actual = (uiState as? GardenUiState.Success)?.planta ?: return
         val id = actual.id ?: return
         if (cuidando) return
         cuidando = true
+        usandoAbono = abono.idItem
+        avisoAbono = null
         viewModelScope.launch {
-            when (val r = repo.usarAbono(id, abono.id)) {
+            when (val r = repo.usarAbono(id, abono.idItem)) {
                 is AbonoResultado.Con -> {
                     uiState = GardenUiState.Success(r.planta)
                     eligiendoAbono = false
                     alTerminar("${abono.nombre} aplicado: ${r.planta.name} ${crecio(actual, r.planta)} 🌿")
                     cargarAbono()
                 }
-                is AbonoResultado.Fallo -> avisoAbono = r.mensaje
+                is AbonoResultado.Fallo -> {
+                    avisoAbono = r.mensaje
+                    // Puede que otro dispositivo ya lo gastara: se vuelve a leer el contador
+                    cargarAbono()
+                }
             }
+            usandoAbono = null
             cuidando = false
         }
     }

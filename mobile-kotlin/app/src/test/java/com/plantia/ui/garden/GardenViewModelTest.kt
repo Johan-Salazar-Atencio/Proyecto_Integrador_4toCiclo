@@ -336,13 +336,27 @@ class GardenViewModelTest {
         tienda.abono = com.plantia.data.repository.AbonoResultado.Fallo("Ya usaste un abono con esta planta hoy")
         val vm = GardenViewModel(garden, tienda)
         vm.abrirAbonos()
-        val abono = com.plantia.data.model.TiendaItem(5, "Abono suave", com.plantia.data.model.TiendaItem.ABONO, "", 15, 1, null, emptyList(), false, false)
+        val abono = com.plantia.data.model.AbonoInventario(5, "ABONO_MEDIO", "Abono suave", "", 15, 2)
 
         vm.usarAbono(abono) {}
 
         assertEquals("Ya usaste un abono con esta planta hoy", vm.avisoAbono)
         assertTrue(vm.eligiendoAbono)
+        assertNull(vm.usandoAbono)
         vm.cerrarAbonos()
         assertNull(vm.avisoAbono)
+    }
+
+    @Test
+    fun la_hoja_de_abonos_lee_el_inventario_y_usar_manda_el_id_del_abono() {
+        val tienda = FakeTiendaRepository()
+        val vm = GardenViewModel(garden, tienda)
+        vm.abrirAbonos()
+        assertEquals(listOf(2), vm.abonos.map { it.cantidad })
+
+        vm.usarAbono(vm.abonos.first()) {}
+
+        assertEquals(listOf(1), tienda.usosDeAbono)
+        assertFalse(vm.eligiendoAbono)
     }
 }
