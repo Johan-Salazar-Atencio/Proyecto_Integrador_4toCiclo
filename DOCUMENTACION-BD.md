@@ -20,8 +20,14 @@ Django generara sus migraciones, chocaría con Spring.
 db/migration/
 ├── V1__schema_inicial.sql                        # 11 tablas base
 ├── V2__coleccion_cuidados_y_campos_faltantes.sql # +6 tablas y columnas nuevas
-└── V3__seed_desarrollo.sql                       # datos de prueba
+├── V3__seed_desarrollo.sql                       # datos de prueba (usuarios demo y evento: los borra V33)
+├── ...
+└── V33__quitar_datos_de_demostracion.sql         # sin usuarios demo ni evento sembrado
 ```
+
+Una base nueva (V1 a V33) arranca **sin usuarios**: el admin se crea con
+`python manage.py crear_admin --email <correo>` y los jugadores se registran
+desde la app.
 
 ## 2. ¿Quién ejecuta esas migraciones?
 

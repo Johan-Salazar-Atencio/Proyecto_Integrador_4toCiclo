@@ -5,7 +5,11 @@ Prioridad con `IA_PROVIDER=auto`:
     2. WebUI   (si hay WEBUI_API_KEY) - IA institucional local
     3. Gemini  (si hay GEMINI_API_KEY)
     4. Local   (si hay LOCAL_IA_URL)
-    5. Mock    (fallback sin dependencias externas)
+
+`mock` (respuestas inventadas, siempre "Monstera") es solo para pruebas: se usa
+unicamente si se pide a proposito (IA_PROVIDER=mock o provider=mock). Si no hay
+ningun motor real configurado, el escaneo falla con un error claro en vez de
+inventar una planta.
 
 Ademas existe una **cadena de respaldo**: si el motor configurado no esta
 disponible (servidor caido, sin red, saturado), se prueba el siguiente de la
@@ -40,6 +44,9 @@ _REGISTRO = {
 }
 
 _ORDEN_AUTO = ("openai", "webui", "gemini", "local")
+
+SIN_MOTOR = ("No hay ningun motor de IA configurado: define GEMINI_API_KEY, WEBUI_API_KEY, OPENAI_API_KEY "
+             "o LOCAL_IA_URL en backend-django/.env (IA_PROVIDER=mock es solo para pruebas)")
 
 # Segundos que un motor se salta tras fallar por indisponibilidad.
 _COOLDOWN_SEGUNDOS = 60
@@ -120,7 +127,7 @@ def get_provider(name: str | None = None) -> IaProvider:
             return _REGISTRO[nombre]()
     if reales:  # todos en cooldown: reintentar el primero, no inventar datos
         return _REGISTRO[reales[0]]()
-    return MockProvider()
+    raise ValueError(SIN_MOTOR)
 
 
 def get_provider_chain(name: str | None = None) -> list[IaProvider]:
@@ -128,7 +135,8 @@ def get_provider_chain(name: str | None = None) -> list[IaProvider]:
 
     El primero es el configurado; los siguientes son respaldos para cuando ese
     motor no este disponible (por ejemplo, la IA local institucional caida
-    -> cae a Gemini). `mock` solo entra si no hay ningun motor real.
+    -> cae a Gemini). `mock` solo entra si se pidio a proposito; sin motores
+    reales la cadena queda vacia y la vista responde con un error claro.
     """
     name = _elegido(name)
 
@@ -160,8 +168,8 @@ def get_provider_chain(name: str | None = None) -> list[IaProvider]:
             except Exception:  # noqa: BLE001
                 continue
 
-    # mock solo cuando no hay ningun motor real configurado. Si los reales fallan
-    # se devuelve 502: inventar siempre "Monstera" esconde el fallo y engana al usuario.
-    if not cadena and not orden:
+    # mock solo si se pidio a proposito. Sin motores reales (o si todos fallan) se devuelve 502:
+    # inventar siempre "Monstera" esconde el fallo y engana al usuario.
+    if name == "mock":
         cadena.append(MockProvider())
     return cadena

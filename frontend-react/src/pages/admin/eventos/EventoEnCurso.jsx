@@ -49,7 +49,7 @@ function Activo({ evento, tipos, cancelando, onCancelar }) {
         {foto ? <img src={foto} alt={nombreDe(tipos, evento.tipo_evento)} /> : <div className="ev-sinimg"><IconoAdmin n="img" /></div>}
         <div>
           <b className="ev-encurso-nombre">{nombreDe(tipos, evento.tipo_evento)}</b>
-          <small className="ad-small">{evento.region}{evento.simulado ? ' · simulado' : ''} · #EVT-{evento.id_desastre}</small>
+          <small className="ad-small">{evento.region} · #EVT-{evento.id_desastre}</small>
           <small className="ad-small ev-reloj-t">{vencido ? 'VENTANA VENCIDA' : 'TIEMPO RESTANTE'}</small>
           <div className="ev-reloj" aria-label="Tiempo restante">{dos(h)}:{dos(m)}:{dos(s)}</div>
         </div>

@@ -6,8 +6,6 @@ import { cabecerasAdmin } from './auth'
 //   PATCH /django/api/admin/logros/{id}/       edita o desactiva ({ activo: false }); el "codigo" no se cambia
 //   GET   /django/api/admin/logros/opciones/   condiciones (con explicacion y parametro), rarezas e iconos sugeridos
 
-const MOCK = import.meta.env.VITE_MOCK_LOGROS === '1' // MOCK: se quita junto con services/mockLogros.js
-
 export const RAREZAS = [
   { valor: 'COMUN', texto: 'Común', color: 'var(--texto-suave)' },
   { valor: 'RARA', texto: 'Rara', color: 'var(--agua)' },
@@ -49,13 +47,13 @@ async function pedir(ruta, opciones = {}) {
   return datos
 }
 
-export const listarLogros = () => (MOCK ? import('../mockLogros').then((m) => m.listarLogrosMock()) : pedir(''))
+export const listarLogros = () => pedir('')
 
-export const obtenerOpciones = () => (MOCK ? import('../mockLogros').then((m) => m.opcionesLogrosMock()) : pedir('opciones/'))
+export const obtenerOpciones = () => pedir('opciones/')
 
-export const crearLogro = (datos) => (MOCK ? import('../mockLogros').then((m) => m.crearLogroMock(datos)) : pedir('', { method: 'POST', body: JSON.stringify(datos) }))
+export const crearLogro = (datos) => pedir('', { method: 'POST', body: JSON.stringify(datos) })
 
-export const editarLogro = (id, cambios) => (MOCK ? import('../mockLogros').then((m) => m.editarLogroMock(id, cambios)) : pedir(`${id}/`, { method: 'PATCH', body: JSON.stringify(cambios) }))
+export const editarLogro = (id, cambios) => pedir(`${id}/`, { method: 'PATCH', body: JSON.stringify(cambios) })
 
 export const cambiarEstadoLogro = (id, activo) => editarLogro(id, { activo })
 

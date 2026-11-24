@@ -3,7 +3,7 @@
 Uso:
     python manage.py poblar_catalogo
     python manage.py poblar_catalogo "Monstera:Monstera deliciosa" "Ficus lyrata"
-    python manage.py poblar_catalogo --provider mock
+    python manage.py poblar_catalogo --provider mock   # solo pruebas: inventa los cuidados
 
 Cada argumento tiene la forma "Nombre comun:Nombre cientifico" (la parte
 cientifica es opcional). Si no se pasan argumentos se usa un listado base.

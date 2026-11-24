@@ -117,10 +117,19 @@ class CadenaRespaldoTests(SimpleTestCase):
         self.assertEqual(cadena[0], "webui")
         self.assertIn("gemini", cadena)
 
-    def test_cadena_sin_motores_usa_mock(self):
-        with self.settings(WEBUI_API_KEY="", GEMINI_API_KEY="", OPENAI_API_KEY=""):
-            cadena = [p.name for p in self.factory.get_provider_chain("auto")]
-        self.assertEqual(cadena, ["mock"])
+    def test_cadena_sin_motores_no_inventa_con_mock(self):
+        """QA-09: sin motores reales no se usa mock por defecto (inventaba siempre una Monstera)."""
+        with self.settings(IA_PROVIDER="auto", WEBUI_API_KEY="", GEMINI_API_KEY="", OPENAI_API_KEY=""):
+            self.assertEqual(self.factory.get_provider_chain("auto"), [])
+            self.assertEqual(self.factory.get_provider_chain(None), [])
+            with self.assertRaises(ValueError):
+                self.factory.get_provider("auto")
+
+    def test_mock_solo_si_se_pide(self):
+        with self.settings(IA_PROVIDER="mock", WEBUI_API_KEY="", GEMINI_API_KEY="", OPENAI_API_KEY=""):
+            self.assertEqual([p.name for p in self.factory.get_provider_chain(None)], ["mock"])
+        with self.settings(IA_PROVIDER="auto", WEBUI_API_KEY="", GEMINI_API_KEY="", OPENAI_API_KEY=""):
+            self.assertEqual([p.name for p in self.factory.get_provider_chain("mock")], ["mock"])
 
     def test_motor_caido_se_salta_durante_el_cooldown(self):
         with self.settings(IA_PROVIDER="auto", WEBUI_API_KEY="k", WEBUI_BASE_URL="http://webui.test", GEMINI_API_KEY="k", OPENAI_API_KEY=""):
@@ -170,3 +179,22 @@ class PermisoMotorIaTests(SimpleTestCase):
         self.assertTrue(self._permitido("192.168.1.50", "secreta"))
         self.assertFalse(self._permitido("192.168.1.50", "otra"))
         self.assertFalse(self._permitido("127.0.0.1"))
+
+
+class SinMotorDeIaTests(SimpleTestCase):
+    """QA-09: sin ningun motor real el escaneo responde un error claro, no una Monstera inventada."""
+
+    @override_settings(IA_PROVIDER="auto", IA_CLAVE_INTERNA="", WEBUI_API_KEY="", GEMINI_API_KEY="", OPENAI_API_KEY="")
+    def test_identificar_sin_motor_da_502_con_mensaje(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from rest_framework.test import APIRequestFactory
+
+        from .views import IdentificarView
+
+        foto = SimpleUploadedFile("hoja.jpg", b"\xff\xd8\xff bytes", content_type="image/jpeg")
+        request = APIRequestFactory().post("/api/ia/identificar", {"imagen": foto}, format="multipart",
+                                           REMOTE_ADDR="127.0.0.1")
+        respuesta = IdentificarView.as_view()(request)
+        self.assertEqual(respuesta.status_code, 502)
+        self.assertIn("No hay ningun motor de IA configurado", respuesta.data["error"])
+        self.assertNotIn("Monstera", str(respuesta.data))

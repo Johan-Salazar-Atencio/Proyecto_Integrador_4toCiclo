@@ -1,7 +1,7 @@
 """Crea el administrador real o da rol ADMIN a una cuenta existente (QA-40).
 
-En produccion (PLANTIA_PRODUCCION=true) Spring deshabilita las cuentas de demostracion, incluido admin@plantia.test:
-este comando es la forma explicita de tener un admin. La clave NUNCA va fija ni en la linea de comandos: se lee de la
+Desde V33 la base no trae usuarios de demostracion (se borraron admin@, johan@ y lucia@plantia.test): una base
+nueva arranca sin admin y este comando es la forma explicita de tenerlo. La clave NUNCA va fija ni en la linea de comandos: se lee de la
 variable PLANTIA_ADMIN_PASSWORD (para un despliegue automatizado) o se pide dos veces por teclado.
 
     python manage.py crear_admin --email admin@mi-dominio.pe --nombre "Admin Plantia"
@@ -37,7 +37,7 @@ class Command(BaseCommand):
         if "@" not in email or len(email) > 150:
             raise CommandError("Correo no valido")
         if email in CUENTAS_DEMO:
-            raise CommandError("Usa un correo propio: las cuentas de demostracion se deshabilitan en produccion")
+            raise CommandError("Usa un correo propio: ese era de una cuenta de demostracion retirada (V33)")
         clave = os.environ.get("PLANTIA_ADMIN_PASSWORD") or ""
         if not clave:
             clave = getpass.getpass("Clave del admin: ")

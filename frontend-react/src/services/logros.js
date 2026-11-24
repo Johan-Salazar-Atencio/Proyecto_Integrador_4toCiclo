@@ -7,18 +7,16 @@ import { llamar } from './api'
 //   POST /logros/vistos      { ids: [...] } -> 204
 // Los secretos bloqueados llegan sin datos reales: la pagina solo muestra "???".
 
-const MOCK = import.meta.env.VITE_MOCK_LOGROS === '1' // MOCK: se quita junto con services/mockLogros.js
+export const obtenerLogros = () => llamar('/logros')
 
-export const obtenerLogros = () => (MOCK ? import('./mockLogros').then((m) => m.usuarioMock()) : llamar('/logros'))
-
-export const obtenerPendientes = () => (MOCK ? import('./mockLogros').then((m) => m.pendientesMock()) : llamar('/logros/pendientes'))
+export const obtenerPendientes = () => llamar('/logros/pendientes')
 
 // El servidor acepta como maximo 100 ids por llamada: si hay mas se envian en lotes, uno tras otro
 const LOTE_VISTOS = 100
 export async function marcarVistos(ids) {
   for (let i = 0; i < ids.length; i += LOTE_VISTOS) {
     const lote = ids.slice(i, i + LOTE_VISTOS)
-    await (MOCK ? Promise.resolve(null) : llamar('/logros/vistos', { metodo: 'POST', cuerpo: { ids: lote } }))
+    await llamar('/logros/vistos', { metodo: 'POST', cuerpo: { ids: lote } })
   }
   return null
 }

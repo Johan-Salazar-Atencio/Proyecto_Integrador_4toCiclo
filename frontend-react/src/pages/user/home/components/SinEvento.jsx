@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Icono from '../../../../components/Icono'
 
-// Consejos de ejemplo (los mismos textos del movil); cambian cada 6 segundos junto con la escena
+// Consejos fijos del juego (los mismos textos del movil; no son datos del usuario); cambian cada 6 segundos junto con la escena
 export const CONSEJOS = [
   'Si hay una ola de calor, refresca bien a tus plantas: riégalas temprano o al atardecer.',
   'Una helada puede quemar las hojas: cubre tus plantas por la noche.',

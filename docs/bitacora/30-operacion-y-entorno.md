@@ -105,6 +105,10 @@ cat target/surefire-reports/*.txt | grep "Tests run" \
 
 ## OPE-04 — Usuarios de prueba y cómo restaurarlos
 
+> **Retirado (23-nov, V33).** La migración `V33__quitar_datos_de_demostracion.sql` borra estas tres cuentas y todo lo
+> suyo; sus claves ya no sirven. Se conserva solo como historia. Hoy el admin se crea con
+> `python manage.py crear_admin --email <correo>` y los jugadores se registran desde la app.
+
 | Correo | `id_usuario` | Contraseña | Rol | Estado de referencia |
 |---|---|---|---|---|
 | `johan@plantia.test` | 1 | `plantia123` | USER | — |

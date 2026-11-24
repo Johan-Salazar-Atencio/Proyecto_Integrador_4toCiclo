@@ -42,9 +42,8 @@ export const iconoTipo = (valor) => TIPOS.find((t) => t.valor === valor)?.icono 
 export async function listarEventos() {
   const respuesta = await fetch('/django/api/catalog/eventos/')
   if (!respuesta.ok) throw new Error(`Django respondio ${respuesta.status}`)
-  const reales = await respuesta.json()
-  return reales
-    .map((e) => ({ ...e, simulado: false }))
+  const eventos = await respuesta.json()
+  return eventos
     .sort((a, b) => new Date(b.fecha_inicio) - new Date(a.fecha_inicio))
 }
 

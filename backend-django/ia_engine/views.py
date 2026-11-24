@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from .permisos import SoloClienteInterno
 
-from .providers.factory import es_indisponibilidad, get_provider_chain, marcar_caido
+from .providers.factory import SIN_MOTOR, es_indisponibilidad, get_provider_chain, marcar_caido
 from .services import persistir_catalogo, reemplazar_cuidados
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,8 @@ def _intentar(cadena, operacion):
     saltarlo durante un rato y se prueba el siguiente: por ejemplo, la IA local
     institucional cae a Gemini de forma transparente.
     """
+    if not cadena:
+        return None, None, SIN_MOTOR
     errores = []
     for provider in cadena:
         try:

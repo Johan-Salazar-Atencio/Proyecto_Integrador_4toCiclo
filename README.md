@@ -7,12 +7,12 @@ App integral de cuidado de plantas: app móvil nativa (Kotlin), web de usuario +
 ```
                        ┌────────────────────┐
    App móvil  ─────────┤   SPRING BOOT 8080 │────► PostgreSQL "plantia" (5432)
-   (Kotlin, /api/v1)   │   API de la app    │      (Flyway: esquema V1–V5)
+   (Kotlin, /api/v1)   │   API de la app    │      (Flyway: esquema V1–V33)
                        └─────────┬──────────┘
                                  │ llama a
                        ┌─────────▼──────────┐
    Web React ──────────┤   DJANGO 8000      │────► misma BD (modo lectura)
-   (5173) /api → 8080  │   Motor IA + admin │      (webui → gemini → mock)
+   (5173) /api → 8080  │   Motor IA + admin │      (webui → gemini; mock solo a pedido)
            /django → 8000                        WebUI institucional: 192.168.17.11:3000
 ```
 
@@ -31,7 +31,7 @@ La autenticación usa `X-User-Id` + `X-Session-Token` (igual en web y móvil): e
 
 ### 1. Base de datos (PostgreSQL 5432)
 - BD: `plantia`, usuario/contraseña: `plantia/plantia`
-- Flyway aplica migraciones de `db/migration/` (V1–V5) automáticamente al arrancar Spring Boot
+- Flyway aplica migraciones de `db/migration/` (V1–V33) automáticamente al arrancar Spring Boot
 > V5 agregó `publicada BOOLEAN DEFAULT TRUE` a `plantas_catalogo`
 
 ### 2. Spring Boot — API de la app
@@ -81,12 +81,11 @@ cd mobile-kotlin
   ```
 - Firewall: regla TCP 8080 ya creada (`Plantia API 8080`) para la vía WiFi
 
-## Usuarios de prueba (seed, Flyway V3/V4)
+## Usuarios
 
-| ID | Nombre | Email |
-|---|---|---|
-| 1 | Johan | johan@plantia.test |
-| 2 | *(2° usuario)* | — |
+La base no trae usuarios de prueba: la migración V33 borra los que sembraban
+V3/V4/V9. Los jugadores se registran desde la app y el administrador se crea
+con `python manage.py crear_admin --email <correo>` (ver `GUIA-INICIO.md`).
 
 ## Estado actual
 
@@ -95,7 +94,7 @@ cd mobile-kotlin
 | Spring Boot 8080 | ✅ Funcionando (fixes de compilación en `feat/backend-integracion`) |
 | Django 8000 | ✅ Funcionando |
 | IA de identificación | ✅ Funcional (Gemini; WebUI solo si se está en la red institucional) |
-| Esquema BD | ✅ Flyway V1–V5 |
+| Esquema BD | ✅ Flyway V1–V33 |
 | Móvil Android | ✅ Compila, instala y conecta |
 | Web usuario (React) | ✅ Todo contra Spring (endpoint reales) |
 | Panel admin (React) | 🟡 Lectura real (Django); escritura simulada |

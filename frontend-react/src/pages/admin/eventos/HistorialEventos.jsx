@@ -37,7 +37,7 @@ export default function HistorialEventos({ eventos, tipos, onVerEfecto }) {
                 <small>{fecha(e.fecha_inicio)}</small>
                 <small>{duracion(e.fecha_inicio, e.fecha_fin)}</small>
                 <span className="ad-chip" style={{ '--c': color }}>{texto}</span>
-                {e.estado === 'FINALIZADO' && !e.simulado
+                {e.estado === 'FINALIZADO'
                   ? <button type="button" className="ad-btn ad-btn-g ad-btn-sm" onClick={() => onVerEfecto(e)}>Ver efecto</button>
                   : <span />}
               </div>

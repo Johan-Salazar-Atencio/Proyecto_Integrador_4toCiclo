@@ -71,8 +71,9 @@ Arranca:
 .\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
 ```
 
-> Si no pones clave de Gemini, deja `IA_PROVIDER=mock`: el flujo funciona pero
-> la identificación es simulada (siempre Monstera).
+> Sin ninguna clave (Gemini, WebUI, OpenAI o `LOCAL_IA_URL`) el escaneo responde
+> un error claro (502): no se inventa ninguna planta. `IA_PROVIDER=mock` (siempre
+> Monstera) existe solo para pruebas y hay que pedirlo a propósito.
 
 ## 3) Spring Boot (API del móvil) — puerto 8080
 
@@ -123,12 +124,16 @@ mvn test
 Usuario y clave por defecto `plantia`/`plantia` (o `PLANTIA_TEST_DB_USER` y
 `PLANTIA_TEST_DB_PASSWORD`). Flyway aplica todas las migraciones desde cero.
 
-### Producción: datos de demostración y administrador
+### Primer arranque: la base empieza sin usuarios
 
-- `PLANTIA_PRODUCCION=true` (Spring) deshabilita al arrancar las cuentas demo
-  que siembran V3/V4/V6/V9 (`admin@`, `johan@`, `lucia@plantia.test`) y cancela
-  el evento de demostración. No borra nada.
-- El administrador real se crea a propósito, **nunca con una clave fija**:
+- Desde la migración **V33** la base no trae datos de demostración: Flyway
+  borra los usuarios que sembraban V3/V4/V6/V8/V9 (`admin@`, `johan@` y
+  `lucia@plantia.test`, con su jardín, colección, escaneos y misiones) y el
+  evento HUAYCO de prueba. Una base nueva (V1 a V33) queda con **0 usuarios y
+  0 eventos**; sí trae la configuración del juego (catálogo, tienda, misiones,
+  niveles, logros, tipos de desastre, regiones, parámetros, temas y fondos).
+- Los jugadores se **registran desde la app** (móvil o web).
+- El administrador se crea a propósito, **nunca con una clave fija**:
 
 ```powershell
 cd backend-django
@@ -138,7 +143,8 @@ python manage.py crear_admin --email admin@tu-dominio.pe --nombre "Admin Plantia
   La clave se pide dos veces por teclado (o se toma de la variable
   `PLANTIA_ADMIN_PASSWORD` en un despliegue automatizado; mínimo 12
   caracteres). Si el correo ya existe, pasa a ADMIN, cambia su clave y cierra
-  sus sesiones. Spring avisa en el log si en producción no queda ningún admin.
+  sus sesiones. Mientras no haya ningún admin, Spring lo avisa en el log al
+  arrancar con el mismo comando.
 - Django en producción: `DJANGO_DEBUG=false`, `DJANGO_SECRET_KEY` propia y
   `DJANGO_ALLOWED_HOSTS` reales. Spring: `CORS_ORIGENES` con el origen de la web.
 
@@ -233,8 +239,8 @@ Proveedores disponibles en Django (`ia_engine/providers/`):
 | `gemini` | Nube de Google. Requiere `GEMINI_API_KEY` |
 | `openai` | Nube de OpenAI. Requiere `OPENAI_API_KEY` |
 | `local` | Ollama directo (`LOCAL_IA_URL` / `LOCAL_IA_MODEL`) |
-| `mock` | Simulado, sin claves (siempre devuelve Monstera) |
-| `auto` | Elige el primero disponible: openai → webui → gemini → local → mock |
+| `mock` | **Solo pruebas**: inventa siempre Monstera. Solo se usa si se pide a propósito |
+| `auto` | Elige el primero disponible: openai → webui → gemini → local (sin ninguno: error 502, nunca `mock`) |
 
 ### Respaldo automático entre motores
 
@@ -279,16 +285,14 @@ Después aparece en `/models` como
 | **Mi colección** | `/coleccion` y `/coleccion/{id}` (ficha con cuidados) |
 | **Enciclopedia** | `/catalogo?q=&toxica=` y `/catalogo/{id}/cuidados` |
 | **Mi jardín** | `/plantas/activa` |
-| **Perfil** | `/usuarios/me` + cambio de usuario |
+| **Perfil** | `/usuarios/me` |
 
 ### Sesión de usuario
 
-El backend todavía **no tiene login**: la identidad viaja en el header
-`X-User-Id`. La app lo guarda en `SharedPreferences` (`Sesion`) y lo añade a
-**todas** las peticiones con un interceptor de OkHttp, así que ya no está
-hardcodeado en cada pantalla. Desde **Perfil → Cambiar usuario** se puede
-cambiar de identidad (hay dos usuarios de prueba en la BD: `1` Johan y `2`
-Lucia, creados por la migración `V4`).
+Cada jugador crea su cuenta desde **Registro** e inicia sesión con su correo
+y clave (`POST /api/v1/auth/login`). La app guarda su id y su token de sesión
+y los añade a **todas** las peticiones (`X-User-Id` y `X-Session-Token`). La
+base no trae usuarios de prueba (V33).
 
 ## Conectar el móvil sin depender de la red
 
@@ -327,6 +331,10 @@ encuentra sola al arrancar, así que da igual a qué WiFi te conectes.
 
 - **Al guardar una foto la identificación es siempre "Monstera"**: estás en
   `mock`. Revisa `IA_PROVIDER` en `.env`.
+- **El escaneo dice que no hay ningún motor de IA configurado**: falta la clave
+  de Gemini (u otro motor) en `backend-django\.env`.
+- **No puedo entrar al panel admin**: la base no trae admin. Créalo con
+  `python manage.py crear_admin --email <tu-correo>` (sección 4).
 - **Django responde 503/429 con Gemini**: es saturación temporal del tier
   gratuito; el proveedor reintenta solo. Si persiste, prueba de nuevo.
 - **`webui` da 401**: el API key de Open WebUI expiró o no es el correcto.

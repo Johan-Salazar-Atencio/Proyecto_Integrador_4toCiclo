@@ -43,9 +43,6 @@ app:
   escaneo:
     # QA-08: escaneos por usuario y minuto (el tope de Django es de toda la app)
     max-por-minuto: ${ESCANEOS_POR_MINUTO:10}
-  # QA-09: en produccion (PLANTIA_PRODUCCION=true) se deshabilitan al arrancar las cuentas y el evento de demostracion
-  # que siembran las migraciones V3, V4, V6 y V9
-  produccion: ${PLANTIA_PRODUCCION:false}
   cors:
     # QA-29: origenes permitidos en /api/** (separados por coma). "*" en desarrollo; en produccion, el de la web
     origenes: ${CORS_ORIGENES:*}
