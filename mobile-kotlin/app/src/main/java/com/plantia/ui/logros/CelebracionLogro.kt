@@ -41,6 +41,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -621,11 +623,25 @@ fun HostCelebracionLogros(
 
     // Si lo niega no se vuelve a pedir: los logros se siguen celebrando dentro de la app
     val pedirPermiso = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    // QA-59: antes del dialogo del sistema se dice para que son las notificaciones
+    var explicarAvisos by rememberSaveable { mutableStateOf(false) }
     val despuesDeCerrar = {
         if (gestor.enCola == 0 && AvisosLogros.debePedirPermiso(contexto)) {
             AvisosLogros.marcarPermisoPedido(contexto)
-            pedirPermiso.launch(Manifest.permission.POST_NOTIFICATIONS)
+            explicarAvisos = true
         }
+    }
+    if (explicarAvisos) {
+        com.plantia.ui.components.ExplicacionPermiso(
+            titulo = com.plantia.ui.components.TextosPermisos.NOTIF_TITULO,
+            texto = com.plantia.ui.components.TextosPermisos.NOTIF_EXPLICACION,
+            icono = androidx.compose.material.icons.Icons.Filled.Notifications,
+            onContinuar = {
+                explicarAvisos = false
+                pedirPermiso.launch(Manifest.permission.POST_NOTIFICATIONS)
+            },
+            onAhoraNo = { explicarAvisos = false }
+        )
     }
 
     // Si empieza otra celebracion, el aviso anterior se quita

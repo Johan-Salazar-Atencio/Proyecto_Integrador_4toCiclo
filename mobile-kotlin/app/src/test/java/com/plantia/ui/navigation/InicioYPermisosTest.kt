@@ -1,6 +1,7 @@
 package com.plantia.ui.navigation
 
 import com.plantia.data.local.PermisoRedLocal
+import com.plantia.ui.components.TextosPermisos
 import com.plantia.ui.components.TextosRedLocal
 import com.plantia.ui.scan.components.TextosPermisoCamara
 import com.plantia.ui.tienda.TextosCompra
@@ -9,7 +10,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** QA-56, QA-55, QA-62 y QA-64 del QA en emulador. */
+/** QA-56, QA-55, QA-59, QA-62 y QA-64 del QA en emulador. */
 class InicioYPermisosTest {
 
     @Test
@@ -28,6 +29,45 @@ class InicioYPermisosTest {
         PermisoRedLocal.actualizar(34, concedido = false) // en versiones viejas no existe ese permiso
         assertFalse(PermisoRedLocal.negado.value)
         assertTrue(TextosRedLocal.EXPLICACION.contains("Ajustes"))
+    }
+
+    @Test
+    fun la_primera_vez_se_explica_la_red_local_antes_de_pedirla() {
+        val paso = PermisoRedLocal.PasoAlIniciar.EXPLICAR
+        assertEquals(paso, PermisoRedLocal.pasoAlIniciar(37, concedido = false, yaExplicado = false))
+        assertEquals(paso, PermisoRedLocal.pasoAlIniciar(38, concedido = false, yaExplicado = false))
+    }
+
+    @Test
+    fun si_ya_se_explico_y_sigue_sin_permiso_se_pide_directamente() {
+        assertEquals(
+            PermisoRedLocal.PasoAlIniciar.PEDIR,
+            PermisoRedLocal.pasoAlIniciar(37, concedido = false, yaExplicado = true)
+        )
+    }
+
+    @Test
+    fun con_permiso_o_en_versiones_sin_el_no_se_explica_ni_se_pide() {
+        val nada = PermisoRedLocal.PasoAlIniciar.NINGUNO
+        assertEquals(nada, PermisoRedLocal.pasoAlIniciar(37, concedido = true, yaExplicado = false))
+        assertEquals(nada, PermisoRedLocal.pasoAlIniciar(37, concedido = true, yaExplicado = true))
+        assertEquals(nada, PermisoRedLocal.pasoAlIniciar(36, concedido = false, yaExplicado = false))
+        assertEquals(nada, PermisoRedLocal.pasoAlIniciar(24, concedido = false, yaExplicado = true))
+    }
+
+    @Test
+    fun el_mdns_solo_arranca_con_permiso_de_red_local_o_sin_ese_permiso_en_el_sistema() {
+        assertFalse(PermisoRedLocal.puedeBuscarEnRed(37, concedido = false))
+        assertTrue(PermisoRedLocal.puedeBuscarEnRed(37, concedido = true))
+        assertTrue(PermisoRedLocal.puedeBuscarEnRed(36, concedido = false))
+    }
+
+    @Test
+    fun las_explicaciones_dicen_para_que_es_cada_permiso() {
+        assertTrue(TextosPermisos.RED_EXPLICACION.startsWith("Plantia se conecta al servidor de tu red (el PC del laboratorio o de casa)"))
+        assertTrue(TextosPermisos.RED_EXPLICACION.contains("identificar tus plantas"))
+        assertTrue(TextosPermisos.NOTIF_EXPLICACION.contains("avisarte de logros y de tus plantas"))
+        assertEquals("Continuar", TextosPermisos.CONTINUAR)
     }
 
     @Test

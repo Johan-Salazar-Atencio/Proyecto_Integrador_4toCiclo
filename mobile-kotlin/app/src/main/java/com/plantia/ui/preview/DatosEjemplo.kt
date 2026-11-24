@@ -4,7 +4,10 @@ import com.plantia.data.model.PlantSummary
 import com.plantia.data.remote.dto.CuidadoSeccionDto
 import com.plantia.data.remote.dto.ScanResultDto
 
-/** Datos de ejemplo para las Previews de la ficha de planta. */
+/**
+ * Datos de ejemplo SOLO para las @Preview de Android Studio (ficha y jardin). La app real nunca los muestra: si el
+ * servidor no responde, cada pantalla enseña su estado vacio o de error.
+ */
 object DatosEjemplo {
 
     /** Respuesta de ejemplo con la misma forma que POST /api/v1/escaneos. */
