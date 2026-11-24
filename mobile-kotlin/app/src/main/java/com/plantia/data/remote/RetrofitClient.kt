@@ -75,10 +75,14 @@ object RetrofitClient {
             val actual = instancia
             if (actual != null) return actual
             val url = resolverBaseUrl()
-            return crear(url).also {
-                instancia = it
+            val cliente = crear(url)
+            // Si ningun backend respondio no se guarda: la proxima llamada vuelve a sondear
+            // en vez de quedarse pegada a una IP vieja.
+            if (ultimoSondeoOk) {
+                instancia = cliente
                 _baseUrl.value = url
             }
+            return cliente
         }
 
     /** Se llama cuando mDNS encuentra el backend en la red local. */
@@ -101,9 +105,13 @@ object RetrofitClient {
         .build()
         .create(PlantiaApi::class.java)
 
+    @Volatile private var ultimoSondeoOk = false
+
     private fun resolverBaseUrl(): String {
+        ultimoSondeoOk = false
         for (url in candidatos()) {
             if (responde(url)) {
+                ultimoSondeoOk = true
                 println("[RetrofitClient] Backend disponible en $url")
                 return normalizar(url)
             }
