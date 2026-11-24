@@ -815,6 +815,144 @@ class AdminTiposDesastreTests(SimpleTestCase):
         tipo.save.assert_not_called()
 
 
+    # ---- Campos nuevos en PATCH: nombre, activo, región, duración y mensaje push ----
+    def _llamar_con_region(self, datos, region_existe=True, **kwargs):
+        from unittest.mock import MagicMock
+
+        with patch.object(admin_views.Region.objects, "filter", return_value=MagicMock(exists=lambda: region_existe)):
+            return self._llamar(admin_views.AdminTipoDesastreDetailView, "patch", datos, pk=3, **kwargs)
+
+    def test_el_interruptor_activo_se_guarda(self):
+        for valor, esperado in ((False, False), (True, True), ("false", False), ("true", True)):
+            respuesta, tipo = self._llamar_con_region({"activo": valor})
+            self.assertEqual(respuesta.status_code, 200, valor)
+            self.assertIs(tipo.activo, esperado)
+            self.assertEqual(respuesta.data["activo"], esperado)
+
+    def test_activo_invalido_da_400(self):
+        for malo in ("quizas", 1, None):
+            respuesta, tipo = self._llamar_con_region({"activo": malo})
+            self.assertEqual(respuesta.status_code, 400, malo)
+            tipo.save.assert_not_called()
+
+    def test_se_puede_cambiar_el_nombre_sin_tocar_el_codigo(self):
+        respuesta, tipo = self._llamar_con_region({"nombre": "  Ola de calor extrema "})
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(tipo.nombre, "Ola de calor extrema")
+        self.assertEqual(tipo.codigo, "OLA_DE_CALOR")
+
+    def test_nombre_vacio_o_muy_largo_da_400(self):
+        for malo in ("", " ", "a", "x" * 81, 5, "¡¡¡"):
+            respuesta, _ = self._llamar_con_region({"nombre": malo})
+            self.assertEqual(respuesta.status_code, 400, malo)
+
+    def test_region_duracion_y_push_por_defecto_se_guardan(self):
+        respuesta, tipo = self._llamar_con_region(
+            {"region_defecto": "COSTA", "duracion_defecto_min": 45, "mensaje_push": " Protege tus plantas "})
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual((tipo.region_defecto, tipo.duracion_defecto_min, tipo.mensaje_push), ("COSTA", 45, "Protege tus plantas"))
+
+    def test_region_inexistente_da_400(self):
+        respuesta, tipo = self._llamar_con_region({"region_defecto": "MARTE"}, region_existe=False)
+        self.assertEqual(respuesta.status_code, 400)
+        tipo.save.assert_not_called()
+
+    def test_duracion_y_push_fuera_de_rango_dan_400(self):
+        for datos in ({"duracion_defecto_min": 4}, {"duracion_defecto_min": 4321}, {"duracion_defecto_min": "x"},
+                      {"duracion_defecto_min": True}, {"mensaje_push": "x" * 201}, {"mensaje_push": 7}):
+            respuesta, _ = self._llamar_con_region(datos)
+            self.assertEqual(respuesta.status_code, 400, datos)
+
+    # ---- POST: crear un tipo nuevo ----
+    def _crear(self, datos, admin=True, existe=False, region_existe=True, formato="json"):
+        from unittest.mock import MagicMock
+
+        request = APIRequestFactory().post("/api/admin/tipos-desastre/", datos, format=formato)
+        guardados = []
+
+        def guardar(tipo, *args, **kwargs):
+            guardados.append(tipo)
+            tipo.id_tipo_desastre = 9
+
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario() if admin else None), \
+                patch.object(admin_views.TipoDesastre.objects, "filter", return_value=MagicMock(exists=lambda: existe)), \
+                patch.object(admin_views.Region.objects, "filter", return_value=MagicMock(exists=lambda: region_existe)), \
+                patch.object(admin_views.TipoDesastre, "save", guardar):
+            respuesta = admin_views.AdminTiposDesastreView.as_view()(request)
+        return respuesta, guardados
+
+    def test_crear_sin_admin_devuelve_401(self):
+        respuesta, guardados = self._crear({"nombre": "Sequía"}, admin=False)
+        self.assertEqual(respuesta.status_code, 401)
+        self.assertEqual(guardados, [])
+
+    def test_crear_genera_el_codigo_sin_tildes_y_guarda_todo(self):
+        respuesta, guardados = self._crear({
+            "nombre": "Sequía prolongada", "descripcion": "Falta de lluvia", "consejo": "Riega poco",
+            "region_defecto": "COSTA", "duracion_defecto_min": 60, "mensaje_push": "Sequía en tu región",
+            "salud_final_bajo": 70, "salud_final_moderado": 50, "salud_final_critico": 30, "activo": False})
+        self.assertEqual(respuesta.status_code, 201)
+        self.assertEqual(len(guardados), 1)
+        tipo = guardados[0]
+        self.assertEqual(tipo.codigo, "SEQUIA_PROLONGADA")
+        self.assertEqual(respuesta.data["codigo"], "SEQUIA_PROLONGADA")
+        self.assertEqual(respuesta.data["id_tipo_desastre"], 9)
+        self.assertEqual((tipo.nombre, tipo.region_defecto, tipo.duracion_defecto_min), ("Sequía prolongada", "COSTA", 60))
+        self.assertEqual((tipo.salud_final_bajo, tipo.salud_final_moderado, tipo.salud_final_critico), (70, 50, 30))
+        self.assertIs(tipo.activo, False)
+        self.assertEqual(tipo.id_creador, _usuario())
+
+    def test_crear_solo_con_nombre_usa_los_valores_por_defecto(self):
+        respuesta, guardados = self._crear({"nombre": "Plaga de pulgón"})
+        self.assertEqual(respuesta.status_code, 201)
+        self.assertEqual(respuesta.data["region_defecto"], "GLOBAL")
+        self.assertEqual(respuesta.data["duracion_defecto_min"], 30)
+        self.assertTrue(respuesta.data["activo"])
+
+    def test_crear_sin_nombre_o_con_datos_malos_da_400(self):
+        for datos in ({}, {"nombre": ""}, {"nombre": "Sequía", "consejo": "x" * 251},
+                      {"nombre": "Sequía", "salud_final_critico": 90},
+                      {"nombre": "Sequía", "duracion_defecto_min": 1}):
+            respuesta, guardados = self._crear(datos)
+            self.assertEqual(respuesta.status_code, 400, datos)
+            self.assertEqual(guardados, [])
+
+    def test_crear_con_region_inexistente_da_400(self):
+        respuesta, guardados = self._crear({"nombre": "Sequía", "region_defecto": "MARTE"}, region_existe=False)
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertEqual(guardados, [])
+
+    def test_crear_con_nombre_repetido_da_409(self):
+        respuesta, guardados = self._crear({"nombre": "Ola de calor"}, existe=True)
+        self.assertEqual(respuesta.status_code, 409)
+        self.assertEqual(guardados, [])
+
+    def test_crear_con_imagen_la_guarda(self):
+        import tempfile
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+
+        archivo = SimpleUploadedFile("evento.png", _png_apaisado(), content_type="image/png")
+        with tempfile.TemporaryDirectory() as carpeta, override_settings(STORAGE_IMAGES_DIR=carpeta):
+            respuesta, guardados = self._crear({"nombre": "Granizada", "imagen": archivo}, formato="multipart")
+            self.assertEqual(respuesta.status_code, 201)
+            self.assertTrue(respuesta.data["imagen_url"].startswith("/files/eventos/granizada_"))
+            self.assertTrue(os.path.exists(os.path.join(carpeta, "eventos", respuesta.data["imagen_url"].rsplit("/", 1)[1])))
+
+    def test_crear_con_imagen_mala_da_400_y_no_guarda(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        archivo = SimpleUploadedFile("evento.png", b"no soy imagen", content_type="image/png")
+        respuesta, guardados = self._crear({"nombre": "Granizada", "imagen": archivo}, formato="multipart")
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertEqual(guardados, [])
+
+    def test_el_codigo_de_tipo_quita_tildes_y_simbolos(self):
+        self.assertEqual(admin_views._codigo_de_tipo("Ñublado: ¡frío!"), "NUBLADO_FRIO")
+        self.assertEqual(admin_views._codigo_de_tipo("¡¡¡"), "")
+
+
 class AdminReglasTests(SimpleTestCase):
     """Reglas de progreso: lo que pagan las acciones en hojas y XP."""
 
@@ -1368,6 +1506,84 @@ class CatalogoAdminValidacionTests(SimpleTestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertEqual(planta.nombre_comun, "Rosa china")
         planta.save.assert_called_once_with(update_fields=["nombre_comun", "publicada", "updated_at"])
+
+
+class CatalogoAdminCrearTests(SimpleTestCase):
+    """POST /api/admin/catalogo/: crear una especie a mano con validacion."""
+
+    BASE = {"nombre_comun": "  Menta ", "nombre_cientifico": "Mentha spicata", "frecuencia_riego_dias": 3,
+            "frecuencia_sol_horas": 5}
+
+    def _post(self, datos, admin=True, colision=False, error_bd=False):
+        from unittest.mock import MagicMock
+
+        consulta = MagicMock()
+        consulta.exclude.return_value.exists.return_value = colision
+        request = APIRequestFactory().post("/api/admin/catalogo/", datos, format="json")
+
+        def guardar(planta, *args, **kwargs):
+            if error_bd:
+                raise admin_views.IntegrityError("duplicado")
+            planta.id_catalogo = 77
+
+        with patch.object(admin_views, "_admin_desde_request", return_value=_usuario() if admin else None), \
+                patch.object(admin_views.PlantaCatalogo.objects, "filter", return_value=consulta), \
+                patch.object(admin_views.PlantaCatalogo, "save", autospec=True, side_effect=guardar) as guardado, \
+                patch.object(admin_views.transaction, "atomic", MagicMock()):
+            respuesta = admin_views.AdminCatalogoListView.as_view()(request)
+        return respuesta, guardado
+
+    def test_sin_admin_da_401(self):
+        respuesta, guardado = self._post(self.BASE, admin=False)
+        self.assertEqual(respuesta.status_code, 401)
+        guardado.assert_not_called()
+
+    def test_crea_con_valores_por_defecto(self):
+        respuesta, guardado = self._post({**self.BASE, "es_toxica_mascotas": True})
+        self.assertEqual(respuesta.status_code, 201)
+        self.assertEqual(respuesta.data["id_catalogo"], 77)
+        planta = guardado.call_args.args[0]
+        self.assertEqual(planta.nombre_comun, "Menta")
+        self.assertTrue(planta.es_toxica_mascotas)
+        self.assertEqual((planta.temperatura_min_c, planta.temperatura_max_c), (10, 30))
+        self.assertTrue(planta.publicada)
+
+    def test_acepta_imagen_y_temperaturas(self):
+        respuesta, guardado = self._post({**self.BASE, "sprite_base_url": "/sprites/menta.png",
+                                          "temperatura_min_c": 5, "temperatura_max_c": 25, "publicada": False})
+        self.assertEqual(respuesta.status_code, 201)
+        planta = guardado.call_args.args[0]
+        self.assertEqual(planta.sprite_base_url, "/sprites/menta.png")
+        self.assertFalse(planta.publicada)
+
+    def test_faltan_campos_obligatorios_da_400(self):
+        for campo in ("nombre_comun", "nombre_cientifico", "frecuencia_riego_dias", "frecuencia_sol_horas"):
+            datos = {k: v for k, v in self.BASE.items() if k != campo}
+            respuesta, guardado = self._post(datos)
+            self.assertEqual(respuesta.status_code, 400, campo)
+            self.assertIn("obligatorio", respuesta.data["error"])
+            guardado.assert_not_called()
+
+    def test_valores_raros_dan_400(self):
+        for extra in ({"frecuencia_riego_dias": 0}, {"frecuencia_riego_dias": "tres"}, {"frecuencia_sol_horas": 30},
+                      {"nombre_cientifico": "x"}, {"es_toxica_mascotas": "si"},
+                      {"temperatura_min_c": 40, "temperatura_max_c": 20}, {"temperatura_min_c": 40}):
+            respuesta, guardado = self._post({**self.BASE, **extra})
+            self.assertEqual(respuesta.status_code, 400, extra)
+            guardado.assert_not_called()
+
+    def test_nombre_cientifico_repetido_da_409(self):
+        respuesta, guardado = self._post(self.BASE, colision=True)
+        self.assertEqual(respuesta.status_code, 409)
+        guardado.assert_not_called()
+
+    def test_choque_en_la_base_da_409(self):
+        respuesta, _ = self._post(self.BASE, error_bd=True)
+        self.assertEqual(respuesta.status_code, 409)
+
+    def test_cuerpo_que_no_es_objeto_da_400(self):
+        respuesta, _ = self._post([1, 2])
+        self.assertEqual(respuesta.status_code, 400)
 
 
 class CancelarEventoTests(SimpleTestCase):

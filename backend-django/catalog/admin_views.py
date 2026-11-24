@@ -10,6 +10,7 @@ import hmac
 import os
 import re
 import secrets
+import unicodedata
 from datetime import timedelta
 
 import bcrypt
@@ -224,15 +225,52 @@ def _validar_catalogo(data, planta):
     return valores, None, None
 
 
+CAMPOS_OBLIGATORIOS_ESPECIE = ("nombre_comun", "nombre_cientifico", "frecuencia_riego_dias", "frecuencia_sol_horas")
+
+
 class AdminCatalogoListView(AdminAPIView):
-    """GET /api/admin/catalogo/  todas las especies, publicadas o no (el catalogo publico solo muestra las publicadas)."""
+    """GET /api/admin/catalogo/  todas las especies, publicadas o no (el catalogo publico solo muestra las publicadas),
+    cada una con `escaneos` (cuantas veces la identifico la IA).
+    POST /api/admin/catalogo/  crea una especie a mano: nombre comun y cientifico, riego y sol son obligatorios; el resto
+    (temperaturas 10 a 30, toxica, publicada, imagen) tiene valor por defecto. Responde 201 con la especie."""
+
+    parser_classes = [JSONParser]
 
     def get(self, request):
         if _admin_desde_request(request) is None:
             return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
         from .serializers import PlantaCatalogoSerializer
-        qs = PlantaCatalogo.objects.all().prefetch_related("cuidadoseccion_set").order_by("nombre_comun")
-        return Response(PlantaCatalogoSerializer(qs, many=True).data)
+        qs = (PlantaCatalogo.objects.all().prefetch_related("cuidadoseccion_set")
+              .annotate(escaneos=Count("escaneohistorial")).order_by("nombre_comun"))
+        datos = PlantaCatalogoSerializer(qs, many=True).data
+        for fila, planta in zip(datos, qs):
+            fila["escaneos"] = planta.escaneos
+        return Response(datos)
+
+    def post(self, request):
+        if _admin_desde_request(request) is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        data = request.data
+        for campo in CAMPOS_OBLIGATORIOS_ESPECIE:
+            if data.get(campo) in (None, ""):
+                return Response({"error": f"{_etiqueta(campo)} es obligatorio"}, status=status.HTTP_400_BAD_REQUEST)
+        planta = PlantaCatalogo()  # solo para validar con los valores por defecto del modelo
+        planta.temperatura_min_c, planta.temperatura_max_c = 10, 30
+        valores, error, codigo = _validar_catalogo(data, planta)
+        if error:
+            return Response({"error": error}, status=codigo)
+        for campo, valor in valores.items():
+            setattr(planta, campo, valor)
+        try:
+            with transaction.atomic():
+                planta.save()
+        except IntegrityError:
+            return Response({"error": "Ya existe otra especie con ese nombre científico"}, status=status.HTTP_409_CONFLICT)
+        return Response(
+            {"ok": True, "id_catalogo": planta.id_catalogo, "nombre_comun": planta.nombre_comun,
+             "nombre_cientifico": planta.nombre_cientifico, "publicada": planta.publicada},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class AdminCatalogoUpdateView(AdminAPIView):
@@ -843,14 +881,60 @@ def _tipo_a_dict(t):
         "id_tipo_desastre": t.id_tipo_desastre, "codigo": t.codigo, "nombre": t.nombre,
         "descripcion": t.descripcion, "consejo": t.consejo, "imagen_url": t.imagen_url,
         "color_hex": t.color_hex, "activo": t.activo,
+        "region_defecto": t.region_defecto, "duracion_defecto_min": t.duracion_defecto_min,
+        "mensaje_push": t.mensaje_push,
         "salud_final_bajo": t.salud_final_bajo, "salud_final_moderado": t.salud_final_moderado,
         "salud_final_critico": t.salud_final_critico,
     }
 
 
-def _validar_tipo(data, tipo):
-    """Devuelve (valores, error) con lo que se puede cambiar de un tipo de evento."""
+def _codigo_de_tipo(nombre):
+    """"Sequía prolongada" -> "SEQUIA_PROLONGADA" (sin tildes, solo A-Z, 0-9 y guion bajo; máximo 50)."""
+    plano = unicodedata.normalize("NFKD", nombre).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^A-Z0-9]+", "_", plano.upper()).strip("_")[:50].strip("_")
+
+
+def _booleano(valor):
+    """Acepta true/false y, en formularios con archivo, "true"/"false"; devuelve None si no es ninguno."""
+    if isinstance(valor, bool):
+        return valor
+    if isinstance(valor, str) and valor.strip().lower() in ("true", "false"):
+        return valor.strip().lower() == "true"
+    return None
+
+
+def _validar_tipo(data, tipo, nuevo=False):
+    """Devuelve (valores, error) con lo que se puede cambiar de un tipo de evento. `nuevo`: el nombre es obligatorio."""
     valores = {}
+    if nuevo or "nombre" in data:
+        nombre = data.get("nombre")
+        if not isinstance(nombre, str) or not 2 <= len(nombre.strip()) <= 80:
+            return None, "El nombre del evento es obligatorio (de 2 a 80 caracteres)"
+        if not _codigo_de_tipo(nombre):
+            return None, "El nombre del evento debe llevar letras o números"
+        valores["nombre"] = nombre.strip()
+    if "activo" in data:
+        activo = _booleano(data["activo"])
+        if activo is None:
+            return None, "El campo «activo» debe ser verdadero o falso"
+        valores["activo"] = activo
+    if "region_defecto" in data:
+        codigo = data["region_defecto"] or "GLOBAL"
+        if not isinstance(codigo, str) or not Region.objects.filter(codigo=codigo).exists():
+            return None, f"Región no válida: {codigo}"
+        valores["region_defecto"] = codigo
+    if "duracion_defecto_min" in data:
+        minutos = _entero(data["duracion_defecto_min"])
+        if isinstance(minutos, bool) or not isinstance(minutos, int) or not 5 <= minutos <= 4320:
+            return None, "La duración por defecto debe ser de 5 a 4320 minutos"
+        valores["duracion_defecto_min"] = minutos
+    if "mensaje_push" in data:
+        if data["mensaje_push"] is not None and not isinstance(data["mensaje_push"], str):
+            return None, "El mensaje push debe ser un texto"
+        texto = str(data["mensaje_push"] or "").strip()
+        if len(texto) > 200:
+            return None, "El mensaje push no puede pasar de 200 caracteres"
+        valores["mensaje_push"] = texto or None
     for campo in ("descripcion", "consejo"):
         if campo in data and data[campo] is not None and not isinstance(data[campo], str):
             return None, f"{_etiqueta(campo)} debe ser un texto"
@@ -878,18 +962,61 @@ def _validar_tipo(data, tipo):
     return valores, None
 
 
+def _guardar_imagen_tipo(archivo, codigo):
+    """Procesa y guarda la imagen subida; devuelve (ruta, error)."""
+    try:
+        jpg = eventos_imagen.procesar(archivo.read())
+    except eventos_imagen.ErrorImagen as exc:
+        return None, str(exc)
+    nombre = eventos_imagen.guardar(os.path.join(settings.STORAGE_IMAGES_DIR, "eventos"), codigo, jpg)
+    return f"/files/eventos/{nombre}", None
+
+
 class AdminTiposDesastreView(AdminAPIView):
-    """GET /api/admin/tipos-desastre/  los tipos de evento con su texto, consejo, imagen y salud final."""
+    """GET /api/admin/tipos-desastre/  los tipos de evento con su texto, consejo, imagen y salud final.
+    POST /api/admin/tipos-desastre/  crea un tipo nuevo (JSON o formulario con la imagen en `imagen`); el código se
+    saca del nombre y no se repite (409)."""
+
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
 
     def get(self, request):
         if _admin_desde_request(request) is None:
             return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
         return Response([_tipo_a_dict(t) for t in TipoDesastre.objects.order_by("id_tipo_desastre")])
 
+    def post(self, request):
+        admin = _admin_desde_request(request)
+        if admin is None:
+            return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
+        tipo = TipoDesastre()
+        valores, error = _validar_tipo(request.data, tipo, nuevo=True)
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+        codigo = _codigo_de_tipo(valores["nombre"])
+        if TipoDesastre.objects.filter(codigo=codigo).exists():
+            return Response({"error": f"Ya existe un tipo de evento con ese nombre ({codigo})"},
+                            status=status.HTTP_409_CONFLICT)
+        archivo = request.FILES.get("imagen")
+        if archivo is not None:
+            ruta, error = _guardar_imagen_tipo(archivo, codigo)
+            if error:
+                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+            valores["imagen_url"] = ruta
+        for campo, valor in valores.items():
+            setattr(tipo, campo, valor)
+        tipo.codigo = codigo
+        tipo.id_creador = admin
+        try:
+            tipo.save()
+        except IntegrityError:
+            return Response({"error": f"Ya existe un tipo de evento con ese nombre ({codigo})"},
+                            status=status.HTTP_409_CONFLICT)
+        return Response(_tipo_a_dict(tipo), status=status.HTTP_201_CREATED)
+
 
 class AdminTipoDesastreDetailView(AdminAPIView):
-    """PATCH /api/admin/tipos-desastre/<id>/  cambia el texto, el consejo, la salud final o la imagen
-    (campo `imagen`, un archivo; por eso acepta tambien formularios con archivos)."""
+    """PATCH /api/admin/tipos-desastre/<id>/  cambia el nombre, el texto, el consejo, la salud final, `activo`, los valores
+    por defecto (región, duración, mensaje push) o la imagen (campo `imagen`, un archivo; por eso acepta tambien formularios con archivos)."""
 
     parser_classes = [JSONParser, FormParser, MultiPartParser]
 
@@ -904,12 +1031,10 @@ class AdminTipoDesastreDetailView(AdminAPIView):
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
         archivo = request.FILES.get("imagen")
         if archivo is not None:
-            try:
-                jpg = eventos_imagen.procesar(archivo.read())
-            except eventos_imagen.ErrorImagen as exc:
-                return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-            nombre = eventos_imagen.guardar(os.path.join(settings.STORAGE_IMAGES_DIR, "eventos"), tipo.codigo, jpg)
-            valores["imagen_url"] = f"/files/eventos/{nombre}"
+            ruta, error = _guardar_imagen_tipo(archivo, tipo.codigo)
+            if error:
+                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+            valores["imagen_url"] = ruta
         for campo, valor in valores.items():
             setattr(tipo, campo, valor)
         if valores:
