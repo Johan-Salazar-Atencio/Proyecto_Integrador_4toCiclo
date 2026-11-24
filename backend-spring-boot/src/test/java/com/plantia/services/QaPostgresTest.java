@@ -528,6 +528,19 @@ class QaPostgresTest {
                 + "'Suma medio día de crecimiento. Dos abonos suaves hacen 1 día.'", Integer.class)).isEqualTo(1);
     }
 
+    @Test
+    void v34PoneTildesEnMisionesYDesastresSembrados() {
+        assertThat(jdbc.queryForObject("SELECT success FROM flyway_schema_history WHERE version = '34'", Boolean.class)).isTrue();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM misiones WHERE titulo = 'Explorador Botanico' "
+                + "OR descripcion LIKE '%a tu coleccion%'", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM misiones WHERE titulo = 'Explorador Botánico'", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM misiones WHERE descripcion = 'Digitaliza 1 planta nueva a tu colección'",
+                Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM tipos_desastre WHERE descripcion LIKE 'Frio intenso%' "
+                + "OR descripcion LIKE '%raices%'", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM fondos_escena WHERE nombre = 'Campo de dia'", Integer.class)).isZero();
+    }
+
     // ---------------------------------------------------------------- medias y bajas por HTTP
 
     @Test

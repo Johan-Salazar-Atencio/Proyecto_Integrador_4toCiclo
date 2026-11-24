@@ -223,11 +223,25 @@ fun ScanScreen(
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            val consejos: @Composable () -> Unit = {
+                ConsejoCamara(Icons.Filled.WbSunny, "Buena luz")
+                ConsejoCamara(Icons.Filled.Eco, "Hojas a la vista")
+                ConsejoCamara(Icons.Filled.CenterFocusStrong, "Una sola planta")
+            }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 BotonRedondoCamara(onClick = onNavigateToHome, descripcion = "Volver") {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
                 }
-                Spacer(Modifier.weight(1f))
+                if (isLandscape) {
+                    // En horizontal no hay alto de sobra: los consejos van en la misma fila que los botones y no tapan el marco
+                    FlowRow(
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) { consejos() }
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
                 BotonRedondoCamara(onClick = onNavigateToHistory, descripcion = "Historial de escaneos") {
                     Icon(Icons.Filled.History, contentDescription = null, tint = Color.White)
                 }
@@ -236,24 +250,22 @@ fun ScanScreen(
                     Icon(Icons.Filled.Cameraswitch, contentDescription = null, tint = Color.White)
                 }
             }
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                ConsejoCamara(Icons.Filled.WbSunny, "Buena luz")
-                ConsejoCamara(Icons.Filled.Eco, "Hojas a la vista")
-                ConsejoCamara(Icons.Filled.CenterFocusStrong, "Una sola planta")
+            if (!isLandscape) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) { consejos() }
             }
         }
 
         // Marco y texto, centrados un poco por encima del medio como en la referencia
         if (hasCameraPermission) {
             Column(
-                modifier = Modifier.align(Alignment.Center).offset(y = if (isLandscape) 0.dp else (-8).dp),
+                modifier = Modifier.align(Alignment.Center).offset(y = if (isLandscape) 14.dp else (-8).dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                ScanOverlay(lado = if (isLandscape) 150.dp else 224.dp)
+                ScanOverlay(lado = if (isLandscape) 140.dp else 224.dp)
                 Spacer(Modifier.height(if (isLandscape) 6.dp else 14.dp))
                 Text("Toma o elige una foto", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
                 Text("Se identifica con IA", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp)

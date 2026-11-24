@@ -245,6 +245,7 @@ class ItemTienda(models.Model):
     id_fondo = models.IntegerField(null=True, blank=True)
     id_tema = models.IntegerField(null=True, blank=True)
     descripcion = models.CharField(max_length=200, null=True, blank=True)
+    codigo = models.CharField(max_length=30, null=True, blank=True)  # macetas e invernaderos: la web y el movil los dibujan por este codigo
     activo = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
 

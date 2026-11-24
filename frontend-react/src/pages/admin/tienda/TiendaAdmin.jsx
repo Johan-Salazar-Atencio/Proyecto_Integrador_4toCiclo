@@ -6,6 +6,8 @@ import {
 import FormularioProducto, { TIPOS_PRODUCTO } from './FormularioProducto'
 import { Aviso, BotonIcono, Chip, Icono, Interruptor, PENDIENTE } from '../misiones/kit'
 import { motivoSinVenta } from './venta'
+import MacetaPixel from '../../../components/MacetaPixel'
+import Invernadero from '../../../components/Invernadero'
 import './tienda-admin.css'
 
 const COLOR_TIPO = { MACETA: 'var(--luz)', INVERNADERO: 'var(--primario)', FONDO: 'var(--agua)', ABONO: 'var(--abono)' }
@@ -15,6 +17,9 @@ const textoTipo = (v) => TIPOS_PRODUCTO.find((t) => t.valor === v)?.texto.toUppe
 
 function Vista({ p }) {
   const imagen = p.variantes?.[0]?.vista || p.vista
+  // Macetas e invernaderos no tienen imagen subida: se dibujan en pixel art por su codigo, como en la tienda del usuario
+  if (p.tipo === 'MACETA' && p.codigo) return <span className="ak-tienda-th ak-tienda-th-dibujo"><MacetaPixel codigo={p.codigo} /></span>
+  if (p.tipo === 'INVERNADERO' && p.codigo) return <span className="ak-tienda-th ak-tienda-th-dibujo"><Invernadero tema={p.codigo} momento="DIA" /></span>
   return (
     <span className="ak-tienda-th">
       {imagen ? <img src={urlImagen(imagen)} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} /> : <span>{p.nombre.charAt(0)}</span>}

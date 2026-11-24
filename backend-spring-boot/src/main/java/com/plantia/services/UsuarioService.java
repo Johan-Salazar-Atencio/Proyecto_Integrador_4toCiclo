@@ -157,7 +157,7 @@ public class UsuarioService {
 
     private static String badge(int nivel) {
         if (nivel >= 10) {
-            return "Maestro Botanico";
+            return "Maestro Botánico";
         }
         if (nivel >= 5) {
             return "Cuidador";

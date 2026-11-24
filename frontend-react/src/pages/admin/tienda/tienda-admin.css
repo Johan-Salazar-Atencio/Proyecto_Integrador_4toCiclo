@@ -1,6 +1,8 @@
 /* Tienda admin (prefijo ak-tienda / ak-escena). Lo común está en ../misiones/kit.css */
 .ak-tienda-prod { display: flex; align-items: center; gap: 12px; }
 .ak-tienda-th { display: flex; flex: none; gap: 3px; width: 46px; height: 46px; overflow: hidden; border-radius: 14px; background: var(--superficie); place-items: center; }
+.ak-tienda-th-dibujo { align-items: center; justify-content: center; background: var(--tinte, var(--superficie)); }
+.ak-tienda-th-dibujo svg { width: 38px; height: auto; max-height: 100%; }
 .ak-tienda-th img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 .ak-tienda-th span { width: 100%; text-align: center; font-weight: 800; color: var(--texto-suave); }
 

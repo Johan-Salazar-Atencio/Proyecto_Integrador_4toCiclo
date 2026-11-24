@@ -27,7 +27,7 @@ export function Icono({ nombre, tam = 17 }) {
 
 export function Interruptor({ activo, onChange, disabled = false, titulo, etiqueta }) {
   return (
-    <button type="button" role="switch" aria-checked={activo} aria-label={etiqueta} title={titulo}
+    <button type="button" role="switch" aria-checked={Boolean(activo)} aria-label={etiqueta ? `${etiqueta} (${activo ? 'sí' : 'no'})` : undefined} title={titulo}
       className={`ak-sw ${activo ? '' : 'ak-sw-off'}`} disabled={disabled} onClick={() => onChange(!activo)} />
   )
 }

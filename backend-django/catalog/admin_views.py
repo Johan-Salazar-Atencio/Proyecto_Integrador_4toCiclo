@@ -33,7 +33,7 @@ from .models import (
 # Hash BCrypt valido para comparar cuando el correo no existe: asi el tiempo de
 # respuesta no revela si esta registrado (mismo criterio que AuthService de Spring).
 _HASH_FICTICIO = b"$2a$10$n7uGz2GzFEIhdSm3KDEOYO0ZMzGL132epZ61oqWefVWQYQIufMQVy"
-_CREDENCIALES_INVALIDAS = {"error": "Credenciales invalidas"}
+_CREDENCIALES_INVALIDAS = {"error": "Credenciales inválidas"}
 _DURACION_SESION = timedelta(days=30)
 # QA-27: tras 5 claves equivocadas seguidas para un correo, 15 minutos sin poder intentarlo (como Spring)
 _MAX_INTENTOS = 5
@@ -159,6 +159,25 @@ class AdminLoginView(AdminAPIView):
                          "token": token})
 
 
+# Como se nombra cada campo en los mensajes de error que ve el admin (con su articulo, para que lea natural)
+ETIQUETAS_CAMPO = {
+    "nombre_comun": "El nombre común", "nombre_cientifico": "El nombre científico",
+    "frecuencia_riego_dias": "La frecuencia de riego (en días)", "frecuencia_sol_horas": "Las horas de sol",
+    "temperatura_min_c": "La temperatura mínima", "temperatura_max_c": "La temperatura máxima",
+    "es_toxica_mascotas": "El campo «tóxica para mascotas»", "sprite_base_url": "La imagen base",
+    "publicada": "El campo «publicada»", "meta": "La meta", "recompensa_monedas": "La recompensa de hojas",
+    "recompensa_xp": "La recompensa de XP", "orden": "El orden", "descripcion": "La descripción",
+    "activa": "El campo «activa»", "activo": "El campo «activo»", "secreto": "El campo «secreto»",
+    "xp": "El XP", "monedas": "Las hojas", "tope_diario": "El tope diario", "consejo": "El consejo",
+    "salud_final_bajo": "La salud final con severidad baja", "salud_final_moderado": "La salud final con severidad moderada",
+    "salud_final_critico": "La salud final con severidad crítica", "valor": "El valor",
+}
+
+
+def _etiqueta(campo):
+    return ETIQUETAS_CAMPO.get(campo, campo)
+
+
 # Lo que acepta el admin al editar una especie: (tipo, minimo, maximo). Los textos se miden en caracteres.
 CAMPOS_CATALOGO = {
     "nombre_comun": ("texto", 1, 100),
@@ -175,7 +194,7 @@ CAMPOS_CATALOGO = {
 
 def _validar_catalogo(data, planta):
     """Devuelve (valores, error, codigo). Antes se copiaba cualquier cosa con setattr y salian 500 (QA-10) o un
-    nombre cientifico que solo cambiaba mayusculas dejaba dos filas iguales para Spring y rompia los escaneos (QA-11)."""
+    nombre científico que solo cambiaba mayusculas dejaba dos filas iguales para Spring y rompia los escaneos (QA-11)."""
     valores = {}
     for campo, (tipo, minimo, maximo) in CAMPOS_CATALOGO.items():
         if campo not in data:
@@ -186,22 +205,22 @@ def _validar_catalogo(data, planta):
         if tipo == "texto":
             valor = valor.strip() if isinstance(valor, str) else None
             if not valor or not minimo <= len(valor) <= maximo:
-                return None, f"{campo} debe ser un texto de {minimo} a {maximo} caracteres", 400
+                return None, f"{_etiqueta(campo)} debe ser un texto de {minimo} a {maximo} caracteres", 400
             if "\x00" in valor:
-                return None, f"{campo} tiene caracteres no validos", 400
+                return None, f"{_etiqueta(campo)} tiene caracteres no válidos", 400
         elif tipo == "entero":
             if not _es_entero(valor, minimo, maximo):
-                return None, f"{campo} debe ser un entero entre {minimo} y {maximo}", 400
+                return None, f"{_etiqueta(campo)} debe ser un entero entre {minimo} y {maximo}", 400
         elif not isinstance(valor, bool):
-            return None, f"{campo} debe ser verdadero o falso", 400
+            return None, f"{_etiqueta(campo)} debe ser verdadero o falso", 400
         valores[campo] = valor
     minima = valores.get("temperatura_min_c", planta.temperatura_min_c)
     maxima = valores.get("temperatura_max_c", planta.temperatura_max_c)
     if minima is not None and maxima is not None and minima > maxima:
-        return None, "temperatura_min_c no puede ser mayor que temperatura_max_c", 400
+        return None, "La temperatura mínima no puede ser mayor que la máxima", 400
     nombre = valores.get("nombre_cientifico")
     if nombre is not None and PlantaCatalogo.objects.filter(nombre_cientifico__iexact=nombre).exclude(pk=planta.pk).exists():
-        return None, f"Ya existe otra especie con el nombre cientifico {nombre} (sin distinguir mayusculas)", 409
+        return None, f"Ya existe otra especie con el nombre científico {nombre} (sin distinguir mayúsculas)", 409
     return valores, None, None
 
 
@@ -240,7 +259,7 @@ class AdminCatalogoUpdateView(AdminAPIView):
         try:
             planta.save(update_fields=list(valores) + ["updated_at"])
         except IntegrityError:
-            return Response({"error": "Ya existe otra especie con ese nombre cientifico"}, status=status.HTTP_409_CONFLICT)
+            return Response({"error": "Ya existe otra especie con ese nombre científico"}, status=status.HTTP_409_CONFLICT)
         return Response({"ok": True, "id_catalogo": planta.id_catalogo})
 
 
@@ -259,44 +278,44 @@ class AdminEventoCreateView(AdminAPIView):
         try:
             codigo_tipo = data["tipo_evento"]
             if not isinstance(codigo_tipo, str):
-                return Response({"error": "tipo_evento debe ser un texto"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "El tipo de evento debe ser un texto"}, status=status.HTTP_400_BAD_REQUEST)
             tipo = TipoDesastre.objects.filter(codigo=codigo_tipo, activo=True).first()
             if tipo is None:
                 return Response(
-                    {"error": f"Tipo de desastre no valido: {codigo_tipo}"},
+                    {"error": f"Tipo de desastre no válido: {codigo_tipo}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             inicio = parse_datetime(str(data["fecha_inicio"]))
             fin = parse_datetime(str(data["fecha_fin"]))
             if inicio is None or fin is None:
-                return Response({"error": "fecha_inicio y fecha_fin deben ser fechas ISO validas"},
+                return Response({"error": "Las fechas de inicio y fin deben ser fechas ISO válidas"},
                                 status=status.HTTP_400_BAD_REQUEST)
             if timezone.is_naive(inicio) != timezone.is_naive(fin):
-                return Response({"error": "fecha_inicio y fecha_fin deben llevar zona horaria las dos o ninguna"},
+                return Response({"error": "Las fechas de inicio y fin deben llevar zona horaria las dos o ninguna"},
                                 status=status.HTTP_400_BAD_REQUEST)
             if fin <= inicio:
-                return Response({"error": "fecha_fin debe ser posterior a fecha_inicio"},
+                return Response({"error": "La fecha de fin debe ser posterior a la de inicio"},
                                 status=status.HTTP_400_BAD_REQUEST)
             severidad = data.get("severidad", "MODERADO")
             if severidad not in SEVERIDADES_EVENTO:
-                return Response({"error": "severidad no valida: " + ", ".join(SEVERIDADES_EVENTO)},
+                return Response({"error": "La severidad no es válida; usa: " + ", ".join(SEVERIDADES_EVENTO)},
                                 status=status.HTTP_400_BAD_REQUEST)
             mensaje = data["mensaje_notificacion"]
             if not isinstance(mensaje, str) or not mensaje.strip() or len(mensaje) > 1000:
-                return Response({"error": "mensaje_notificacion es obligatorio (maximo 1000 caracteres)"},
+                return Response({"error": "El mensaje de notificación es obligatorio (máximo 1000 caracteres)"},
                                 status=status.HTTP_400_BAD_REQUEST)
             codigo_region = data.get("region") or "GLOBAL"
             # La region debe existir: antes un nombre escrito a mano creaba una region nueva y activa para todos (QA-17)
             region = Region.objects.filter(codigo=codigo_region).first() if isinstance(codigo_region, str) else None
             if region is None:
-                return Response({"error": f"Region no valida: {codigo_region}"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": f"Región no válida: {codigo_region}"}, status=status.HTTP_400_BAD_REQUEST)
             # Solo un evento a la vez: ninguno ACTIVO o PROGRAMADO puede cruzarse con esta ventana
             vigente = EventoDesastre.objects.filter(
                 estado__in=["ACTIVO", "PROGRAMADO"], fecha_fin__gt=max(inicio, _ahora_como(inicio)), fecha_inicio__lt=fin,
             ).first()
             if vigente is not None:
                 return Response(
-                    {"error": "Ya hay un evento en curso o programado en esas fechas. Cancelalo o elige otras fechas.",
+                    {"error": "Ya hay un evento en curso o programado en esas fechas. Cancélalo o elige otras fechas.",
                      "id_desastre_activo": vigente.id_desastre},
                     status=status.HTTP_409_CONFLICT,
                 )
@@ -313,7 +332,7 @@ class AdminEventoCreateView(AdminAPIView):
                 severidad=severidad,
             )
         except (KeyError, ValueError, TypeError) as exc:
-            return Response({"error": f"Datos invalidos: {exc}"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": f"Datos inválidos: {exc}"}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"id_desastre": evento.id_desastre, "estado": evento.estado}, status=status.HTTP_201_CREATED)
 
 
@@ -441,11 +460,11 @@ def _validar_mision(data, parcial):
     if not parcial or "titulo" in data:
         titulo = str(data.get("titulo") or "").strip()
         if not titulo or len(titulo) > 100:
-            return None, "El titulo es obligatorio (maximo 100 caracteres)"
+            return None, "El título es obligatorio (máximo 100 caracteres)"
         valores["titulo"] = titulo
     if not parcial or "tipo" in data:
         if not isinstance(data.get("tipo"), str) or data.get("tipo") not in Mision.TIPOS:
-            return None, "Tipo de mision no valido: " + ", ".join(Mision.TIPOS)
+            return None, "Tipo de misión no válido: " + ", ".join(Mision.TIPOS)
         valores["tipo"] = data["tipo"]
     # QA-35: mismos topes que los logros; con 2^31-1 Spring desbordaba el saldo y tumbaba los escaneos de todos
     enteros = (("meta", 1, LIMITES_LOGRO["meta_max"]), ("recompensa_monedas", 0, LIMITES_LOGRO["recompensa_monedas_max"]),
@@ -454,16 +473,16 @@ def _validar_mision(data, parcial):
         if campo in data or (not parcial and campo == "meta"):
             valor = data.get(campo)
             if not _es_entero(valor, minimo, maximo):
-                return None, f"{campo} debe ser un entero entre {minimo} y {maximo}"
+                return None, f"{_etiqueta(campo)} debe ser un entero entre {minimo} y {maximo}"
             valores[campo] = valor
     if "descripcion" in data:
         descripcion = data["descripcion"]
         if descripcion is not None and not isinstance(descripcion, str):
-            return None, "descripcion debe ser un texto"
+            return None, "La descripción debe ser un texto"
         valores["descripcion"] = (descripcion or "").strip()[:500] or None
     if "activa" in data:
         if not isinstance(data["activa"], bool):
-            return None, "activa debe ser verdadero o falso"
+            return None, "El campo «activa» debe ser verdadero o falso"
         valores["activa"] = data["activa"]
     return valores, None
 
@@ -495,7 +514,7 @@ class AdminMisionDetailView(AdminAPIView):
             return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
         mision = Mision.objects.filter(pk=pk).first()
         if mision is None:
-            return Response({"error": "Mision no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Misión no encontrada"}, status=status.HTTP_404_NOT_FOUND)
         valores, error = _validar_mision(request.data, parcial=True)
         if error:
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
@@ -546,7 +565,7 @@ def _validar_texto_logro(data, campo, etiqueta, maximo):
     texto = data.get(campo)
     texto = texto.strip() if isinstance(texto, str) else ""
     if not texto or len(texto) > maximo:
-        return None, f"{etiqueta} es obligatorio (maximo {maximo} caracteres)"
+        return None, f"{etiqueta} es obligatorio (máximo {maximo} caracteres)"
     return texto, None
 
 
@@ -555,16 +574,16 @@ def _validar_parametro_logro(condicion, parametro):
     if isinstance(parametro, str):
         parametro = parametro.strip() or None
     elif parametro is not None:
-        return None, "parametro debe ser un texto o null"
+        return None, "El parámetro debe ser un texto o null"
     if condicion == Logro.PARAMETRO_OBLIGATORIO:
         if parametro not in Logro.FRANJAS_HORARIAS:
-            return None, "La condicion ESCANEO_HORA exige parametro: " + " o ".join(Logro.FRANJAS_HORARIAS)
+            return None, "La condición ESCANEO_HORA exige un parámetro: " + " o ".join(Logro.FRANJAS_HORARIAS)
     elif condicion == Logro.PARAMETRO_OPCIONAL:
         if parametro is not None and parametro not in _codigos_desastre():
-            return None, ("Tipo de desastre no valido en parametro (o dejalo vacio para cualquiera): "
+            return None, ("Tipo de desastre no válido en el parámetro (o déjalo vacío para cualquiera): "
                           + ", ".join(_codigos_desastre()))
     elif parametro is not None:
-        return None, f"La condicion {condicion} no lleva parametro: dejalo vacio (null)"
+        return None, f"La condición {condicion} no lleva parámetro: déjalo vacío (null)"
     return parametro, None
 
 
@@ -578,13 +597,13 @@ def _validar_logro(data, parcial, actual=None):
     if not parcial:
         codigo = str(data.get("codigo") or "").strip()
         if not codigo or len(codigo) > LIMITES_LOGRO["codigo"] or not _CODIGO_LOGRO.match(codigo):
-            return None, "codigo es obligatorio: MAYUSCULAS_CON_GUION_BAJO, solo letras A-Z y numeros (maximo 50)"
+            return None, "El código es obligatorio: MAYUSCULAS_CON_GUION_BAJO, solo letras A-Z y números (máximo 50)"
         if Logro.objects.filter(codigo=codigo).exists():
-            return None, f"Ya existe un logro con el codigo {codigo}"
+            return None, f"Ya existe un logro con el código {codigo}"
         valores["codigo"] = codigo
     elif "codigo" in data and data["codigo"] != actual.codigo:
-        return None, "El codigo no se puede cambiar una vez creado el logro"
-    for campo, etiqueta in (("titulo", "El titulo"), ("descripcion", "La descripcion"), ("icono", "El icono")):
+        return None, "El código no se puede cambiar una vez creado el logro"
+    for campo, etiqueta in (("titulo", "El título"), ("descripcion", "La descripción"), ("icono", "El ícono")):
         if not parcial or campo in data:
             texto, error = _validar_texto_logro(data, campo, etiqueta, LIMITES_LOGRO[campo])
             if error:
@@ -593,11 +612,11 @@ def _validar_logro(data, parcial, actual=None):
     if not parcial or "rareza" in data:
         rareza = data.get("rareza", "COMUN")
         if not isinstance(rareza, str) or rareza not in Logro.RAREZAS:
-            return None, "Rareza no valida: " + ", ".join(Logro.RAREZAS)
+            return None, "Rareza no válida: " + ", ".join(Logro.RAREZAS)
         valores["rareza"] = rareza
     if not parcial or "condicion" in data:
         if not isinstance(data.get("condicion"), str) or data.get("condicion") not in Logro.CONDICIONES:
-            return None, "Condicion no valida: " + ", ".join(Logro.CONDICIONES)
+            return None, "Condición no válida: " + ", ".join(Logro.CONDICIONES)
         valores["condicion"] = data["condicion"]
     enteros = (("meta", 1, LIMITES_LOGRO["meta_max"]), ("recompensa_xp", 0, LIMITES_LOGRO["recompensa_xp_max"]),
                ("recompensa_monedas", 0, LIMITES_LOGRO["recompensa_monedas_max"]),
@@ -607,12 +626,12 @@ def _validar_logro(data, parcial, actual=None):
             valor = data.get(campo)
             minimo = -maximo if minimo is None else minimo
             if isinstance(valor, bool) or not isinstance(valor, int) or not minimo <= valor <= maximo:
-                return None, f"{campo} debe ser un entero entre {minimo} y {maximo}"
+                return None, f"{_etiqueta(campo)} debe ser un entero entre {minimo} y {maximo}"
             valores[campo] = valor
     for campo in ("secreto", "activo"):
         if campo in data:
             if not isinstance(data[campo], bool):
-                return None, f"{campo} debe ser verdadero o falso"
+                return None, f"{_etiqueta(campo)} debe ser verdadero o falso"
             valores[campo] = data[campo]
     # condicion y parametro van juntos: al editar solo uno se revisa contra el valor que ya tenia el otro
     if not parcial or "condicion" in data or "parametro" in data:
@@ -644,7 +663,7 @@ class AdminLogroListCreateView(AdminAPIView):
         try:
             logro = Logro.objects.create(**valores)
         except IntegrityError:
-            return Response({"error": f"Ya existe un logro con el codigo {valores['codigo']}"},
+            return Response({"error": f"Ya existe un logro con el código {valores['codigo']}"},
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(_logro_a_dict(logro), status=status.HTTP_201_CREATED)
 
@@ -735,14 +754,14 @@ class AdminParametroDetailView(AdminAPIView):
         if _admin_desde_request(request) is None:
             return Response({"error": "Se requiere un administrador"}, status=status.HTTP_401_UNAUTHORIZED)
         if clave not in PARAMETROS_JUEGO:
-            return Response({"error": "Parametro no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Parámetro no encontrado"}, status=status.HTTP_404_NOT_FOUND)
         parametro = ParametroJuego.objects.filter(pk=clave).first()
         if parametro is None:
-            return Response({"error": "Parametro no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Parámetro no encontrado"}, status=status.HTTP_404_NOT_FOUND)
         minimo, maximo = PARAMETROS_JUEGO[clave]
         valor = request.data.get("valor")
         if isinstance(valor, bool) or not isinstance(valor, int) or not minimo <= valor <= maximo:
-            return Response({"error": f"valor debe ser un entero entre {minimo} y {maximo}"},
+            return Response({"error": f"El valor debe ser un entero entre {minimo} y {maximo}"},
                             status=status.HTTP_400_BAD_REQUEST)
         parametro.valor = valor
         parametro.save(update_fields=["valor"])
@@ -754,13 +773,13 @@ NOMBRES_REGLAS = {
     "ESCANEO_NUEVA": "Escanear una especie nueva",
     "ESCANEO_REPETIDO": "Escanear una especie ya escaneada",
     "DIGITALIZAR": "Digitalizar una planta nueva",
-    "REGAR": "Regar (cuidado util)",
-    "SOL": "Dar luz (cuidado util)",
-    "ABONAR": "Abonar (cuidado util)",
+    "REGAR": "Regar (cuidado útil)",
+    "SOL": "Dar luz (cuidado útil)",
+    "ABONAR": "Abonar (cuidado útil)",
     "RACHA": "Racha diaria",
     "REFUGIO": "Prevenir el evento en una planta",
     "EVENTO_COMPLETO": "Completar un evento (prevenirlo en todas las plantas)",
-    "MISION": "Mision (cada una paga lo suyo)",
+    "MISION": "Misión (cada una paga lo suyo)",
 }
 
 
@@ -777,16 +796,16 @@ def _validar_regla(data):
         if campo in data:
             valor = data[campo]
             if isinstance(valor, bool) or not isinstance(valor, int) or not 0 <= valor <= 100000:
-                return None, f"{campo} debe ser un entero entre 0 y 100000"
+                return None, f"{_etiqueta(campo)} debe ser un entero entre 0 y 100000"
             valores[campo] = valor
     if "tope_diario" in data:
         valor = data["tope_diario"]
         if valor is not None and (isinstance(valor, bool) or not isinstance(valor, int) or valor < 1):
-            return None, "tope_diario debe ser un entero >= 1 (o vacio para quitar el tope)"
+            return None, "El tope diario debe ser un entero mayor o igual a 1 (o déjalo vacío para quitar el tope)"
         valores["tope_diario"] = valor
     if "activa" in data:
         if not isinstance(data["activa"], bool):
-            return None, "activa debe ser verdadero o falso"
+            return None, "El campo «activa» debe ser verdadero o falso"
         valores["activa"] = data["activa"]
     return valores, None
 
@@ -834,7 +853,7 @@ def _validar_tipo(data, tipo):
     valores = {}
     for campo in ("descripcion", "consejo"):
         if campo in data and data[campo] is not None and not isinstance(data[campo], str):
-            return None, f"{campo} debe ser un texto"
+            return None, f"{_etiqueta(campo)} debe ser un texto"
     if "descripcion" in data:
         texto = str(data.get("descripcion") or "").strip()
         if len(texto) > 2000:
@@ -850,12 +869,12 @@ def _validar_tipo(data, tipo):
         if campo in data:
             valor = _entero(data[campo])
             if isinstance(valor, bool) or not isinstance(valor, int) or not 1 <= valor <= 100:
-                return None, f"{campo} debe ser un entero entre 1 y 100"
+                return None, f"{_etiqueta(campo)} debe ser un entero entre 1 y 100"
             valores[campo] = valor
         salud[campo] = valores.get(campo, getattr(tipo, campo))
     # Una severidad mayor nunca deja mas salud que una menor
     if not salud["salud_final_critico"] <= salud["salud_final_moderado"] <= salud["salud_final_bajo"]:
-        return None, "La salud final debe bajar con la severidad: critico <= moderado <= bajo"
+        return None, "La salud final debe bajar con la severidad: crítico <= moderado <= bajo"
     return valores, None
 
 
@@ -927,7 +946,7 @@ def _item_a_dict(i, variantes):
     return {
         "id_item": i.id_item, "nombre": i.nombre, "tipo": i.tipo, "descripcion": i.descripcion,
         "precio_monedas": i.precio_monedas, "nivel_requerido": i.nivel_requerido, "activo": i.activo,
-        "id_tema": i.id_tema, "vista": i.asset_url, "variantes": variantes.get(i.id_tema, []),
+        "id_tema": i.id_tema, "codigo": i.codigo, "vista": i.asset_url, "variantes": variantes.get(i.id_tema, []),
     }
 
 
@@ -938,7 +957,7 @@ def _validar_item(data, parcial):
         nombre = data.get("nombre")
         nombre = nombre.strip() if isinstance(nombre, str) else ""
         if not nombre or len(nombre) > 100:
-            return None, "El nombre es obligatorio (maximo 100 caracteres)"
+            return None, "El nombre es obligatorio (máximo 100 caracteres)"
         valores["nombre"] = nombre
     if not parcial or "precio_monedas" in data:
         precio = _entero(data.get("precio_monedas"))
@@ -952,17 +971,17 @@ def _validar_item(data, parcial):
         valores["nivel_requerido"] = nivel
     if "descripcion" in data:
         if data["descripcion"] is not None and not isinstance(data["descripcion"], str):
-            return None, "La descripcion debe ser un texto"
+            return None, "La descripción debe ser un texto"
         descripcion = (data["descripcion"] or "").strip()
         if len(descripcion) > 200:
-            return None, "La descripcion admite hasta 200 caracteres"
+            return None, "La descripción admite hasta 200 caracteres"
         valores["descripcion"] = descripcion or None
     if "activo" in data:
         activo = data["activo"]
         if isinstance(activo, str):
             activo = {"true": True, "false": False}.get(activo.lower(), activo)
         if not isinstance(activo, bool):
-            return None, "activo debe ser verdadero o falso"
+            return None, "El campo «activo» debe ser verdadero o falso"
         valores["activo"] = activo
     return valores, None
 
@@ -973,14 +992,14 @@ def _procesar_escenas(request):
     escenas = {}
     ms = _entero(request.data.get("ms")) if request.data.get("ms") not in (None, "") else None
     if ms is not None and (isinstance(ms, bool) or not isinstance(ms, int)):
-        return None, "ms debe ser un entero"
+        return None, "La duración por cuadro debe ser un entero"
     for momento in MOMENTOS:
         archivo = request.FILES.get(momento.lower())
         if archivo is None:
             continue
         cuadros = _entero(request.data.get(f"cuadros_{momento.lower()}")) if request.data.get(f"cuadros_{momento.lower()}") not in (None, "") else None
         if cuadros is not None and (isinstance(cuadros, bool) or not isinstance(cuadros, int) or cuadros < 1):
-            return None, f"cuadros_{momento.lower()} debe ser un entero >= 1"
+            return None, f"Los cuadros de la escena de {momento.lower()} deben ser un entero >= 1"
         try:
             escenas[momento] = fondos_imagen.procesar(archivo.read(), cuadros=cuadros, ms=ms)
         except fondos_imagen.ErrorImagen as e:
@@ -1035,7 +1054,7 @@ class AdminTiendaListCreateView(AdminAPIView):
         if error:
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
         if not escenas:
-            return Response({"error": "Sube al menos una escena (dia, tarde o noche)"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Sube al menos una escena (día, tarde o noche)"}, status=status.HTTP_400_BAD_REQUEST)
         with transaction.atomic():
             tema = TemaFondo.objects.create(nombre=valores["nombre"], descripcion=valores.get("descripcion"))
             for momento, resultado in escenas.items():

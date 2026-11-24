@@ -159,29 +159,48 @@ private fun Contenido(
     onAbono: (TiendaItem) -> Unit,
     onAplicar: (TiendaItem) -> Unit
 ) {
+    val horizontal = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Tienda", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
-                PildoraHojas(tienda.monedas)
+        val categorias = listOf(
+            CAT_MACETA to "Macetas",
+            CAT_INVERNADERO to "Invernaderos",
+            CAT_FONDO to "Fondos",
+            CAT_ABONO to "Abono"
+        )
+        if (horizontal) {
+            // En horizontal sobra ancho y falta alto: titulo, categorias y hojas van en una sola fila
+            item {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Tienda", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+                    Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        categorias.forEach { (clave, texto) -> ChipCategoria(texto, pestana == clave) { onPestana(clave) } }
+                    }
+                    PildoraHojas(tienda.monedas)
+                }
             }
-        }
-        item {
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(
-                    CAT_MACETA to "Macetas",
-                    CAT_INVERNADERO to "Invernaderos",
-                    CAT_FONDO to "Fondos",
-                    CAT_ABONO to "Abono"
-                ).forEach { (clave, texto) -> ChipCategoria(texto, pestana == clave) { onPestana(clave) } }
+        } else {
+            item {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Tienda", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+                    PildoraHojas(tienda.monedas)
+                }
+            }
+            item {
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    categorias.forEach { (clave, texto) -> ChipCategoria(texto, pestana == clave) { onPestana(clave) } }
+                }
             }
         }
         item {

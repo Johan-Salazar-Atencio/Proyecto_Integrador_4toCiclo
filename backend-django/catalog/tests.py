@@ -843,7 +843,7 @@ class AdminReglasTests(SimpleTestCase):
     def test_la_lista_trae_el_nombre_legible(self):
         respuesta, _ = self._llamar(admin_views.AdminReglasView, "get")
         self.assertEqual(respuesta.data[0]["motivo"], "REGAR")
-        self.assertEqual(respuesta.data[0]["nombre"], "Regar (cuidado util)")
+        self.assertEqual(respuesta.data[0]["nombre"], "Regar (cuidado útil)")
 
     def test_cambia_hojas_xp_y_tope(self):
         respuesta, regla = self._llamar(admin_views.AdminReglaDetailView, "patch",
@@ -1104,7 +1104,7 @@ class AdminLogrosTests(SimpleTestCase):
         for malo in ("regador", "Regador_1", "REGADOR 1", "_X", "X__Y", "X_", "", "A" * 51, "ÑANDÚ"):
             respuesta, _ = self._crear(codigo=malo)
             self.assertEqual(respuesta.status_code, 400, malo)
-            self.assertIn("codigo", respuesta.data["error"])
+            self.assertIn("código", respuesta.data["error"])
 
     def test_codigo_repetido_da_400(self):
         with patch.object(admin_views.Logro.objects, "filter", return_value=MagicMock(exists=lambda: True)):
@@ -1160,7 +1160,7 @@ class AdminLogrosTests(SimpleTestCase):
     def test_parametro_prohibido_en_las_demas(self):
         respuesta, _ = self._crear(condicion="NIVEL", parametro="HUAYCO")
         self.assertEqual(respuesta.status_code, 400)
-        self.assertIn("no lleva parametro", respuesta.data["error"])
+        self.assertIn("no lleva parámetro", respuesta.data["error"])
 
     # --- PATCH ---
     def test_patch_inexistente_da_404(self):
