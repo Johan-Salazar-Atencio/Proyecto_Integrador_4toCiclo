@@ -11,7 +11,11 @@ const leerLista = async (ruta) => {
 // Todo sale de una sola consulta real a Django (/api/admin/stats/): usuarios, escaneos, eventos y actividad.
 export async function obtenerEstadisticas() {
   const r = await fetch('/django/api/admin/stats/', { headers: cabecerasAdmin() })
-  if (!r.ok) throw new Error(`Django respondio ${r.status}`)
+  if (!r.ok) {
+    const error = new Error(`Django respondio ${r.status}`)
+    error.estado = r.status // 401 = sesion del admin caducada o invalida
+    throw error
+  }
   const d = await r.json()
   return {
     resumen: {

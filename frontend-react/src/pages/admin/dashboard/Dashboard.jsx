@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import EncabezadoAdmin from '../../../components/admin/EncabezadoAdmin'
 import IconoAdmin from '../../../components/admin/IconoAdmin'
 import { obtenerEstadisticas } from '../../../services/admin/estadisticas'
+import { RUTAS_ADMIN } from '../../../routes/rutas'
+import { useSesionAdmin } from '../../../store/SesionAdmin'
 import Grafico from './Grafico'
 import TablaEscaneos from './TablaEscaneos'
 import './dashboard.css'
@@ -10,6 +13,8 @@ const formato = (n) => (n == null ? '—' : Number(n).toLocaleString('es-PE'))
 
 export default function Dashboard() {
   const [estado, setEstado] = useState({ cargando: true, resumen: null, actividad: [], escaneos: [], error: '' })
+  const { cerrar } = useSesionAdmin()
+  const irA = useNavigate()
 
   // `silencioso`: el refresco automatico no vuelve a mostrar el giro de carga
   const cargar = useCallback(async (silencioso = false) => {
@@ -17,10 +22,17 @@ export default function Dashboard() {
     try {
       const { resumen, actividad, escaneos } = await obtenerEstadisticas()
       setEstado({ cargando: false, resumen, actividad, escaneos, error: '' })
-    } catch {
+    } catch (err) {
+      // 401 = sesion del admin caducada o invalida (por ejemplo, de antes de V31): se vuelve al acceso como en Logros.
+      // Antes se mostraba "¿Django esta encendido?" aunque Django respondiera.
+      if (err.estado === 401) {
+        cerrar()
+        irA(RUTAS_ADMIN.LOGIN, { replace: true })
+        return
+      }
       setEstado({ cargando: false, resumen: null, actividad: [], escaneos: [], error: 'No se pudo leer Django. ¿Está encendido en el puerto 8000?' })
     }
-  }, [])
+  }, [cerrar, irA])
 
   useEffect(() => {
     cargar()
