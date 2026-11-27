@@ -70,9 +70,8 @@
 .estante-planta { position: relative; width: 100%; height: 100%; }
 .estante-boton { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: pointer; touch-action: manipulation; }
 .estante-boton:focus-visible { outline: 3px solid var(--lima); outline-offset: 2px; border-radius: 8px; }
-/* El sprite (64x64) tiene su tierra en la fila 47; se sube un poco para que nazca justo en el borde de la maceta del estante */
-.estante-dibujo { position: absolute; inset: 0; width: 100%; height: 100%; transform: translateY(-3.7%); }
-.estante-maceta { position: absolute; left: 18%; bottom: 0; width: 64%; }
+/* El sprite (64x64) trae su propia maceta: la base de la maceta (fila 61) apoya en la repisa */
+.estante-dibujo { position: absolute; inset: 0; width: 100%; height: 100%; }
 .estante-marca { position: absolute; left: 0; top: 0; font-size: 0.9rem; pointer-events: none; }
 .estante-menu { position: absolute; right: -2px; top: -2px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: var(--barra); color: var(--texto); font-size: 0.95rem; line-height: 1; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; }
 .estante-planta:hover .estante-menu, .estante-menu:focus-visible { opacity: 1; }

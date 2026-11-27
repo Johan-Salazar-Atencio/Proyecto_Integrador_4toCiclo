@@ -6,7 +6,7 @@ import {
 import FormularioProducto, { TIPOS_PRODUCTO } from './FormularioProducto'
 import { Aviso, BotonIcono, Chip, Icono, Interruptor, PENDIENTE } from '../misiones/kit'
 import { motivoSinVenta } from './venta'
-import MacetaPixel from '../../../components/MacetaPixel'
+import MacetaVista from '../../../components/MacetaVista'
 import Invernadero from '../../../components/Invernadero'
 import HojaAbono from '../../../components/HojaAbono'
 import './tienda-admin.css'
@@ -19,7 +19,7 @@ const textoTipo = (v) => TIPOS_PRODUCTO.find((t) => t.valor === v)?.texto.toUppe
 function Vista({ p }) {
   const imagen = p.variantes?.[0]?.vista || p.vista
   // Macetas e invernaderos no tienen imagen subida: se dibujan en pixel art por su codigo, como en la tienda del usuario
-  if (p.tipo === 'MACETA' && p.codigo) return <span className="ak-tienda-th ak-tienda-th-dibujo"><MacetaPixel codigo={p.codigo} /></span>
+  if (p.tipo === 'MACETA' && p.codigo) return <span className="ak-tienda-th ak-tienda-th-dibujo"><MacetaVista codigo={p.codigo} escala={1} /></span>
   if (p.tipo === 'INVERNADERO' && p.codigo) return <span className="ak-tienda-th ak-tienda-th-dibujo"><Invernadero tema={p.codigo} momento="DIA" /></span>
   // Los abonos tampoco tienen imagen propia: se muestra la hoja de su color (suave, organico, reforzado)
   if (p.tipo === 'ABONO') return <span className="ak-tienda-th ak-tienda-th-dibujo"><HojaAbono codigo={p.codigo} tam={44} /></span>

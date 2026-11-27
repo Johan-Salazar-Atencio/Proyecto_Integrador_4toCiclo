@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RUTAS } from '../../../routes/rutas'
 import Invernadero, { ALTO, ANCHO, centroColumna, repisa } from '../../../components/Invernadero'
-import MacetaPixel from '../../../components/MacetaPixel'
 import PlantaPixel from '../../../components/PlantaPixel'
 import { momentoDelDia } from '../../../services/arte'
 import { guardarEnBaul, renombrarPlanta, sacarDelBaul } from '../../../services/jardin'
@@ -75,8 +74,8 @@ function PlantaEnEstante({ planta, onAbrir, onMenu }) {
         aria-label={`Abrir ${planta.name} en el jardín`}
         title={`${planta.name}: ${etapa.nombre}. Mantén pulsada para ver sus acciones.`}
       >
-        <PlantaPixel etapa={etapa.sprite} estado={etapa.estadoDibujo} apariencia={planta.apariencia} titulo={planta.name} animar={false} sinSuelo className="estante-dibujo" />
-        <MacetaPixel codigo={planta.macetaCodigo} className="estante-maceta" />
+        {/* La planta con SU maceta, dibujada por el mismo motor que en el jardin */}
+        <PlantaPixel etapa={etapa.sprite} estado={etapa.estadoDibujo} apariencia={planta.apariencia} titulo={planta.name} animar={false} maceta={planta.macetaCodigo} className="estante-dibujo" />
       </button>
       {marca && <span className="estante-marca">{marca}</span>}
       <button className="estante-menu" onClick={onMenu} aria-label={`Acciones de ${planta.name}`}>⋮</button>

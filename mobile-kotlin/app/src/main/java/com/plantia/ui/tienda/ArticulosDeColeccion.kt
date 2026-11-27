@@ -51,8 +51,8 @@ import androidx.compose.ui.unit.sp
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.TiendaItem
 import com.plantia.ui.collection.virtual.FondoInvernadero
-import com.plantia.ui.collection.virtual.MacetaPixel
-import com.plantia.ui.collection.virtual.PROPORCION_MACETA
+import com.plantia.ui.escena.MacetaVista
+import com.plantia.ui.escena.tamanoPixelArt
 import com.plantia.ui.collection.virtual.filtrarPlantas
 import com.plantia.ui.components.tarjeta
 import com.plantia.ui.theme.Agua
@@ -89,7 +89,8 @@ fun TarjetaMaceta(
                 .background(Brush.verticalGradient(listOf(Agua.copy(alpha = 0.22f), Primario.copy(alpha = 0.16f)))),
             contentAlignment = Alignment.BottomCenter
         ) {
-            MacetaPixel(maceta.codigo.orEmpty(), Modifier.padding(bottom = 10.dp).size(width = 66.dp, height = (66 / PROPORCION_MACETA).dp))
+            // La misma maceta (motor y sombreado) que se ve en el jardin, a escala entera
+            MacetaVista(maceta.codigo, maxAncho = 130.dp, maxAlto = 74.dp, modifier = Modifier.padding(bottom = 8.dp), descripcion = maceta.nombre)
         }
         Text(
             maceta.nombre, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary, maxLines = 1,
@@ -128,9 +129,11 @@ fun TarjetaInvernadero(
         Modifier.fillMaxWidth().tarjeta().padding(10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // Escala entera (unos 2 dp por pixel, como x2 en la web) para que se lea el detalle del invernadero
+        val tamano = tamanoPixelArt(ANCHO_PAGINA.toInt(), ALTO_PAGINA.toInt(), maxAncho = 140.dp)
         FondoInvernadero(
             codigo = invernadero.codigo.orEmpty(),
-            modifier = Modifier.width(66.dp).aspectRatio(ANCHO_PAGINA / ALTO_PAGINA).clip(RoundedCornerShape(14.dp))
+            modifier = Modifier.size(tamano).clip(RoundedCornerShape(14.dp))
         )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(invernadero.nombre, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
@@ -195,7 +198,7 @@ fun HojaAplicarMaceta(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Checkbox(checked = id in elegidas, onCheckedChange = { elegidas = if (it) elegidas + id else elegidas - id })
-                            MacetaPixel(planta.macetaCodigo, Modifier.size(width = 32.dp, height = (32 / PROPORCION_MACETA).dp))
+                            MacetaVista(planta.macetaCodigo, maxAncho = 36.dp, maxAlto = 24.dp)
                             Column(Modifier.padding(start = 10.dp)) {
                                 Text(planta.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                                 Text(planta.species, fontSize = 12.sp, color = TextSecondary)

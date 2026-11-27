@@ -6,7 +6,7 @@ import { comprarAbono, comprarItem, obtenerTienda } from '../../../services/tien
 import HojaAbono from '../../../components/HojaAbono'
 import { estiloAbono, ordenarAbonos, textoTienes } from '../../../components/abonoEstilo'
 import Invernadero from '../../../components/Invernadero'
-import MacetaPixel from '../../../components/MacetaPixel'
+import MacetaVista from '../../../components/MacetaVista'
 import { paletaDeMaceta } from '../../../components/macetas'
 import VistasDelTema from '../../../components/VistasDelTema'
 import Icono from './Icono'
@@ -137,7 +137,7 @@ export default function Tienda() {
             <div className="tienda-grilla">
               {macetas.map((m) => (
                 <article key={m.id} className="tienda-prod aparece">
-                  <div className="tienda-pv" style={{ '--color': paletaDeMaceta(m.codigo).cuerpo }}><MacetaPixel codigo={m.codigo} titulo={m.nombre} /></div>
+                  <div className="tienda-pv" style={{ '--color': paletaDeMaceta(m.codigo).cuerpo }}><MacetaVista codigo={m.codigo} titulo={m.nombre} escala={4} /></div>
                   <b>{m.nombre}</b>
                   <p>{m.descripcion}</p>
                   {m.comprado ? (
@@ -181,7 +181,7 @@ export default function Tienda() {
         ) : (
           <>
             <p className="tienda-nota">Fondos de la escena de cada planta.</p>
-            <div className="tienda-grilla">
+            <div className="tienda-grilla tienda-grilla-fondos">
               {fondos.map((f) => (
                 <article key={f.id} className="tienda-prod aparece">
                   <div className="tienda-pv tienda-pv-fondo"><VistasDelTema variantes={f.variantes} /></div>
@@ -297,7 +297,7 @@ function AplicarMaceta({ maceta, onCerrar, onListo, onError }) {
     <div className="layout-fondo" onClick={onCerrar}>
       <div className="layout-dialogo aparece maceta-hoja" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className="maceta-hoja-titulo">
-          <div className="tienda-maceta-vista maceta-hoja-vista"><MacetaPixel codigo={maceta.codigo} /></div>
+          <div className="tienda-maceta-vista maceta-hoja-vista"><MacetaVista codigo={maceta.codigo} escala={1} /></div>
           <div>
             <h2>Aplicar maceta {maceta.nombre}</h2>
             <p>Elige las plantas virtuales</p>

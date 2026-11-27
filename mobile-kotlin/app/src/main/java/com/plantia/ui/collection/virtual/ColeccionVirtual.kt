@@ -77,7 +77,6 @@ import coil.compose.SubcomposeAsyncImage
 import com.plantia.data.model.PlantSummary
 import com.plantia.data.model.TiendaItem
 import com.plantia.ui.escena.PlantaPixel
-import com.plantia.ui.escena.rememberSprites
 import com.plantia.ui.components.tarjeta
 import com.plantia.ui.theme.DividerColor
 import com.plantia.ui.theme.Primario
@@ -372,7 +371,6 @@ private fun PaginaInvernadero(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PlantaEnEstante(planta: PlantSummary, onAbrir: () -> Unit, onMenu: () -> Unit) {
-    val sprites = rememberSprites()
     Box(
         Modifier
             .fillMaxSize()
@@ -384,28 +382,18 @@ private fun PlantaEnEstante(planta: PlantSummary, onAbrir: () -> Unit, onMenu: (
             )
             .semantics { contentDescription = planta.name }
     ) {
-        if (sprites != null) {
-            PlantaPixel(
-                sprites = sprites,
-                apariencia = planta.apariencia,
-                diasCuidados = planta.diasCuidados,
-                diasTotales = planta.diasTotales,
-                marchita = planta.enRecuperacion || planta.muerta,
-                descripcion = planta.name,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            SubcomposeAsyncImage(
-                model = planta.imageUrl,
-                contentDescription = planta.name,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize(),
-                error = { Text("🪴", fontSize = 28.sp, modifier = Modifier.align(Alignment.Center)) }
-            )
-        }
-        MacetaPixel(
-            planta.macetaCodigo,
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth(0.64f).aspectRatio(PROPORCION_MACETA)
+        // La planta con SU maceta, dibujada por el mismo motor que en el jardin
+        PlantaPixel(
+            apariencia = planta.apariencia,
+            diasCuidados = planta.diasCuidados,
+            diasTotales = planta.diasTotales,
+            marchita = planta.healthPercent < 30 || planta.enRecuperacion || planta.muerta,
+            muerta = planta.muerta,
+            descripcion = planta.name,
+            modifier = Modifier.fillMaxSize(),
+            macetaCodigo = planta.macetaCodigo,
+            enEstante = true,
+            animar = false
         )
         val marca = when {
             planta.muerta -> "💀"

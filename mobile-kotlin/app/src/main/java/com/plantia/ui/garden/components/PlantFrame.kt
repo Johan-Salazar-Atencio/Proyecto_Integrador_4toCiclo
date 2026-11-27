@@ -38,7 +38,6 @@ import com.plantia.ui.escena.Escena
 import com.plantia.ui.escena.EscenaPixel
 import com.plantia.ui.escena.PlantaPixel
 import com.plantia.ui.escena.faseNumero
-import com.plantia.ui.escena.rememberSprites
 import com.plantia.ui.theme.GreenDark
 import com.plantia.ui.theme.GreenPrimary
 import com.plantia.ui.theme.LocalTemaOscuro
@@ -75,6 +74,8 @@ fun PlantFrame(
     diasCuidados: Int = 0,
     diasTotales: Int = 0,
     marchita: Boolean = false,
+    /** Muerta: el dibujo sale gris y seco, no solo marchito. */
+    muerta: Boolean = false,
     /** Si se da, aparece arriba a la derecha el icono que abre los fondos de esta planta. */
     onFondos: (() -> Unit)? = null,
     /** false cuando la planta ya esta protegida: la animacion del desastre se desvanece de la escena. */
@@ -88,51 +89,25 @@ fun PlantFrame(
     /** Maceta puesta a la planta (null = el monton de tierra de siempre). */
     macetaCodigo: String? = null
 ) {
-    val sprites = rememberSprites()
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(28.dp))
             .background(fondo)
     ) {
-        val planta: @Composable BoxScope.() -> Unit = if (sprites != null) {
-            {
-                PlantaPixel(
-                    sprites = sprites,
-                    apariencia = apariencia,
-                    diasCuidados = diasCuidados,
-                    diasTotales = diasTotales,
-                    marchita = marchita,
-                    descripcion = nombre,
-                    modifier = Modifier.fillMaxSize(),
-                    macetaCodigo = macetaCodigo
-                )
-            }
-        } else {{
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (imageUrl.isNullOrBlank()) {
-                    PlantaDeRespaldo()
-                } else {
-                    SubcomposeAsyncImage(
-                        model = imageUrl,
-                        contentDescription = nombre,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize(),
-                        loading = {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                CircularProgressIndicator(color = GreenPrimary, modifier = Modifier.size(32.dp))
-                            }
-                        },
-                        // Si la imagen no carga se dibuja una planta de respaldo.
-                        error = { PlantaDeRespaldo() }
-                    )
-                }
-            }
-        }}
+        // La planta siempre se dibuja en pixel art (64x64, el mismo motor que la web); sin apariencia sale la de
+        // por defecto, como en la web
+        val planta: @Composable BoxScope.() -> Unit = {
+            PlantaPixel(
+                apariencia = apariencia,
+                diasCuidados = diasCuidados,
+                diasTotales = diasTotales,
+                marchita = marchita,
+                muerta = muerta,
+                descripcion = nombre,
+                modifier = Modifier.fillMaxSize(),
+                macetaCodigo = macetaCodigo
+            )
+        }
         if (escena != null) {
             // Al proteger la planta el desastre se desvanece (1,2 s) y queda el fondo de siempre
             Crossfade(targetState = desastreActivo, animationSpec = tween(1_200), label = "desastre") { activo ->

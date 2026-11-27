@@ -24,11 +24,14 @@
 
 /* Vista previa */
 .tienda-pv, .tienda-maceta-vista { display: grid; place-items: center; height: 104px; overflow: hidden; border-radius: 20px; background: color-mix(in srgb, var(--color, var(--primario)) 22%, var(--superficie-2)); }
-.tienda-pv svg { width: 78px; }
-.tienda-pv-alta { height: 150px; background: var(--cielo); }
-.tienda-invernadero-vista { width: 70px; border-radius: 9px; }
-.tienda-pv-fondo { height: 150px; background: var(--superficie-2); }
-.tienda-pv-fondo svg { width: auto; }
+/* Pixel art siempre a escala entera (todos los pixeles iguales): maceta x4 (MacetaVista), invernadero x2 (68x102 -> 136x204)
+   y escenas de fondo x1 (96 px) */
+.tienda-pv-alta { height: 224px; background: var(--cielo); }
+.tienda-invernadero-vista { width: 136px; height: 204px; border-radius: 10px; }
+.tienda-pv-fondo { height: auto; padding: 10px 8px; background: var(--superficie-2); }
+/* Tres escenas de 96 px: la tarjeta de fondo necesita ~320 px (una por fila en el movil) */
+.tienda-grilla-fondos { grid-template-columns: 1fr; }
+@media (min-width: 700px) { .tienda-grilla-fondos { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); } }
 .tienda-pv-abono { background: var(--tinte); color: var(--primario); }
 .tienda-pv-abono svg { width: 44px; }
 
@@ -46,7 +49,6 @@
 .maceta-hoja-titulo { display: flex; align-items: center; gap: 10px; }
 .maceta-hoja-titulo h2 { font-size: 1.05rem; }
 .maceta-hoja-vista { width: 56px; height: 44px; flex-shrink: 0; border-radius: 12px; }
-.maceta-hoja-vista svg { width: 34px; }
 .maceta-hoja-buscar { display: flex; gap: 8px; }
 .maceta-hoja-buscar input { flex: 1; min-width: 0; padding: 10px 14px; border: 1px solid var(--linea); border-radius: 14px; background: var(--superficie-2); color: var(--texto); font: inherit; }
 .maceta-hoja-buscar button { padding: 0 14px; border: 0; border-radius: 999px; background: var(--tinte); color: var(--primario); font: inherit; font-weight: 800; cursor: pointer; }
