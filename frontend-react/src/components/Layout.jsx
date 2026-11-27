@@ -6,6 +6,7 @@ import { avisarSiToca } from '../store/preferencias'
 import { obtenerUsuario, urlImagen } from '../services/home'
 import { AVISO_SALDO } from '../services/saldo'
 import { iniciales, porcentajeXp } from '../pages/user/home/xp'
+import CelebradorLogros from '../pages/user/logros/CelebradorLogros'
 import Boton from './Boton'
 import Icono from './Icono'
 import './layout.css'
@@ -93,6 +94,7 @@ export default function Layout() {
         <h1 className="solo-lectores">{titulo}</h1>
         <Outlet />
       </main>
+      <CelebradorLogros />
 
       {confirmando && (
         <div className="layout-fondo" onClick={() => setConfirmando(false)}>

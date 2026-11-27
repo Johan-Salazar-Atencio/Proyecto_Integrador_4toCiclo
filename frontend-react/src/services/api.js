@@ -1,6 +1,7 @@
 import { RUTAS } from '../routes/rutas'
 import { borrarSesion, obtenerUsuarioId, obtenerToken } from '../store/sesionGuardada'
 import { avisarSaldo, cambiaElSaldo } from './saldo'
+import { avisarLogros, logrosDeRespuesta } from './avisoLogros'
 
 const BASE = '/api/v1'
 
@@ -34,6 +35,7 @@ export async function llamar(ruta, { metodo = 'GET', cuerpo, formData, senal } =
     throw error
   }
   if (cambiaElSaldo(metodo)) avisarSaldo() // la barra refresca hojas y XP
+  avisarLogros(logrosDeRespuesta(datos)) // el Layout los celebra al momento
   return datos
 }
 

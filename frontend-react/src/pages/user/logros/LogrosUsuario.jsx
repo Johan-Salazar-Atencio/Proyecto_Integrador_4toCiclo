@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Icono from '../../../components/Icono'
 import IconoLogro from '../../../components/IconoLogro'
-import { marcarVistos, obtenerLogros, obtenerPendientes, RAREZAS, textoRareza } from '../../../services/logros'
-import CelebracionLogro from './CelebracionLogro'
+import { obtenerLogros, RAREZAS, textoRareza } from '../../../services/logros'
 import '../home/home.css'
 import '../coleccion/coleccion.css'
 import './logros.css'
@@ -54,38 +53,25 @@ function TarjetaLogro({ logro }) {
   )
 }
 
-// Logros del usuario (GET /logros): total, filtros y grilla; los bloqueados van en gris y con candado
+// Logros del usuario (GET /logros): total, filtros y grilla; los bloqueados van en gris y con candado.
+// La celebracion de los recien ganados no vive aqui sino en el Layout (CelebradorLogros), para toda la app.
 export default function LogrosUsuario() {
-  const [estado, setEstado] = useState({ cargando: true, datos: null, pendientes: [], error: '' })
+  const [estado, setEstado] = useState({ cargando: true, datos: null, error: '' })
   const [estadoFiltro, setEstadoFiltro] = useState('TODOS')
   const [rarezaFiltro, setRarezaFiltro] = useState('TODAS')
-  const [aviso, setAviso] = useState(true)
-  const avisados = useRef(new Set())
 
   const cargar = useCallback(async () => {
     setEstado((e) => ({ ...e, cargando: true, error: '' }))
     try {
       const datos = await obtenerLogros()
-      // Los pendientes son un extra: si fallan no se pierde la pagina
-      const pendientes = await obtenerPendientes().catch(() => [])
-      setEstado({ cargando: false, datos, pendientes: Array.isArray(pendientes) ? pendientes : [], error: '' })
+      setEstado({ cargando: false, datos, error: '' })
     } catch (err) {
       if (err.estado === 401) return // api.js ya devuelve al acceso
-      setEstado({ cargando: false, datos: null, pendientes: [], error: 'No se pudieron cargar los logros.' })
+      setEstado({ cargando: false, datos: null, error: 'No se pudieron cargar los logros.' })
     }
   }, [])
 
   useEffect(() => { cargar() }, [cargar])
-
-  // Un pendiente se marca visto SOLO cuando el usuario cierra su celebracion (regla del producto). Antes se marcaba
-  // al cargar la pagina: el movil ya no lo celebraba y, con StrictMode, ni siquiera se veia el aviso.
-  // CelebracionLogro llama a esto al cerrar cada medalla, el resumen o "Saltar todos".
-  const terminarCelebracion = useCallback((ids) => {
-    const nuevos = (ids || []).filter((id) => id != null && !avisados.current.has(id))
-    if (nuevos.length === 0) return
-    nuevos.forEach((id) => avisados.current.add(id))
-    marcarVistos(nuevos).catch(() => nuevos.forEach((id) => avisados.current.delete(id)))
-  }, [])
 
   const lista = estado.datos?.logros
   const visibles = useMemo(() => (lista || []).filter((l) => {
@@ -108,23 +94,9 @@ export default function LogrosUsuario() {
 
   const { total = 0, desbloqueados = 0 } = estado.datos || {}
   const porcentaje = total > 0 ? Math.round((desbloqueados / total) * 100) : 0
-  const pendientes = estado.pendientes
 
   return (
     <div className="logros">
-      {pendientes.length > 0 && aviso && (
-        <div className="logros-aviso aparece" role="status">
-          <span className="logros-aviso-ico"><IconoLogro clave={pendientes[0].icono} /></span>
-          <span>
-            {pendientes.length === 1
-              ? <>¡Desbloqueaste <b>{pendientes[0].titulo}</b>!</>
-              : <>¡Desbloqueaste <b>{pendientes.length} logros</b> nuevos!</>}
-          </span>
-          <button className="logros-aviso-x" onClick={() => setAviso(false)} aria-label="Cerrar aviso"><Icono nombre="x" tam={18} /></button>
-        </div>
-      )}
-      <CelebracionLogro logros={pendientes} onTerminar={terminarCelebracion} />
-
       <section className="tarjeta logros-cab aparece">
         <div>
           <h2>Logros</h2>
